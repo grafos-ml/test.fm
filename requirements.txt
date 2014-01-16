@@ -1,0 +1,5 @@
+cython
+numpy
+pandas
+
+# C++, java and pyjnius
