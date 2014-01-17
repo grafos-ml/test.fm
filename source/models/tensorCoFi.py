@@ -18,7 +18,7 @@ os.environ['CLASSPATH'] = '../lib/*'
 
 from jnius import autoclass
 import numpy
-from models.interface import ModelInterface
+from interface import ModelInterface
 
 TensorCoFi = autoclass('es.tid.frappe.recsys.TensorCoFi')
 MySQLDataReader = autoclass('es.tid.frappe.mysql.MySQLDataReader')
