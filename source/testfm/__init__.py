@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 '''
 Created on 
 
@@ -7,6 +7,4 @@ Created on
 .. moduleauthor:: joaonrb <>
 '''
 __author__ = 'joaonrb'
-
-
 
