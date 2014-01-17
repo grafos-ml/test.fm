@@ -8,3 +8,8 @@ Created on
 '''
 __author__ = 'joaonrb'
 
+from splitter.holdout import Holdout
+
+
+class split(object):
+    holdout = Holdout()
