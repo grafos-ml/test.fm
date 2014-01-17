@@ -18,15 +18,16 @@ os.environ['CLASSPATH'] = '../lib/*'
 
 from jnius import autoclass
 import numpy
+from models.interface import ModelInterface
 
 TensorCoFi = autoclass('es.tid.frappe.recsys.TensorCoFi')
 MySQLDataReader = autoclass('es.tid.frappe.mysql.MySQLDataReader')
 FloatMatrix = autoclass('org.jblas.FloatMatrix')
 
 
-class PythonTensorCoFi(object):
+class TensorCoFiModel(ModelInterface):
 
-    def __init__(self,dim=20, nIter=5, lamb=0.05, alph=40,
+    def __init__(self,host,user,psw,dim=20, nIter=5, lamb=0.05, alph=40,
         port=3306,dbname='raqksixq_ffosv1'):
         '''
         Python model creator fro tensor implementation in java
@@ -38,8 +39,9 @@ class PythonTensorCoFi(object):
             *numpy.Array*:
 
         '''
-        self.reader = MySQLDataReader(HOST,port,dbname,USER,PDW)
+        self.reader = MySQLDataReader(host,port,dbname,user,psw)
         self.model = TensorCoFi(dim,nIter,lamb,alph,self.reader.getDims())
+        self.users, self.apps = self.getModel()
 
     def getData(self):
         return self.reader.getData()
@@ -47,13 +49,20 @@ class PythonTensorCoFi(object):
     def getModel(self):
         self.model.train(self.getData())
         final_model = self.model.getModel()
-        print final_model
+        t0 = numpy.fromiter(final_model.get(0).toArray(),dtype=numpy.float)
+        t0.shape = final_model.get(0).rows, final_model.get(0).columns
+        t1 = numpy.fromiter(final_model.get(1).toArray(),dtype=numpy.float)
+        t1.shape = final_model.get(1).rows, final_model.get(1).columns
+        return t0, t1
+
+    def getScore(self,user,item):
+        return (self.users.transpose()[user.pk-1] * self.apps)[item.pk-1]
 
 if __name__ == '__main__':
     HOST = '192.168.188.128'
     USER = 'raqksixq_frappe'
-    PDW = 'sp21o61h4'
-    t = PythonTensorCoFi().getModel()
+    PSW = 'sp21o61h4'
+    t = TensorCoFiModel(HOST,USER,PSW)
     print t
 
 
