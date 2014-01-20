@@ -2,4 +2,5 @@ cython
 numpy
 pandas
 
-# C++, java and pyjnius
+# in case of mac pyobjc
+# C++, java, pyjnius, 
