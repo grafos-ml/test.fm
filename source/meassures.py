@@ -103,10 +103,8 @@ class Precision_measure(Measure):
 
         if not recs or not isinstance(recs, list) or len(recs) < 1:
             return float('nan')
-        for i, r in enumerate(recs):
-            ground_truth, prediction = r
-            if isinstance(ground_truth, bool) and ground_truth is True:
-                relevant += 1
+        #compute number of relevant items in the list
+        relevant = float(len([gt for gt, _ in recs if gt]))
 
         if relevant == 0:
             return 0.0
