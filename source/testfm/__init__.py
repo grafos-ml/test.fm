@@ -1,15 +1,24 @@
 # -*- coding: utf-8 -*-
 '''
-Created on 
+Created on 17 January 2014
 
 
 
 .. moduleauthor:: joaonrb <>
 '''
-__author__ = 'joaonrb'
+__author__ = {
+    'name':'joaonrb',
+    'e-mail': 'joaonrb@gmail.com'
+}
+__version__ = 1,0,0
+__since__ = 17,1,2014
 
-from splitter.holdout import Holdout
+
+from splitter.holdout import HoldoutSplitter, HoldoutSplitterByUser, \
+    RandomHoldoutSplitter
 
 
 class split(object):
-    holdout = Holdout()
+    holdout = HoldoutSplitter()
+    holdoutByRandom = RandomHoldoutSplitter()
+    holdoutByUser = HoldoutSplitterByUser()
