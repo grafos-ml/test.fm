@@ -13,6 +13,10 @@ __author__ = {
 __version__ = 1,0,0
 __since__ = 17,1,2014
 
+import pandas as pd
+import numpy as np
+from interface import SplitterInterface
+
 ############################################
 ################# VARIABLES ################
 ############################################
@@ -21,65 +25,59 @@ USER = 'user'
 APP = 'app'
 DATE = 'date'
 
-class Holdout(object):
+class HoldoutSplitter(SplitterInterface):
     '''
-    Holdout class for split
+    Holdout class for split. The dataframe passed by the call should have a user
+    field, a app field and a date field.
     '''
-    __sort_methods__ = {
-        'by_date': 'sort_by_date',
-        'default': 'sort_default'
-    }
+    def split(self,dataList,fraction):
+        '''
+        Splits every list in dataList by fraction and return 2 dataframes
+        (training and test) according the holdout method.
+        '''
+        training = {k for k in dataList[0].keys()}
+        test= training.copy()
+        for dataset in dataList:
+            for key, value in dataset:
+                i = int(len(value)*fraction)
+                training[key], test[key] = value[:i], value[i:]
+
+        return pd.DataFrame(training), pd.DataFrame(test)
+
+    def sort(self,dataframe):
+        '''
+        Doesnt do any sorting
+        '''
+        return [dataframe.sort([DATE]).to_dict()]
 
 
-    def __call__(self, dataset,fraction=0.9):
-        '''
-        This provides the class to be called and execute a split
-        '''
-        return self.sort(dataset,fraction)
+class RandomHoldoutSplitter(HoldoutSplitter):
+    '''
+    It randomly takes elements for test
+    '''
 
-    def sort_by_date(self,dataset,fraction):
+    def sort(self,dataframe):
         '''
-        See if date can be sorted by data.
+        Doesnt do any sorting
         '''
-        cache = {}
-        for e in d.values:
-            cache[e[0]] = cache[e[0]] + [tuple(e[1:])] if e[0] in cache else \
-                [tuple(e[1:])]
-        train, testing = [], []
-        for user, data in cache.values():
-            i = len(data)
-            data = [tuple(user,app,d) for app,d in sorted(data,cmp=lambda x,y:
-                cmp(x[1],y[1]))]
-            train += data[:int(i*fraction)]
-            testing += data[int(i*fraction):]
-        return train, testing
+        df = dataframe.copy()
+        df.apply(np.random.shuffle)
+        return [df.to_dict()]
 
-    def sort_default(self,dataset,fraction):
-        '''
-        See if date can be sorted by data.
-        '''
-        cache = {}
-        for e in dataset.values:
-            cache[e[0]] = cache[e[0]] + [tuple(e[1:])] if e[0] in cache else \
-                [tuple(e[1:])]
-        train, testing = [], []
-        for user, data in cache.values():
-            i = len(data)
-            data = [tuple(user,app,d) for app,d in sorted(data)]
-            train += data[:int(i*fraction)]
-            testing += data[int(i*fraction):]
-        return train, testing
+class HoldoutSplitterByUser(HoldoutSplitter):
+    '''
+    Takes fraction from each user
+    '''
 
+    def sort(self,dataframe):
+        '''
 
-    def sort(self,dataset,fraction,smethod=None):
         '''
-        Try to sort dataset by time
-        '''
-        if smethod in Holdout.__sort_methods__:
-            return getattr(self,Holdout.__sort_methods__[smethod])\
-                (dataset,fraction)
-        try:
-            result = self.sort_by_date(dataset,fraction)
-        except KeyError:
-            result = self.sort_default(dataset,fraction)
-        return result
+        data = dataframe.sort([DATE,USER]).to_dict()
+        users = {}
+        for user,app,date in zip(data[USER],data[APP],data[DATE]):
+            try:
+                users[user].append((user,app,date))
+            except KeyError:
+                users[user]= [(user,app,date)]
+        return [map(zip([USER,APP,DATE],zip(*users[key]))) for key in users]
