@@ -1,6 +1,7 @@
 cython
 numpy
 pandas
+nose
 
 # in case of mac pyobjc
 # C++, java, pyjnius, 
