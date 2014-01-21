@@ -40,16 +40,14 @@ class HoldoutSplitter(SplitterInterface):
         for dataset in dataList:
             for key, value in dataset.items():
                 i = int(len(value)*fraction)
-                training[key], test[key] = value.values()[:i], \
-                    value.values()[i:]
-
+                training[key], test[key] = value[:i],value[i:]
         return pd.DataFrame(training), pd.DataFrame(test)
 
     def sort(self,dataframe):
         '''
         Doesnt do any sorting
         '''
-        return [dataframe.sort([DATE]).to_dict()]
+        return [dataframe.sort([DATE]).to_dict(outtype='list')]
 
 
 class RandomHoldoutSplitter(HoldoutSplitter):
@@ -63,7 +61,7 @@ class RandomHoldoutSplitter(HoldoutSplitter):
         '''
         df = dataframe.copy()
         df.apply(np.random.shuffle)
-        return [df.to_dict()]
+        return [df.to_dict(outtype='list')]
 
 class HoldoutSplitterByUser(HoldoutSplitter):
     '''
@@ -74,7 +72,7 @@ class HoldoutSplitterByUser(HoldoutSplitter):
         '''
 
         '''
-        data = dataframe.sort([DATE,USER]).to_dict()
+        data = dataframe.sort([DATE,USER]).to_dict(outtype='list')
         users = {}
         for user,app,date in zip(data[USER],data[APP],data[DATE]):
             try:
