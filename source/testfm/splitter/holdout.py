@@ -35,12 +35,13 @@ class HoldoutSplitter(SplitterInterface):
         Splits every list in dataList by fraction and return 2 dataframes
         (training and test) according the holdout method.
         '''
-        training = {k for k in dataList[0].keys()}
+        training = {k:[] for k in dataList[0].keys()}
         test= training.copy()
         for dataset in dataList:
-            for key, value in dataset:
+            for key, value in dataset.items():
                 i = int(len(value)*fraction)
-                training[key], test[key] = value[:i], value[i:]
+                training[key], test[key] = value.values()[:i], \
+                    value.values()[i:]
 
         return pd.DataFrame(training), pd.DataFrame(test)
 
