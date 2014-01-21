@@ -4,7 +4,7 @@ from random import sample
 
 from meassures import Measure, MAP_measure
 from testfm.models.interface import ModelInterface
-from testfm.models.fake_model import IdModel
+from testfm.models.baseline_model import IdModel
 from pandas import DataFrame
 '''
 Takes the model,testing data and evaluation measure and spits out the score.
