@@ -15,7 +15,7 @@ __since__ = 20,1,2014
 
 import pandas as pd
 import random as rand
-from testfm.splitter.holdout import USER,APP,DATE
+from testfm.splitter.holdout import USER,ITEM,DATE
 import testfm
 
 class TestSplitters(object):
@@ -26,7 +26,7 @@ class TestSplitters(object):
     def setup_class(cls):
         cls.data = pd.DataFrame({
             USER: [1,1,1,3,1,3,4,3,5,5,4,6,5,6],
-            APP: [1,2,3,1,4,2,1,3,1,2,2,1,3,2],
+            ITEM: [1,2,3,1,4,2,1,3,1,2,2,1,3,2],
             DATE: [
                 838989347, # 5
                 838991904, # 7
