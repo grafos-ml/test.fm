@@ -85,4 +85,4 @@ class HoldoutSplitterByUser(HoldoutSplitter):
                 users[d[0]].append(d[1:])
             except KeyError:
                 users[d[0]]= [d[1:]]
-        return [map(zip([USER,ITEM,DATE],zip(*users[key]))) for key in users]
+        return [map(zip(data.values(),zip(*users[key]))) for key in users]
