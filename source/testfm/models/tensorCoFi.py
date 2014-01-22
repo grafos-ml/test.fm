@@ -19,6 +19,7 @@ os.environ['CLASSPATH'] = '../lib/*'
 from jnius import autoclass
 import numpy
 from testfm.models.interface import ModelInterface
+from testfm.config import USER, ITEM
 
 TensorCoFi = autoclass('es.tid.frappe.recsys.TensorCoFi')
 MySQLDataReader = autoclass('es.tid.frappe.mysql.MySQLDataReader')
@@ -61,9 +62,28 @@ class TensorCoFi(ModelInterface):
         self._users, self._apps = [], []
 
     def _map(self,dataframe):
-        d = dataframe.to_dict(outtype='list')
-        md = {key: {} for key in d}
-        for i in xrange(len())
+        d, md, rmd = dataframe.to_dict(outtype='list'), {USER: {}, ITEM: {}},\
+            {USER: {}, ITEM: {}}
+        ndf = []
+        uid_counter, iid_counter = 0, 0
+        for i in xrange(len(dataframe.index)):
+            try:
+                nu = md[USER][d[USER][i]]
+            except KeyError:
+                nu = md[USER][d[USER][i]] = uid_counter
+                rmd[USER][uid_counter] = d[USER][i]
+                uid_counter += 1
+            try:
+                ni = md[ITEM][d[ITEM][i]]
+            except KeyError:
+                ni = md[ITEM][d[ITEM][i]] = iid_counter
+                rmd[ITEM][iid_counter] = d[ITEM][i]
+                iid_counter += 1
+            ndf.append((nu,ni))
+            # There's no need to have mor fields than this
+            #for key in d not in [USER,ITEM]:
+            #    rmd[key].append(d[key][i])
+        return FloatMatrix(ndf), rmd
 
     def fit(self,dataframe):
         '''
@@ -71,10 +91,11 @@ class TensorCoFi(ModelInterface):
         '''
         data, map = self._mapData(dataframe)
 
+        tensor = TensorCoFi(self.dim,self.nIter,self.lamb,self.alph,
+            [len(map[USER]),len(map[ITEM])])
+        tensor.train(data)
 
-
-        self.model.train()
-        final_model = self.model.getModel()
+        final_model = tensor.getModel()
         t0 = numpy.fromiter(final_model.get(0).toArray(),dtype=numpy.float)
         t0.shape = final_model.get(0).rows, final_model.get(0).columns
         t1 = numpy.fromiter(final_model.get(1).toArray(),dtype=numpy.float)
