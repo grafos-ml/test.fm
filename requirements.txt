@@ -2,6 +2,7 @@ cython
 numpy
 pandas
 nose
+gensim
 
 # in case of mac pyobjc
 # C++, java, pyjnius, 

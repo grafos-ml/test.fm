@@ -31,7 +31,7 @@ class LSIModel(ModelInterface):
     _user_representation = {}
     _item_representation = {}
 
-    def __init__(self, description_column_name, dim=10):
+    def __init__(self, description_column_name, dim=10, cold_start_strategy='return0'):
         '''
         :param description_column_name: str the name for the description column used for train the model
         :param dim: LSI dimensionality
@@ -39,12 +39,23 @@ class LSIModel(ModelInterface):
         '''
         self._dim = dim
         self._column_name = description_column_name
+        self._cold_start = cold_start_strategy
+
+    def getName(self):
+        return "LSI: dim={}".format(self._dim)
 
     def getScore(self,user,item):
         if not item in self._item_representation:
-            raise ValueError("Item was not in the training set")
+            if self._cold_start == 'return0':
+                return 0.0
+            else:
+                raise ValueError("Item {} was not in the training set".format(item))
+
         if not user in self._user_representation:
-            raise ValueError("User was not in the training set")
+            if self._cold_start == 'return0':
+                return 0.0
+            else:
+                raise ValueError("User {} was not in the training set".format(user))
 
         return self.cosine(self.get_vector(self._user_representation[user]),
                            self.get_vector(self._item_representation[item]))
