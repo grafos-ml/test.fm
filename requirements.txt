@@ -2,6 +2,7 @@ cython
 numpy
 pandas
 nose
+gensim
 
 # required for gensin
 setuptools>=1.3.2
