@@ -56,7 +56,7 @@ class Evaluator(object):
             if not isinstance(m, Measure):
                 raise ValueError("Measures should contain only Measure instances")
 
-        partial_measures = {}#a temp dictionary to store partial measures
+        partial_measures = {}#a temp dictionary to store sums of measures we compute
 
         if all_items is None:
             all_items = testing_dataframe.item.unique()

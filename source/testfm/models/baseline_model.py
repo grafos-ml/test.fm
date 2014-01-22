@@ -19,6 +19,9 @@ class RandomModel(ModelInterface):
     def fit(self,training_dataframe):
         pass
 
+    def getName(self):
+        return "Random"
+
 class IdModel(ModelInterface):
     '''
     Returns the score as the id of the item.
@@ -30,6 +33,9 @@ class IdModel(ModelInterface):
 
     def fit(self,training_dataframe):
         pass
+
+    def getName(self):
+        return "ItemID"
 
 
 class ConstantModel(ModelInterface):
@@ -46,6 +52,10 @@ class ConstantModel(ModelInterface):
     def getScore(self,user,item):
         return self._c
 
+    def getName(self):
+        return "Constant "+str(self._c)
+
+
 class Popularity(ModelInterface):
 
     _counts = {}
@@ -61,3 +71,6 @@ class Popularity(ModelInterface):
         '''
         for i,v in training_dataframe.item.value_counts().iteritems():
             self._counts[i] = v
+
+    def getName(self):
+        return "Popularity"

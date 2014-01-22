@@ -15,6 +15,13 @@ class ModelInterface(object):
     
     '''
 
+    def getName(self):
+        '''
+        Get the informative name for the model.
+        :return:
+        '''
+        raise NotImplementedError
+
     def getScore(self,user,item):
         '''
         A score for a user and item that method predicts.

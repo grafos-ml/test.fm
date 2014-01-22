@@ -46,6 +46,10 @@ class LinearEnsemble(ModelInterface):
         predictions = [m.getScore(user, item) for m in self._models]
         return sum([w*p for w,p in zip(self._weights, predictions)])
 
+    def getName(self):
+        models = ",".join([m.getName() for m in self._models])
+        weights = ",".join(["{:1.4f}".format(w) for w in self._weights])
+        return "Linear Ensamble ("+models+"|"+weights+")"
 
 if __name__ == '__main__':
     import doctest
