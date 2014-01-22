@@ -3,7 +3,8 @@ __author__ = 'linas'
 from random import random
 from interface import ModelInterface
 from pandas import DataFrame
-
+from scipy import dot
+from math import sqrt
 
 stopwords_str = "a,able,about,across,after,all,almost,also,am,among\
 ,an,and,any,are,as,at,be,because,been,but,by,can,cannot,could,dear\
@@ -28,6 +29,7 @@ class LSIModel(ModelInterface):
     _column_name = 'UNDEFINED'
     _stopwords = dict([(item, 1) for item in stopwords_str.split(",")])
     _user_representation = {}
+    _item_representation = {}
 
     def __init__(self, description_column_name, dim=10):
         '''
@@ -39,13 +41,13 @@ class LSIModel(ModelInterface):
         self._column_name = description_column_name
 
     def getScore(self,user,item):
-        key = (user, item)
-        if key in self._scores:
-            return self._scores[key]
-        else:
-            s = random()
-            self._scores[key] = s
-            return s
+        if not item in self._item_representation:
+            raise ValueError("Item was not in the training set")
+        if not user in self._user_representation:
+            raise ValueError("User was not in the training set")
+
+        return self.cosine(self.get_vector(self._user_representation[user]),
+                           self.get_vector(self._item_representation[item]))
 
     def _clean_text(self, item_description):
         from gensim.utils import simple_preprocess
@@ -59,21 +61,45 @@ class LSIModel(ModelInterface):
     def fit(self,training_dataframe):
         from gensim import corpora, models, similarities
         texts = []#descriptions of items
-        id_map = {}
+        user_id_map = {}#maps from the internal id to external
+        item_id_map = {}
 
+        #lets process the users
         training_dataframe = DataFrame(training_dataframe)
         grouped = training_dataframe.groupby('user')
         for user, entries in grouped:
             user_model = " ".join([item_desc for item_desc in entries[self._column_name]])
             user_model = self._clean_text(user_model)
-            id_map[len(texts)] = user
+            user_id_map[len(texts)] = user
             texts.append(user_model)
 
-        print texts
         dictionary = corpora.Dictionary(texts)
         corpus = map(dictionary.doc2bow, texts)
         self.lsi = models.LsiModel(corpus, id2word=dictionary, num_topics=self._dim)
         corpus_lsi = self.lsi[corpus]
         for user_idx, factors in enumerate(corpus_lsi):
-            self._user_representation[id_map[user_idx]] = factors
+            self._user_representation[user_id_map[user_idx]] = factors
 
+        #now we process items
+        item_texts = []
+        grouped = training_dataframe.groupby('item')
+        for item, entries in grouped:
+            #print entries[self._column_name]
+            desc = entries[self._column_name].iget(0)
+            desc = self._clean_text(desc)
+            item_id_map[len(item_texts)] = item
+            item_texts.append(desc)
+        corpus = map(dictionary.doc2bow, item_texts)
+
+        app_lsi = self.lsi[corpus]
+        for item_idx, factors in enumerate(app_lsi):
+            self._item_representation[item_id_map[item_idx]] = factors
+
+    def cosine(self, v1, v2):
+        return dot(v1, v2) / (sqrt(dot(v1, v1)) * sqrt(dot(v2, v2)))
+
+    def get_vector(self, factors):
+        ret = [0] * self._dim
+        for idx, f in factors:
+            ret[idx] = f
+        return ret

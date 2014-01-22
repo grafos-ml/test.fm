@@ -8,7 +8,7 @@ from testfm.models.baseline_model import Popularity, RandomModel, IdModel
 from testfm.models.ensemble_models import LinearEnsemble
 
 #prepare the data
-df = pd.read_csv('../data/movielenshead.dat', sep="::", header=None, names=['user', 'item', 'rating', 'date'])
+df = pd.read_csv('../data/movielenshead.dat', sep="::", header=None, names=['user', 'item', 'rating', 'date', 'title'])
 print df.head()
 training, testing = testfm.split.holdoutByRandom(df, 0.8)
 
