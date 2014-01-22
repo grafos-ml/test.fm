@@ -6,6 +6,7 @@ import testfm
 from testfm.evaluation.evaluator import Evaluator
 from testfm.models.baseline_model import Popularity, RandomModel, IdModel
 from testfm.models.ensemble_models import LinearEnsemble
+from testfm.models.tensorCoFi import TensorCoFi
 from testfm.models.content_based import LSIModel
 
 #prepare the data
@@ -15,10 +16,11 @@ training, testing = testfm.split.holdoutByRandom(df, 0.9)
 
 #tell me what models we want to evaluate
 models = [RandomModel(),
-          Popularity(),
-          IdModel(),
-          LinearEnsemble([RandomModel(), Popularity()], weights=[0.5, 0.5]),
-          LSIModel('title')
+            Popularity(),
+            IdModel(),
+            LinearEnsemble([RandomModel(), Popularity()], weights=[0.5, 0.5]),
+            LSIModel('title'),
+            TensorCoFi()
           ]
 
 #evaluate
