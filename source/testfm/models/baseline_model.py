@@ -32,6 +32,20 @@ class IdModel(ModelInterface):
         pass
 
 
+class ConstantModel(ModelInterface):
+    '''
+    Returns constant for all predictions.
+    Don't use this model in any comparison, because the algorithm will tell its a perfect model (just because
+    of the evaluation implementation)
+    '''
+    _c = 1.0
+
+    def __init__(self, constant=1.0):
+        self._c = constant
+
+    def getScore(self,user,item):
+        return self._c
+
 class Popularity(ModelInterface):
 
     _counts = {}
