@@ -25,9 +25,9 @@ class Evaluator(object):
             7.average the scores for each user
         >>> mapm = MAP_measure()
         >>> model = IdModel()
-        >>> eval = Evaluator()
+        >>> evaluation = Evaluator()
         >>> df = DataFrame({'user' : [1, 1, 3, 4], 'item' : [1, 2, 3, 4], 'rating' : [5,3,2,1], 'date': [11,12,13,14]})
-        >>> len(eval.evaluate_model(model, df, non_relevant_count=2))
+        >>> len(evaluation.evaluate_model(model, df, non_relevant_count=2))
         1
 
         #not the best test, I need to put seed in order to get an expected behaviour
@@ -56,7 +56,7 @@ class Evaluator(object):
             if not isinstance(m, Measure):
                 raise ValueError("Measures should contain only Measure instances")
 
-        partial_measures = {}#a temp dictionary to store partial measures
+        partial_measures = {}#a temp dictionary to store sums of measures we compute
 
         if all_items is None:
             all_items = testing_dataframe.item.unique()
