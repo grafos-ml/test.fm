@@ -1,7 +1,8 @@
 __author__ = 'linas'
 
 '''
-Ensemble models are the ones that take several already built models and combine them into a single model.
+Ensemble models are the ones that take several already built models and combine
+them into a single model.
 '''
 
 from interface import ModelInterface
@@ -14,13 +15,15 @@ class LinearEnsemble(ModelInterface):
     def __init__(self, models, weights=None):
         '''
         :param models: list of ModelInterface subclasses
-        :param weights: list of floats with weights telling how to combine the models
+        :param weights: list of floats with weights telling how to combine the 
+            models
         :return:
         '''
 
         if weights is not None:
             if len(models) != len(weights):
-                raise ValueError("The weights vector length should be the same as number of models")
+                raise ValueError("The weights vector length should be the same "
+                    "as number of models")
 
         self._weights = weights
         self._models = models
@@ -40,7 +43,8 @@ class LinearEnsemble(ModelInterface):
         >>> ensamble.getScore(0, 5)
         3.0
 
-        3 because we combine two models in a way: 5 (id of item)*0.5+1(constant factor)*0.5
+        3 because we combine two models in a way: 5 (id of item)*0.5+1(constant
+        factor)*0.5
 
         '''
         predictions = [m.getScore(user, item) for m in self._models]
