@@ -1,9 +1,7 @@
 __author__ = 'linas'
 
 from gensim import corpora, models
-from random import random
 from interface import ModelInterface
-from pandas import DataFrame
 from scipy import dot
 from math import sqrt
 
@@ -27,10 +25,10 @@ class LSIModel(ModelInterface):
     '''
 
     _dim = 10
-    _column_name = 'UNDEFINED'
+    _column_name = 'UNDEFINED' #column name to use for content
     _stopwords = dict([(item, 1) for item in stopwords_str.split(",")])
-    _user_representation = {}
-    _item_representation = {}
+    _user_representation = {} #user representation in LSI space (_dim dimensions vector)
+    _item_representation = {} #item representation in LSI space (_dim dimensions vector)
 
     def __init__(self, description_column_name, dim=10, cold_start_strategy='return0'):
         '''
@@ -102,8 +100,8 @@ class LSIModel(ModelInterface):
         self.lsi = models.LsiModel(corpus, id2word=dictionary, num_topics=self._dim)
         #corpus_lsi = self.lsi[corpus]
         for user, user_model in user_models.items():
-            um = map(dictionary.doc2bow, [user_model])
-            self._user_representation[user] = self.lsi[um[0]]
+            um = dictionary.doc2bow(user_model)
+            self._user_representation[user] = self.lsi[um]
 
         return dictionary
 
@@ -116,8 +114,8 @@ class LSIModel(ModelInterface):
         '''
         item_models = self._get_item_models(training_dataframe)
         for item, item_model in item_models.items():
-            im = map(dictionary.doc2bow, [item_model])
-            self._item_representation[item] = self.lsi[im[0]]
+            im = dictionary.doc2bow(item_model)
+            self._item_representation[item] = self.lsi[im]
 
     def fit(self,training_dataframe):
         dictionary = self._fit_users(training_dataframe)
