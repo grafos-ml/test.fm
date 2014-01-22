@@ -16,20 +16,23 @@ __since__ = 17,1,2014
 import pandas as pd
 import numpy as np
 from interface import SplitterInterface
+from testfm.config import USER, ITEM, DATE
 
 ############################################
 ################# VARIABLES ################
 ############################################
 
-USER = 'user'
-APP = 'app'
-DATE = 'date'
+
 
 class HoldoutSplitter(SplitterInterface):
     '''
     Holdout class for split. The dataframe passed by the call should have a user
     field, a app field and a date field.
     '''
+    def __init__(self,sortBy=[DATE]):
+        self._sortby = sortBy
+
+
     def split(self,dataList,fraction):
         '''
         Splits every list in dataList by fraction and return 2 dataframes
@@ -47,7 +50,7 @@ class HoldoutSplitter(SplitterInterface):
         '''
         Doesnt do any sorting
         '''
-        return [dataframe.sort([DATE]).to_dict(outtype='list')]
+        return [dataframe.sort(self._sortby).to_dict(outtype='list')]
 
 
 class RandomHoldoutSplitter(HoldoutSplitter):
@@ -68,15 +71,18 @@ class HoldoutSplitterByUser(HoldoutSplitter):
     Takes fraction from each user
     '''
 
+    def __init__(self,sortBy=[DATE,USER]):
+        super(self,HoldoutSplitterByUser).__init__(sortBy)
+
     def sort(self,dataframe):
         '''
 
         '''
-        data = dataframe.sort([DATE,USER]).to_dict(outtype='list')
+        data = dataframe.sort(self._sortby).to_dict(outtype='list')
         users = {}
-        for user,app,date in zip(data[USER],data[APP],data[DATE]):
+        for d in zip(*[data[USER]]+data.values()):
             try:
-                users[user].append((user,app,date))
+                users[d[0]].append(d[1:])
             except KeyError:
-                users[user]= [(user,app,date)]
-        return [map(zip([USER,APP,DATE],zip(*users[key]))) for key in users]
+                users[d[0]]= [d[1:]]
+        return [map(zip(data.values(),zip(*users[key]))) for key in users]
