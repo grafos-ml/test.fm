@@ -72,7 +72,7 @@ class HoldoutSplitterByUser(HoldoutSplitter):
     '''
 
     def __init__(self,sortBy=[DATE,USER]):
-        super(self,HoldoutSplitterByUser).__init__(sortBy)
+        super(HoldoutSplitterByUser,self).__init__(sortBy=sortBy)
 
     def sort(self,dataframe):
         '''
