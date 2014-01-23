@@ -76,7 +76,7 @@ class LSIModel(ModelInterface):
         grouped = training_dataframe.groupby('item')
         for item, entries in grouped:
             #print entries[self._column_name]
-            desc = entries[self._column_name].iget(0)
+            desc = str(entries[self._column_name].iget(0))
             desc = self._clean_text(desc)
             ret[item] = desc
         return ret
@@ -85,7 +85,7 @@ class LSIModel(ModelInterface):
         ret = {}
         grouped = training_dataframe.groupby('user')
         for user, entries in grouped:
-            user_model = " ".join([item_desc for item_desc in entries[self._column_name]])
+            user_model = " ".join([str(item_desc) for item_desc in entries[self._column_name]])
             user_model = self._clean_text(user_model)
             ret[user] = user_model
         return ret
