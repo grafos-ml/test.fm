@@ -23,7 +23,7 @@ models = [RandomModel(),
             IdModel(),
             LinearEnsemble([RandomModel(), Popularity()], weights=[0.5, 0.5]),
             #LSIModel('title'),
-            #TensorCoFi()
+            TensorCoFi()
           ]
 
 #evaluate
