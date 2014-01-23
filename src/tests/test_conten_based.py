@@ -2,7 +2,6 @@ __author__ = 'linas'
 
 import unittest
 import pandas as pd
-import testfm
 
 from testfm.models.content_based import LSIModel
 
