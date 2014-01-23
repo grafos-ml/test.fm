@@ -21,9 +21,10 @@ import numpy
 from testfm.models.interface import ModelInterface
 from testfm.config import USER, ITEM
 
-TensorCoFi = autoclass('es.tid.frappe.recsys.TensorCoFi')
+JavaTensorCoFi = autoclass('es.tid.frappe.recsys.TensorCoFi')
 MySQLDataReader = autoclass('es.tid.frappe.mysql.MySQLDataReader')
 FloatMatrix = autoclass('org.jblas.FloatMatrix')
+Arrays = autoclass('java.util.Arrays')
 
 
 class TensorCoFi(ModelInterface):
@@ -64,35 +65,36 @@ class TensorCoFi(ModelInterface):
     def _map(self,dataframe):
         d, md, rmd = dataframe.to_dict(outtype='list'), {USER: {}, ITEM: {}},\
             {USER: {}, ITEM: {}}
-        ndf = []
-        uid_counter, iid_counter = 0, 0
-        for i in xrange(len(dataframe.index)):
+        rows = len(d[USER])
+        ndf = FloatMatrix.zeros(rows,2)
+        uid_counter, iid_counter = 1, 1
+        for i in xrange(rows):
             try:
                 nu = md[USER][d[USER][i]]
             except KeyError:
-                nu = md[USER][d[USER][i]] = uid_counter
+                md[USER][d[USER][i]] = uid_counter
                 rmd[USER][uid_counter] = d[USER][i]
+                nu = uid_counter
                 uid_counter += 1
             try:
                 ni = md[ITEM][d[ITEM][i]]
             except KeyError:
-                ni = md[ITEM][d[ITEM][i]] = iid_counter
+                md[ITEM][d[ITEM][i]] = iid_counter
                 rmd[ITEM][iid_counter] = d[ITEM][i]
+                ni = iid_counter
                 iid_counter += 1
-            ndf.append((nu,ni))
-            # There's no need to have mor fields than this
-            #for key in d not in [USER,ITEM]:
-            #    rmd[key].append(d[key][i])
-        return FloatMatrix(ndf), rmd
+            ndf.put(i,float(nu))
+            ndf.put(i+rows,float(ni))
+        self._map = md
+        return ndf, rmd
 
     def fit(self,dataframe):
         '''
         Return the model
         '''
-        data, map = self._mapData(dataframe)
-
-        tensor = TensorCoFi(self.dim,self.nIter,self.lamb,self.alph,
-            [len(map[USER]),len(map[ITEM])])
+        data, tmap = self._map(dataframe)
+        tensor = JavaTensorCoFi(self._dim,self._nIter,self._lamb,self._alph,
+            [len(tmap[USER]),len(tmap[ITEM])])
         tensor.train(data)
 
         final_model = tensor.getModel()
@@ -100,13 +102,18 @@ class TensorCoFi(ModelInterface):
         t0.shape = final_model.get(0).rows, final_model.get(0).columns
         t1 = numpy.fromiter(final_model.get(1).toArray(),dtype=numpy.float)
         t1.shape = final_model.get(1).rows, final_model.get(1).columns
-        self._users, self._apps = t0, t1
+        self._users, self._apps = numpy.matrix(t0), numpy.matrix(t1)
 
     def getScore(self,user,item):
         '''
         Get a app score for a given user
         '''
-        return (self._users.transpose()[user.pk-1] * self._apps)[item.pk-1]
+        # nem todas as apps the teste estao no tensor
+        a = (self._users.transpose()[self._map[USER][user]-1] * self._apps)
+        try:
+            return a[0,self._map[ITEM][item]-1]
+        except KeyError:
+            return 0.0
 
 
 

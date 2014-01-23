@@ -20,7 +20,7 @@ class ModelInterface(object):
         Get the informative name for the model.
         :return:
         '''
-        raise NotImplementedError
+        return self.__class__.__name__
 
     def getScore(self,user,item):
         '''

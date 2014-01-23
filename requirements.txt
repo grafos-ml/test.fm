@@ -1,12 +1,15 @@
 cython
 numpy
+scipy
 pandas
 nose
-gensim
 
 # required for gensin
-setuptools>=1.3.2
+#setuptools>=1.3.2
 gensim
 
 # in case of mac pyobjc
-# C++, java, pyjnius, 
+# C++, java, pyjnius,
+# Need BLAS and LAPACK for scipy:
+# ex: apt-get install libblas3gf libblas-doc libblas-dev liblapack3gf
+# liblapack-doc liblapack-dev

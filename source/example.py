@@ -10,7 +10,8 @@ from testfm.models.tensorCoFi import TensorCoFi
 from testfm.models.content_based import LSIModel
 
 #prepare the data
-df = pd.read_csv('../data/movielenshead.dat', sep="::", header=None, names=['user', 'item', 'rating', 'date', 'title'])
+df = pd.read_csv('../data/movielenshead.dat', sep="::", header=None, names=
+    ['user', 'item', 'rating', 'date', 'title'])
 print df.head()
 training, testing = testfm.split.holdoutByRandom(df, 0.9)
 
