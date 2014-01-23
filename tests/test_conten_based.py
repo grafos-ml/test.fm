@@ -2,6 +2,7 @@ __author__ = 'linas'
 
 import unittest
 import pandas as pd
+import testfm
 
 from testfm.models.content_based import LSIModel
 
@@ -9,7 +10,7 @@ class TestLSI(unittest.TestCase):
 
     def setUp(self):
         self.lsi = LSIModel("title")
-        self.df = pd.read_csv('../../../data/movielenshead.dat', sep="::", header=None, names=['user', 'item', 'rating', 'date', 'title'])
+        self.df = pd.read_csv('testfm/data/movielenshead.dat', sep="::", header=None, names=['user', 'item', 'rating', 'date', 'title'])
 
     def test_fit(self):
         self.lsi.fit(self.df)

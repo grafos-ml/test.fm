@@ -1,8 +1,8 @@
 __author__ = 'linas'
 
 from random import random
-from interface import ModelInterface
-from pandas import DataFrame
+from testfm.models.interface import ModelInterface
+
 
 class RandomModel(ModelInterface):
     _scores = {}

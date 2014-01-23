@@ -14,7 +14,7 @@ __version__ = 1,0,0
 __since__ = 17,1,2014
 
 
-from splitter.holdout import HoldoutSplitter, HoldoutSplitterByUser, \
+from testfm.splitter.holdout import HoldoutSplitter, HoldoutSplitterByUser, \
     RandomHoldoutSplitter
 
 

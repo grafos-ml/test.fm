@@ -20,7 +20,7 @@ class SplitterInterface(object):
 
     def __call__(self, dataframe,fraction):
         '''
-        Divides the dataframe into train dataframe and test dataframe
+        Divides the dataframe into train dataframe and tests dataframe
         '''
         return self.split(self.sort(dataframe), fraction)
 

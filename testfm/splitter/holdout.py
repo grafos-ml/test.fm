@@ -15,8 +15,8 @@ __since__ = 17,1,2014
 
 import pandas as pd
 import numpy as np
-from interface import SplitterInterface
-from testfm.config import USER, ITEM, DATE
+from testfm.splitter.interface import SplitterInterface
+from testfm.config import USER, DATE
 
 ############################################
 ################# VARIABLES ################
@@ -36,7 +36,7 @@ class HoldoutSplitter(SplitterInterface):
     def split(self,dataList,fraction):
         '''
         Splits every list in dataList by fraction and return 2 dataframes
-        (training and test) according the holdout method.
+        (training and tests) according the holdout method.
         '''
         training = {k:[] for k in dataList[0].keys()}
         test= training.copy()
@@ -55,7 +55,7 @@ class HoldoutSplitter(SplitterInterface):
 
 class RandomHoldoutSplitter(HoldoutSplitter):
     '''
-    It randomly takes elements for test
+    It randomly takes elements for tests
     '''
 
     def sort(self,dataframe):

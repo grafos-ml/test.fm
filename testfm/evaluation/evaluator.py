@@ -2,10 +2,11 @@ __author__ = 'linas'
 
 from random import sample
 
-from meassures import Measure, MAP_measure
+from pandas import DataFrame
+
+from testfm.evaluation.meassures import Measure, MAP_measure
 from testfm.models.interface import ModelInterface
 from testfm.models.baseline_model import IdModel
-from pandas import DataFrame
 '''
 Takes the model,testing data and evaluation measure and spits out the score.
 '''
@@ -30,7 +31,7 @@ class Evaluator(object):
         >>> len(evaluation.evaluate_model(model, df, non_relevant_count=2))
         1
 
-        #not the best test, I need to put seed in order to get an expected behaviour
+        #not the best tests, I need to put seed in order to get an expected behaviour
 
         :param factor_model: ModelInterface  an instance of ModelInterface
         :param testing_dataframe: DataFrame pandas dataframe of testing data

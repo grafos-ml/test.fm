@@ -5,7 +5,7 @@ Ensemble models are the ones that take several already built models and combine
 them into a single model.
 '''
 
-from interface import ModelInterface
+from testfm.models.interface import ModelInterface
 
 class LinearEnsemble(ModelInterface):
 

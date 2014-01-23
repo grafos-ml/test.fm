@@ -1,9 +1,12 @@
 __author__ = 'linas'
 
-from gensim import corpora, models
-from interface import ModelInterface
-from scipy import dot
 from math import sqrt
+
+from gensim import corpora, models
+from scipy import dot
+
+from testfm.models.interface import ModelInterface
+
 
 stopwords_str = "a,able,about,across,after,all,almost,also,am,among\
 ,an,and,any,are,as,at,be,because,been,but,by,can,cannot,could,dear\
@@ -24,13 +27,13 @@ class LSIModel(ModelInterface):
 
     '''
 
-    _dim = 10
+    _dim = 50
     _column_name = 'UNDEFINED' #column name to use for content
     _stopwords = dict([(item, 1) for item in stopwords_str.split(",")])
     _user_representation = {} #user representation in LSI space (_dim dimensions vector)
     _item_representation = {} #item representation in LSI space (_dim dimensions vector)
 
-    def __init__(self, description_column_name, dim=10, cold_start_strategy='return0'):
+    def __init__(self, description_column_name, dim=50, cold_start_strategy='return0'):
         '''
         :param description_column_name: str the name for the description column used for train the model
         :param dim: LSI dimensionality
