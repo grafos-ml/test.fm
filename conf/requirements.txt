@@ -10,4 +10,6 @@ jnius>=1.0.2
 
 # in case of mac pyobjc
 # C++, java, pyjnius,
-
+# Need BLAS and LAPACK for scipy:
+# ex: apt-get install libblas3gf libblas-doc libblas-dev liblapack3gf
+# liblapack-doc liblapack-dev
