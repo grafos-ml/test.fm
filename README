@@ -1,4 +1,5 @@
-== Examples, etc ==
+Conceptual example of using the system
+======================================
 
 	import testfm
 	import pandas as pd

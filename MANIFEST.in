@@ -1,0 +1,10 @@
+include README
+include AUTHORS
+include LICENSE
+include MANIFEST.in
+recursive-include docs *
+recursive-include lib *
+recursive-include tests *
+recursive-include testfm *
+recursive-exclude dist *
+recursive-exclude * *.py[co]
