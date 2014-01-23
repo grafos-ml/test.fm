@@ -1,12 +1,13 @@
-cython
-numpy
-pandas
-nose
-gensim
-
 # required for gensin
 setuptools>=1.3.2
-gensim
+
+cython>=0.20
+numpy>=1.8.0
+pandas>=0.12.0
+nose>=1.3.0
+gensim>=0.8.6
+jnius==1.1-dev
 
 # in case of mac pyobjc
-# C++, java, pyjnius, 
+# C++, java, pyjnius,
+
