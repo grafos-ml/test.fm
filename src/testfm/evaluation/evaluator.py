@@ -68,7 +68,7 @@ class Evaluator(object):
         for user, entries in grouped:
             #2. take all relevant items from the testing_dataframe
             ranked_list = []
-            for i,r in zip(entries['item'], entries['rating']):
+            for i in entries['item']:
                 prediction = factor_model.getScore(user,i)
                 ranked_list.append((True, prediction))
 
