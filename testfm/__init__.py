@@ -15,10 +15,11 @@ __since__ = 17,1,2014
 
 
 from testfm.splitter.holdout import HoldoutSplitter, HoldoutSplitterByUser, \
-    RandomHoldoutSplitter
+    RandomHoldoutSplitter, RandomSplitter
 
 
 class split(object):
     holdout = HoldoutSplitter()
     holdoutByRandom = RandomHoldoutSplitter()
     holdoutByUser = HoldoutSplitterByUser()
+    holdoutByRandomFast = RandomSplitter()

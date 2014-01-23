@@ -15,6 +15,7 @@ __since__ = 17,1,2014
 
 import pandas as pd
 import numpy as np
+from random import sample
 from testfm.splitter.interface import SplitterInterface
 from testfm.config import USER, DATE
 
@@ -52,6 +53,26 @@ class HoldoutSplitter(SplitterInterface):
         '''
         return [dataframe.sort(self._sortby).to_dict(outtype='list')]
 
+
+class RandomSplitter(HoldoutSplitter):
+
+    def split(self,df,fraction):
+        n = int(len(df)*fraction)
+        sampler = np.random.permutation(df.shape[0])
+        training_idx = sampler[:n-1]
+        testing_idx = sampler[n+1:]
+
+        training = df.take(training_idx).values
+        testing = df.take(testing_idx).values
+        df_training = pd.DataFrame(training)
+        df_training.columns = df.columns
+        df_training.reindex()
+        df_testing = pd.DataFrame(testing)
+        df_testing.columns = df.columns
+        return df_training, df_testing
+
+    def sort(self,dataframe):
+        return dataframe
 
 class RandomHoldoutSplitter(HoldoutSplitter):
     '''
