@@ -8,6 +8,8 @@ def get_requirements():
         reqs = filter(None, (x.replace('\n', '').strip() for x in reqs_file if not x.startswith("#")))
         return reqs
 
+print get_requirements()
+
 setup(name='testfm',
       version='1.0',
       description='Experimentation library for Recommender Systems',
@@ -17,5 +19,6 @@ setup(name='testfm',
       packages=find_packages(),
       license="Apache2",
       include_package_data=True,
+      install_requires=get_requirements(),
      )
 
