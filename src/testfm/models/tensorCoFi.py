@@ -111,9 +111,9 @@ class TensorCoFi(ModelInterface):
         '''
         Get a app score for a given user
         '''
-        # nem todas as apps the teste estao no tensor
-        a = (self._users.transpose()[self._map[USER][user]-1] * self._apps)
+
         try:
+            a = (self._users.transpose()[self._map[USER][user]-1] * self._apps)
             return a[0,self._map[ITEM][item]-1]
         except KeyError:
             return 0.0
