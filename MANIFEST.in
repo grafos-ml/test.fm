@@ -5,7 +5,7 @@ include MANIFEST.in
 recursive-include conf *
 recursive-include docs *
 recursive-include lib *
-recursive-include tests *
-recursive-include testfm *
+recursive-include data *
+recursive-include src *
 recursive-exclude dist *
 recursive-exclude * *.py[co]

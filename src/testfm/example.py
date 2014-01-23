@@ -8,9 +8,11 @@ from testfm.models.baseline_model import Popularity, RandomModel, IdModel
 from testfm.models.ensemble_models import LinearEnsemble
 from testfm.models.tensorCoFi import TensorCoFi
 from testfm.models.content_based import LSIModel
+from pkg_resources import resource_filename
 
 #prepare the data
-df = pd.read_csv('data/movielenshead.dat', sep="::", header=None, names=['user', 'item', 'rating', 'date', 'title'])
+df = pd.read_csv(resource_filename(testfm.__name__,'data/movielenshead.dat'),
+    sep="::", header=None, names=['user', 'item', 'rating', 'date', 'title'])
 print df.head()
 training, testing = testfm.split.holdoutByRandomFast(df, 0.9)
 

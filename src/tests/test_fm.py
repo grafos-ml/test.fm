@@ -14,7 +14,6 @@ __version__ = 1,0,0
 __since__ = 20,1,2014
 
 import pandas as pd
-import random as rand
 from testfm.splitter.holdout import USER,ITEM,DATE
 import testfm
 
