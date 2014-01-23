@@ -20,3 +20,4 @@ Conceptual example of using the system
 	print params
 	#('--lambda', 0.01)
 	model = testfm.buildmodel('okapi:iMF', training, user_dim=0, item_dim=1, params=params)
+
