@@ -21,9 +21,9 @@ print len(training), len(testing)
 models = [RandomModel(),
             Popularity(),
             IdModel(),
-            LinearEnsemble([RandomModel(), Popularity()], weights=[0.5, 0.5]),
+            #LinearEnsemble([RandomModel(), Popularity()], weights=[0.5, 0.5]),
             #LSIModel('title'),
-            TensorCoFi()
+            #TensorCoFi()
           ]
 
 #evaluate
@@ -32,9 +32,9 @@ evaluator = Evaluator()
 print "\n\n"
 for m in models:
     m.fit(training)
-    print m.getName().ljust(50) , evaluator.evaluate_model(m, testing, all_items=items)
+    print m.getName().ljust(50) , evaluator.evaluate_model_multiprocessing(m, testing, all_items=items)
 
 print "\n\n"
-for alpha in np.linspace(0.0, 1.0, num=5):
-    model = LinearEnsemble([RandomModel(), Popularity()], weights=[alpha, 1.0-alpha])
-    print model.getName().ljust(50) , evaluator.evaluate_model(model, testing, all_items=items)
+for m in models:
+    m.fit(training)
+    print m.getName().ljust(50) , evaluator.evaluate_model(m, testing, all_items=items)
