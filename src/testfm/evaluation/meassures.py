@@ -64,15 +64,12 @@ class MAP_measure(Measure):
         mapm = 0.0
         relevant = 0.0
 
-        for i, r in enumerate(recs):
-            ground_truth, prediction = r
-            if isinstance(ground_truth, bool) and ground_truth is True:
+        for i, (ground_truth, prediction) in enumerate(recs):
+            if ground_truth is True:
                 relevant += 1
                 mapm += relevant / (i+1)
-        if relevant == 0:
-            return 0.0
-        else:
-            return mapm/relevant
+
+        return 0.0 if relevant == 0 else mapm/relevant
 
 
 class Precision_measure(Measure):
@@ -98,17 +95,12 @@ class Precision_measure(Measure):
         0.4
         '''
 
-        relevant = 0.0
-
         if not recs or not isinstance(recs, list) or len(recs) < 1:
             return float('nan')
         #compute number of relevant items in the list
         relevant = float(len([gt for gt, _ in recs if gt]))
 
-        if relevant == 0:
-            return 0.0
-        else:
-            return relevant/len(recs)
+        return 0.0 if relevant == 0  else relevant/len(recs)
 
 if __name__ == '__main__':
     '''
