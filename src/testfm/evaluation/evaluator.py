@@ -7,10 +7,15 @@ from pandas import DataFrame
 from testfm.evaluation.meassures import Measure, MAP_measure
 from testfm.models.interface import ModelInterface
 from testfm.models.baseline_model import IdModel
+from concurrent.futures import ThreadPoolExecutor
+from collections import Counter
+
+# Number of threads to the threadpool
+NUMBER_OF_THREADS = 8
+
 '''
 Takes the model,testing data and evaluation measure and spits out the score.
 '''
-
 class Evaluator(object):
 
     def evaluate_model(self, factor_model, testing_dataframe, measures=
@@ -78,29 +83,38 @@ class Evaluator(object):
 
         #1. for each user:
         grouped = testing_dataframe.groupby('user')
-        for user, entries in grouped:
 
-            #2. take all relevant items from the testing_dataframe
-            ranked_list = [(True, factor_model.getScore(user,i))
-                for i in entries['item']]
-
-            #3. inject #non_relevant random items
-            ranked_list += [(False, factor_model.getScore(user,nr))
-                for nr in sample(all_items, non_relevant_count)]
-
-            #5. sort according to the score
-            ranked_list.sort(key=lambda x: x[1], reverse=True)
-
-            #6. evaluate according to each measure
-            for measure in measures:
-                try:
-                    partial_measures[measure] += measure.measure(ranked_list)
-                except KeyError:
-                    partial_measures[measure] = measure.measure(ranked_list)
+        with ThreadPoolExecutor(max_workers=NUMBER_OF_THREADS) as e:
+            results = (e.submit(self.partial_mesure,user,entries,factor_model,
+                all_items,non_relevant_count,measures)
+                for user, entries in grouped)
+            partial_measures = sum((Counter(r.result())
+                for r in results),Counter())
 
         #7.average the scores for each user
         return [partial_measures[measure]/len(grouped) for measure in measures]
 
+    def partial_mesure(self,user,entries,factor_model,all_items,
+        non_relevant_count,measures):
+        partial_measures = {}
+        #2. take all relevant items from the testing_dataframe
+        ranked_list = [(True, factor_model.getScore(user,i))
+            for i in entries['item']]
+
+        #3. inject #non_relevant random items
+        ranked_list += [(False, factor_model.getScore(user,nr))
+            for nr in sample(all_items, non_relevant_count)]
+
+        #5. sort according to the score
+        ranked_list.sort(key=lambda x: x[1], reverse=True)
+
+        #6. evaluate according to each measure
+        for measure in measures:
+            try:
+                partial_measures[measure] += measure.measure(ranked_list)
+            except KeyError:
+                partial_measures[measure] = measure.measure(ranked_list)
+        return partial_measures
 
 if __name__ == "__main__":
     import doctest
