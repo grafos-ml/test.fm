@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from collections import Counter
 
 # Number of threads to the threadpool
-NUMBER_OF_THREADS = 8
+NUMBER_OF_THREADS = 4
 
 
 def pm(tuple):
@@ -184,7 +184,7 @@ class Evaluator(object):
         pool = Pool(processes=NUMBER_OF_THREADS)
         u = [user for user, entries in grouped]
         e = [entries for user, entries in grouped]
-        res = pool.map(pm, zip(u, e, repeat(factor_model), repeat(all_items), repeat(non_relevant_count), repeat(measures) ))
+        res = pool.map(pm, izip(u, e, repeat(factor_model), repeat(all_items), repeat(non_relevant_count), repeat(measures) ))
 
         #7.average the scores for each user
         return [sum(measure_list)/len(measure_list) for measure_list in zip(*res)]
