@@ -14,22 +14,8 @@ from collections import Counter
 NUMBER_OF_THREADS = 4
 
 
-def pm(tuple):
-        user,entries,factor_model,all_items, non_relevant_count,measures = tuple
-        ret = []
-        #2. take all relevant items from the testing_dataframe
-        ranked_list = [(True, factor_model.getScore(user,i))
-            for i in entries['item']]
-
-        #3. inject #non_relevant random items
-        ranked_list += [(False, factor_model.getScore(user,nr))
-            for nr in sample(all_items, non_relevant_count)]
-
-        #5. sort according to the score
-        ranked_list.sort(key=lambda x: x[1], reverse=True)
-
-        #6. evaluate according to each measure
-        return [measure.measure(ranked_list )for measure in measures]
+def pm(args):
+    return args[0].partial_mesure(*args[1:])
 
 '''
 Takes the model,testing data and evaluation measure and spits out the score.
@@ -101,16 +87,13 @@ class Evaluator(object):
 
         #1. for each user:
         grouped = testing_dataframe.groupby('user')
-
         with ThreadPoolExecutor(max_workers=NUMBER_OF_THREADS) as e:
-            results = (e.submit(self.partial_mesure,user,entries,factor_model,
-                all_items,non_relevant_count,measures)
+            jobs = (e.submit(pm, (Evaluator,user,entries,
+                factor_model,all_items,non_relevant_count,measures))
                 for user, entries in grouped)
-            partial_measures = sum((Counter(r.result())
-                for r in results),Counter())
-
-        #7.average the scores for each user
-        return [partial_measures[measure]/len(grouped) for measure in measures]
+            #7.average the scores for each user
+            results =  [job.result() for job in jobs]
+        return (sum(result)/len(result) for result in zip(*results))
 
 
     def evaluate_model_multiprocessing(self, factor_model, testing_dataframe, measures=
@@ -182,16 +165,17 @@ class Evaluator(object):
         from itertools import izip, repeat
 
         pool = Pool(processes=NUMBER_OF_THREADS)
-        u = [user for user, entries in grouped]
-        e = [entries for user, entries in grouped]
-        res = pool.map(pm, izip(u, e, repeat(factor_model), repeat(all_items), repeat(non_relevant_count), repeat(measures) ))
-
+        u, e = zip(*[(user, entries) for user, entries in grouped])
+        res = pool.map(pm, izip(repeat(Evaluator),
+            u, e, repeat(factor_model), repeat(all_items),
+            repeat(non_relevant_count), repeat(measures)))
         #7.average the scores for each user
-        return [sum(measure_list)/len(measure_list) for measure_list in zip(*res)]
+        return (sum(measure_list)/len(measure_list)
+            for measure_list in zip(*res))
 
-    def partial_mesure(self,user,entries,factor_model,all_items,
+    @classmethod
+    def partial_mesure(cls,user,entries,factor_model,all_items,
         non_relevant_count,measures):
-        partial_measures = {}
         #2. take all relevant items from the testing_dataframe
         ranked_list = [(True, factor_model.getScore(user,i))
             for i in entries['item']]
@@ -204,12 +188,7 @@ class Evaluator(object):
         ranked_list.sort(key=lambda x: x[1], reverse=True)
 
         #6. evaluate according to each measure
-        for measure in measures:
-            try:
-                partial_measures[measure] += measure.measure(ranked_list)
-            except KeyError:
-                partial_measures[measure] = measure.measure(ranked_list)
-        return partial_measures
+        return [measure.measure(ranked_list) for measure in measures]
 
 if __name__ == "__main__":
     import doctest

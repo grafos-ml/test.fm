@@ -29,12 +29,15 @@ models = [RandomModel(),
 #evaluate
 items = training.item.unique()
 evaluator = Evaluator()
-print "\n\n"
+print "\n\n Multiprocessing"
 for m in models:
     m.fit(training)
-    print m.getName().ljust(50) , evaluator.evaluate_model_multiprocessing(m, testing, all_items=items)
+    print m.getName().ljust(50), \
+        list(evaluator.evaluate_model_multiprocessing(m,
+            testing, all_items=items))
 
-print "\n\n"
+print "\n\nMultithread"
 for m in models:
     m.fit(training)
-    print m.getName().ljust(50) , evaluator.evaluate_model(m, testing, all_items=items)
+    print m.getName().ljust(50), \
+        list(evaluator.evaluate_model(m, testing, all_items=items))
