@@ -29,7 +29,7 @@ from testfm.models.interface import ModelInterface
 from testfm.config import USER, ITEM
 
 JavaTensorCoFi = autoclass('es.tid.frappe.recsys.TensorCoFi')
-MySQLDataReader = autoclass('es.tid.frappe.mysql.MySQLDataReader')
+#MySQLDataReader = autoclass('es.tid.frappe.mysql.MySQLDataReader')
 FloatMatrix = autoclass('org.jblas.FloatMatrix')
 Arrays = autoclass('java.util.Arrays')
 
@@ -105,11 +105,21 @@ class TensorCoFi(ModelInterface):
         tensor.train(data)
 
         final_model = tensor.getModel()
-        t0 = numpy.fromiter(final_model.get(0).toArray(),dtype=numpy.float)
-        t0.shape = final_model.get(0).rows, final_model.get(0).columns
-        t1 = numpy.fromiter(final_model.get(1).toArray(),dtype=numpy.float)
-        t1.shape = final_model.get(1).rows, final_model.get(1).columns
-        self._users, self._apps = numpy.matrix(t0), numpy.matrix(t1)
+        users = self._float_matrix2numpy(final_model.get(0))
+        items = self._float_matrix2numpy(final_model.get(0))
+        self._users, self._apps = numpy.matrix(users), numpy.matrix(items)
+
+    def _float_matrix2numpy(self, java_float_matrix):
+        '''
+        Java Float Matrix is a 1-D array writen column after column.
+        Numpy reads row after row, therefore, we need a conversion.
+        '''
+        columns_input = java_float_matrix.toArray()
+        split = lambda lst, sz: [numpy.fromiter(lst[i:i+sz],dtype=numpy.float) for i in range(0, len(lst), sz)]
+        cols = split(columns_input, java_float_matrix.rows)
+        matrix = numpy.ma.column_stack(cols)
+        return matrix
+
 
     def getScore(self,user,item):
         '''
