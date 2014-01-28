@@ -92,7 +92,7 @@ class TensorCoFi(ModelInterface):
                 iid_counter += 1
             ndf.put(i,float(nu))
             ndf.put(i+rows,float(ni))
-        self._map = md
+        self._dmap = md
         return ndf, rmd
 
     def fit(self,dataframe):
@@ -117,8 +117,8 @@ class TensorCoFi(ModelInterface):
         '''
 
         try:
-            a = (self._users.transpose()[self._map[USER][user]-1] * self._apps)
-            return a[0,self._map[ITEM][item]-1]
+            a = (self._users.transpose()[self._dmap[USER][user]-1] * self._apps)
+            return a[0,self._dmap[ITEM][item]-1]
         except KeyError:
             return 0.0
 
@@ -145,7 +145,7 @@ class TensorCoFiByFile(TensorCoFi):
                 ni = iid_counter
                 iid_counter += 1
             result[USER].append(nu), result[ITEM].append(ni)
-        self._map = md
+        self._dmap = md
         return result, rmd
 
     def fit(self,dataframe):
