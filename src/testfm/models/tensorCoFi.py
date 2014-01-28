@@ -19,8 +19,12 @@ import os
 os.environ['CLASSPATH'] = resource_filename(testfm.__name__,'lib/'
     'algorithm-1.0-SNAPSHOT-jar-with-dependencies.jar')
 
+import datetime
+import subprocess
+
 from jnius import autoclass
 import numpy
+import pandas as pd
 from testfm.models.interface import ModelInterface
 from testfm.config import USER, ITEM
 
@@ -117,6 +121,64 @@ class TensorCoFi(ModelInterface):
             return a[0,self._map[ITEM][item]-1]
         except KeyError:
             return 0.0
+
+class TensorCoFiByFile(TensorCoFi):
+
+    def _map(self,dataframe):
+        d, md, rmd, result = dataframe.to_dict(outtype='list'), {USER: {},
+            ITEM: {}},{USER: {}, ITEM: {}},{USER: [], ITEM: []}
+        rows = len(d[USER])
+        uid_counter, iid_counter = 1, 1
+        for i in xrange(rows):
+            try:
+                nu = md[USER][d[USER][i]]
+            except KeyError:
+                md[USER][d[USER][i]] = uid_counter
+                rmd[USER][uid_counter] = d[USER][i]
+                nu = uid_counter
+                uid_counter += 1
+            try:
+                ni = md[ITEM][d[ITEM][i]]
+            except KeyError:
+                md[ITEM][d[ITEM][i]] = iid_counter
+                rmd[ITEM][iid_counter] = d[ITEM][i]
+                ni = iid_counter
+                iid_counter += 1
+            result[USER].append(nu), result[ITEM].append(ni)
+        self._map = md
+        return result, rmd
+
+    def fit(self,dataframe):
+        data, tmap = self._map(dataframe)
+        direc = datetime.datetime.now().isoformat('_')
+        if not os.path.exists(direc):
+            os.makedirs(direc)
+        with open(direc+'/train.csv','w') as datafile:
+            pd.DataFrame(data).to_csv(datafile,header=False, index=False,
+                cols=['user','item'])
+            name = os.path.dirname(datafile.name)+'/'
+        sub = subprocess.Popen(['java','-cp',
+            resource_filename(testfm.__name__,'lib/'
+            'algorithm-1.0-SNAPSHOT-jar-with-dependencies.jar'),
+            'es.tid.frappe.python.TensorCoPy',name,str(self._dim),
+            str(self._nIter),str(self._lamb),str(self._alph),
+            str(len(tmap[USER])),str(len(tmap[ITEM]))],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = sub.communicate()
+        if err:
+            #os.remove(name)
+            raise Exception(err)
+        users, items = out.split(' ')
+        self._users, self._apps = numpy.matrix(numpy.genfromtxt(
+            open(users,'r'),delimiter=',')),\
+            numpy.matrix(numpy.genfromtxt(open(items,'r'),delimiter=','))
+
+
+if __name__ == '__main__':
+    t = TensorCoFiByFile()
+    t.fit(pd.DataFrame({'user' : [1, 1, 3, 4], 'item' : [1, 2, 3, 4], \
+            'rating' : [5,3,2,1], 'date': [11,12,13,14]}))
+    t.getScore(1,4)
 
 
 
