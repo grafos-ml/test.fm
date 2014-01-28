@@ -67,7 +67,7 @@ class TensorCoFi(ModelInterface):
         self._lamb = lamb
         self._alph = alph
         #self.model = TensorCoFi(dim,nIter,lamb,alph,self.reader.getDims())
-        self._users, self._apps = [], []
+        self._users, self._items = [], []
 
     def _map(self,dataframe):
         d, md, rmd = dataframe.to_dict(outtype='list'), {USER: {}, ITEM: {}},\
@@ -106,8 +106,8 @@ class TensorCoFi(ModelInterface):
 
         final_model = tensor.getModel()
         users = self._float_matrix2numpy(final_model.get(0))
-        items = self._float_matrix2numpy(final_model.get(0))
-        self._users, self._apps = numpy.matrix(users), numpy.matrix(items)
+        items = self._float_matrix2numpy(final_model.get(1))
+        self._users, self._items = users.transpose(), items.transpose()
 
     def _float_matrix2numpy(self, java_float_matrix):
         '''
@@ -123,12 +123,12 @@ class TensorCoFi(ModelInterface):
 
     def getScore(self,user,item):
         '''
-        Get a app score for a given user
+        Get a item score for a given user
         '''
 
         try:
-            a = (self._users.transpose()[self._dmap[USER][user]-1] * self._apps)
-            return a[0,self._dmap[ITEM][item]-1]
+            a = numpy.dot(self._users[self._dmap[USER][user]-1], self._items[self._dmap[ITEM][item]-1])
+            return a
         except KeyError:
             return 0.0
 
@@ -179,7 +179,7 @@ class TensorCoFiByFile(TensorCoFi):
             #os.remove(name)
             raise Exception(err)
         users, items = out.split(' ')
-        self._users, self._apps = numpy.matrix(numpy.genfromtxt(
+        self._users, self._items = numpy.matrix(numpy.genfromtxt(
             open(users,'r'),delimiter=',')),\
             numpy.matrix(numpy.genfromtxt(open(items,'r'),delimiter=','))
 

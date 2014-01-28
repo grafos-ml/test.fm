@@ -16,20 +16,17 @@ class TestTensorCofi(unittest.TestCase):
         self.df = self.df.head(n=100)
 
     def test_fit(self):
-        data, tmap = self.tf._map(self.df)
-        tensor = JavaTensorCoFi(2,1,self.tf._lamb,self.tf._alph,
-            [len(tmap[USER]),len(tmap[ITEM])])
-        tensor.train(data)
-        final_model = tensor.getModel()
-        t0 = np.fromiter(final_model.get(0).toArray(),dtype=np.float)
-        t0.shape = final_model.get(0).rows, final_model.get(0).columns
+        self.tf.fit(self.df)
+        #item and user are row vectors
+        self.assertEqual(len(self.df.user.unique()), self.tf._users.shape[0])
+        self.assertEqual(len(self.df.item.unique()), self.tf._items.shape[0])
 
-        users = np.matrix(t0)
-
-        self.assertEqual(users[0,0], final_model.get(0).get(0,0))
-        print users
-        print final_model.get(0).toString()
-        #self.assertEqual(users[1,1], final_model.get(0).get(1,1))
+    def test_score(self):
+        tf = TensorCoFi()
+        tf.fit(self.df)
+        tf._users = np.arange(12).reshape(3,4)
+        tf._items = np.array([1]*12).reshape(3,4)
+        self.assertEqual(0+1+2+3, tf.getScore(1,122))
 
     def test_floatmatrix_to_numpy(self):
         from jnius import autoclass
