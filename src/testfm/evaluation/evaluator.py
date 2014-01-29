@@ -7,8 +7,7 @@ from pandas import DataFrame
 from testfm.evaluation.meassures import Measure, MAP_measure
 from testfm.models.interface import ModelInterface
 from testfm.models.baseline_model import IdModel
-from concurrent.futures import ThreadPoolExecutor
-from collections import Counter
+
 
 # Number of threads to the threadpool
 NUMBER_OF_THREADS = 4
@@ -22,7 +21,7 @@ Takes the model,testing data and evaluation measure and spits out the score.
 '''
 class Evaluator(object):
 
-    def evaluate_model(self, factor_model, testing_dataframe, measures=
+    def evaluate_model_threads(self, factor_model, testing_dataframe, measures=
         [MAP_measure()],all_items=None, non_relevant_count=100):
         """
         Evaluates the model by the following algorithm:
@@ -55,6 +54,7 @@ class Evaluator(object):
         :return: list of score corresponding to measures
         """
 
+        from concurrent.futures import ThreadPoolExecutor
 
         # Don't need all this in production. We should assume the method work
         # work well if is used well. (Zen Python)
