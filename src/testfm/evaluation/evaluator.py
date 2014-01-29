@@ -1,6 +1,6 @@
 __author__ = 'linas'
 
-from random import sample
+from random import sample, shuffle
 
 from pandas import DataFrame
 
@@ -37,7 +37,7 @@ class Evaluator(object):
         >>> evaluation = Evaluator()
         >>> df = DataFrame({'user' : [1, 1, 3, 4], 'item' : [1, 2, 3, 4], \
             'rating' : [5,3,2,1], 'date': [11,12,13,14]})
-        >>> len(evaluation.evaluate_model(model, df, non_relevant_count=2))
+        >>> len(evaluation.evaluate_model_threads(model, df, non_relevant_count=2))
         1
 
         #not the best tests, I need to put seed in order to get an expected \
@@ -93,7 +93,7 @@ class Evaluator(object):
                 for user, entries in grouped)
             #7.average the scores for each user
             results =  [job.result() for job in jobs]
-        return (sum(result)/len(result) for result in zip(*results))
+        return list(sum(result)/len(result) for result in zip(*results))
 
 
     def evaluate_model_multiprocessing(self, factor_model, testing_dataframe, measures=
@@ -111,8 +111,8 @@ class Evaluator(object):
         >>> model = IdModel()
         >>> evaluation = Evaluator()
         >>> df = DataFrame({'user' : [1, 1, 3, 4], 'item' : [1, 2, 3, 4], \
-            'rating' : [5,3,2,1], 'date': [11,12,13,14]})
-        >>> len(evaluation.evaluate_model_multiprocessing()(model, df, non_relevant_count=2))
+                    'rating' : [5,3,2,1], 'date': [11,12,13,14]})
+        >>> len(evaluation.evaluate_model_multiprocessing(model, df, non_relevant_count=2))
         1
 
         #not the best tests, I need to put seed in order to get an expected \
@@ -170,7 +170,7 @@ class Evaluator(object):
             u, e, repeat(factor_model), repeat(all_items),
             repeat(non_relevant_count), repeat(measures)))
         #7.average the scores for each user
-        return (sum(measure_list)/len(measure_list)
+        return list(sum(measure_list)/len(measure_list)
             for measure_list in zip(*res))
 
     @classmethod
@@ -184,6 +184,7 @@ class Evaluator(object):
         ranked_list += [(False, factor_model.getScore(user,nr))
             for nr in sample(all_items, non_relevant_count)]
 
+        shuffle(ranked_list)#just to make sure we don't introduce any bias
         #5. sort according to the score
         ranked_list.sort(key=lambda x: x[1], reverse=True)
 
