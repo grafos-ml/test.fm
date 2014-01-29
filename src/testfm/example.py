@@ -23,8 +23,8 @@ models = [RandomModel(),
             IdModel(),
             #LinearEnsemble([RandomModel(), Popularity()], weights=[0.5, 0.5]),
             #LSIModel('title'),
-            #TensorCoFi(),
-            TensorCoFiByFile()
+            TensorCoFi(),
+            #TensorCoFiByFile()
           ]
 
 #evaluate
@@ -42,4 +42,4 @@ print "\n\nMultithread"
 for m in models:
     m.fit(training)
     print m.getName().ljust(50), \
-        list(evaluator.evaluate_model(m, testing, all_items=items))
+        list(evaluator.evaluate_model_multiprocessing(m, testing, all_items=items))
