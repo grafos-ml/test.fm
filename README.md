@@ -27,3 +27,8 @@ Example of using the Test.fm framework
 		m.fit(training)
 		print m.getName().ljust(50),
 		print testfm.evaluate_model(m, testing, all_items=items)
+
+Instalation
+==========
+Download and extract the sources.
+run #sudo python setup.py install
