@@ -4,8 +4,10 @@ import unittest
 import pandas as pd
 import numpy as np
 
+
 from testfm.models.tensorCoFi import TensorCoFi, JavaTensorCoFi
-from testfm.config import USER, ITEM
+from testfm.models.baseline_model import IdModel
+from testfm.models.ensemble_models import LogisticEnsemble
 
 class TestTensorCofi(unittest.TestCase):
 
@@ -38,6 +40,36 @@ class TestTensorCofi(unittest.TestCase):
         self.assertEqual(rand.get(1,0), rand_np[1,0])
         self.assertEqual(rand.get(1,1), rand_np[1,1])
         self.assertEqual((rand.rows, rand.columns), rand_np.shape)
+
+class LogisticTest(unittest.TestCase):
+
+    def setUp(self):
+        self.le = LogisticEnsemble(models=[IdModel()])
+        inp = [{'user':10, 'item':100}, {'user':10,'item':110}, {'user':12,'item':120}]
+        self.df = pd.DataFrame(inp)
+
+    def test_construct_features(self):
+
+        self.le._prepare_feature_extraction(self.df)
+        self.assertEqual(self.le._user_count,  {10: 2, 12: 1})
+
+    def test_extract_features(self):
+        self.le._prepare_feature_extraction(self.df)
+        features = self.le._extract_features(10, 5)
+        self.assertEqual(features, ([2, 5], 1))
+
+    def test_prepare_data(self):
+        X, Y = self.le.prepare_data(self.df)
+        self.assertEqual(len(X), 6)
+        self.assertEqual(len(Y), 6)
+
+    def test_fit(self):
+        self.le.fit(self.df)
+        self.assertIsNotNone(self.le.logit)
+
+    def test_predict(self):
+        self.le.fit(self.df)
+        self.assertIsInstance(self.le.getScore(10, 110), float)
 
 if __name__ == '__main__':
     unittest.main()
