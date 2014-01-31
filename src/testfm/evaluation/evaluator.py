@@ -21,6 +21,12 @@ Takes the model,testing data and evaluation measure and spits out the score.
 '''
 class Evaluator(object):
 
+    def evaluate_model(self, factor_model, testing_dataframe, measures=
+        [MAP_measure()],all_items=None, non_relevant_count=100):
+        return self.evaluate_model_multiprocessing(factor_model, testing_dataframe,
+                           measures=measures, all_items=all_items, non_relevant_count=non_relevant_count)
+
+
     def evaluate_model_threads(self, factor_model, testing_dataframe, measures=
         [MAP_measure()],all_items=None, non_relevant_count=100):
         """

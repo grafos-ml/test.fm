@@ -34,7 +34,7 @@ class HoldoutSplitter(SplitterInterface):
         self._sortby = sortBy
 
 
-    def split(self,dataList,fraction):
+    def split(self,dataList,fraction, clean_not_seen=True):
         '''
         Splits every list in dataList by fraction and return 2 dataframes
         (training and tests) according the holdout method.
@@ -45,7 +45,14 @@ class HoldoutSplitter(SplitterInterface):
             for key, value in dataset.items():
                 i = int(len(value)*fraction)
                 training[key], test[key] = value[:i],value[i:]
-        return pd.DataFrame(training), pd.DataFrame(test)
+
+        df_testing = pd.DataFrame(test)
+        df_training = pd.DataFrame(training)
+        if clean_not_seen:
+            df_testing = df_testing[df_testing.user.isin(df_training.user)]
+            df_testing = df_testing[df_testing.item.isin(df_training.item)]
+
+        return df_training, df_testing
 
     def sort(self,dataframe):
         '''
@@ -56,7 +63,7 @@ class HoldoutSplitter(SplitterInterface):
 
 class RandomSplitter(HoldoutSplitter):
 
-    def split(self,df,fraction):
+    def split(self,df,fraction, clean_not_seen=True):
         n = int(len(df)*fraction)
         sampler = np.random.permutation(df.shape[0])
         training_idx = sampler[:n-1]
@@ -69,6 +76,11 @@ class RandomSplitter(HoldoutSplitter):
         df_training.reindex()
         df_testing = pd.DataFrame(testing)
         df_testing.columns = df.columns
+
+        if clean_not_seen:
+            df_testing = df_testing[df_testing.user.isin(df_training.user)]
+            df_testing = df_testing[df_testing.item.isin(df_training.item)]
+
         return df_training, df_testing
 
     def sort(self,dataframe):
