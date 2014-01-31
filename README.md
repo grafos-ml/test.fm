@@ -23,7 +23,6 @@ Example of using the Test.fm framework
 	
 	#evaluate
 	items = training.item.unique()
-	evaluator = Evaluator()
 	for m in models:
 		m.fit(training)
 		print m.getName().ljust(50),
