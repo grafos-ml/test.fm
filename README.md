@@ -1,14 +1,13 @@
+Introduction
+===========
+
 Test.fm is a testing framework for Collaborative Filtering factor models.
-It integrates with pandas as the default data model and
-gives an easy wayt to check how well your models do.
+It integrates well with pandas as the default data model and
+gives an easy wayt to investigate how well your models perform and why.
 
 Example of using the Test.fm framework
 ======================================
-
-
-	import numpy as np
 	import testfm
-	from testfm.evaluation.evaluator import Evaluator
 	from testfm.models.baseline_model import Popularity, RandomModel
 	from testfm.models.tensorCoFi import TensorCoFi
 
