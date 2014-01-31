@@ -18,14 +18,14 @@ Example of using the Test.fm framework
 
 	#tell me what models we want to evaluate
 	models = [  RandomModel(),
-            	Popularity(),
-            	TensorCoFi(),
-	         ]
-
+				Popularity(),
+				TensorCoFi(),
+			 ]
+	
 	#evaluate
 	items = training.item.unique()
 	evaluator = Evaluator()
 	for m in models:
 		m.fit(training)
 		print m.getName().ljust(50),
-		print evaluate_model(m, testing, all_items=items)
+		print testfm.evaluate_model(m, testing, all_items=items)
