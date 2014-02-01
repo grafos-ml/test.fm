@@ -175,9 +175,13 @@ class Evaluator(object):
         res = pool.map(pm, izip(repeat(Evaluator),
             u, e, repeat(factor_model), repeat(all_items),
             repeat(non_relevant_count), repeat(measures)))
+
         #7.average the scores for each user
-        return list(sum(measure_list)/len(measure_list)
+        ret = list(sum(measure_list)/len(measure_list)
             for measure_list in zip(*res))
+        pool.close()
+        pool.join()
+        return ret
 
     @classmethod
     def partial_mesure(cls,user,entries,factor_model,all_items,
