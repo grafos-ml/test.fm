@@ -4,6 +4,7 @@ import pandas as pd
 import testfm
 from testfm.models.baseline_model import Popularity, RandomModel
 from testfm.models.tensorCoFi import TensorCoFi
+from testfm.models.ensemble_models import LogisticEnsemble
 from pkg_resources import resource_filename
 
 #prepare the data
@@ -17,6 +18,7 @@ models = [  RandomModel(),
             Popularity(),
             TensorCoFi(),
          ]
+models += [LogisticEnsemble([models[-1], models[-2]])]
 
 #evaluate
 items = training.item.unique()

@@ -2,7 +2,7 @@ __author__ = 'linas'
 
 from random import random
 from testfm.models.interface import ModelInterface
-
+from math import log
 
 class RandomModel(ModelInterface):
     _scores = {}
@@ -61,7 +61,13 @@ class Popularity(ModelInterface):
     _counts = {}
 
     def getScore(self,user,item):
-        return self._counts.get(item, 0.0)
+        cnt = self._counts.get(item, 0.0)
+        #normalize between 0 and 1
+        try:
+            norm = (cnt - self.mn)/float(self.mx - self.mn)
+            return norm
+        except:
+            return cnt
 
     def fit(self, training_dataframe):
         '''
@@ -69,8 +75,13 @@ class Popularity(ModelInterface):
         :param training_dataframe: DataFrame training data
         :return:
         '''
+        self.mn = float("inf")
+        self.mx = 0
         for i,v in training_dataframe.item.value_counts().iteritems():
-            self._counts[i] = v
+            cnt = log(v+1)
+            self._counts[i] = cnt
+            self.mn = min(self.mn, cnt)
+            self.mx = max(self.mx, cnt)
 
     def getName(self):
         return "Popularity"

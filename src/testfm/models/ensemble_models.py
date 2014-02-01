@@ -71,8 +71,7 @@ class LogisticEnsemble(ModelInterface):
 
     def getName(self):
         models = ",".join([m.getName() for m in self._models])
-        weights = ",".join(["{:1.4f}".format(w) for w in self._weights])
-        return "Logistic Ensamble ("+models+"|"+weights+")"
+        return "Logistic Ensamble ("+models+")"
 
     def __init__(self, models):
         self._models = models
@@ -119,7 +118,7 @@ class LogisticEnsemble(ModelInterface):
         from sklearn.linear_model import LogisticRegression
 
         X, Y = self.prepare_data(df)
-        self.logit = LogisticRegression(C=100, penalty='l2', tol=0.01)
+        self.logit = LogisticRegression(C=10, penalty='l1', tol=0.1)
         self.logit.fit(X, Y)
 
 if __name__ == '__main__':
