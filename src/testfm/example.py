@@ -19,9 +19,9 @@ models = [  RandomModel(),
             TensorCoFi(),
          ]
 
-models += [LinearFit([models[1], models[2]])]
-models += [LogisticEnsemble([models[1], models[2]])]
-models += [LinearRank([models[1], models[2]])]
+#models += [LinearFit([models[1], models[2]])]
+#models += [LogisticEnsemble([models[1], models[2]])]
+models += [LinearRank([models[1], models[2]],  item_features_column=['rating'])]
 #evaluate
 items = training.item.unique()
 for m in models:

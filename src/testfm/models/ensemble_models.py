@@ -64,6 +64,7 @@ class LogisticEnsemble(ModelInterface):
     '''
 
     _user_count = {}
+    _item_features = None
 
     def getScore(self,user,item):
         x, y = self._extract_features(user, item)
@@ -73,23 +74,31 @@ class LogisticEnsemble(ModelInterface):
         models = ",".join([m.getName() for m in self._models])
         return "Logistic Ensamble ("+models+")"
 
-    def __init__(self, models):
+    def __init__(self, models, item_features_column=[]):
         self._models = models
+        self.item_features_column = item_features_column
 
     def _prepare_feature_extraction(self, df):
         '''
-        Extracts size of user profile info
+        Extracts size of user profile info and item price
         '''
         grouped = df.groupby('user')
         for user, entries in grouped:
             self._user_count[user] = len(entries)
 
+        if self.item_features_column:
+            grouped = df.groupby(['item']+self.item_features_column)
+            self._item_features = {}
+            for item, entries in grouped:
+                self._item_features[item[0]] = item[1:]
+        print self._item_features
+
     def _extract_features(self, user, item, relevant=True):
         '''
         Gives proper feature for the logistic function to train on.
         '''
-
         features = [self._user_count.get(user, 0)]
+        features += [f for f in self._item_features[item]]
         features += [m.getScore(user, item) for m in self._models]
 
         if relevant:
@@ -151,6 +160,9 @@ class LinearFit(LogisticEnsemble):
 
 class LinearRank(LogisticEnsemble):
 
+    def __init__(self, models, item_features_column=[]):
+        super(LinearRank, self).__init__(models, item_features_column)
+
     def fit(self, df):
         from sklearn.linear_model import LinearRegression
 
@@ -159,20 +171,9 @@ class LinearRank(LogisticEnsemble):
         self.model.fit(X, Y)
         print self.model.coef_
 
-    def _extract_features(self, user, item, relevant=True):
-        '''
-        Gives proper feature for the logistic function to train on.
-        '''
-        features = [m.getScore(user, item) for m in self._models]
-
-        if relevant:
-            return features, 1
-        else:
-            return features, 0
-
     def getName(self):
         models = ",".join([m.getName() for m in self._models])
-        return "SVMRank Ensamble ("+models+")"
+        return "LinearRank Ensamble ("+models+")"
 
     def prepare_data(self, df):
         from random import choice
