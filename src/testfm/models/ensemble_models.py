@@ -67,7 +67,7 @@ class LogisticEnsemble(ModelInterface):
 
     def getScore(self,user,item):
         x, y = self._extract_features(user, item)
-        return float(self.logit.predict(x))
+        return float(self.model.predict(x))
 
     def getName(self):
         models = ",".join([m.getName() for m in self._models])
@@ -118,8 +118,35 @@ class LogisticEnsemble(ModelInterface):
         from sklearn.linear_model import LogisticRegression
 
         X, Y = self.prepare_data(df)
-        self.logit = LogisticRegression(C=10, penalty='l1', tol=0.1)
-        self.logit.fit(X, Y)
+        self.model = LogisticRegression(C=10, penalty='l1', tol=0.1)
+        self.model.fit(X, Y)
+
+class LinearFit(LogisticEnsemble):
+
+    def fit(self, df):
+        from sklearn.linear_model import LinearRegression
+
+        X, Y = self.prepare_data(df)
+        self.model = LinearRegression(copy_X=False)
+        self.model.fit(X, Y)
+        #print self.model.coef_
+
+    def _extract_features(self, user, item, relevant=True):
+        '''
+        Gives proper feature for the logistic function to train on.
+        '''
+
+        features = [1, self._user_count.get(user, 0)]
+        features += [m.getScore(user, item) for m in self._models]
+
+        if relevant:
+            return features, 1
+        else:
+            return features, 0
+
+    def getName(self):
+        models = ",".join([m.getName() for m in self._models])
+        return "Linear Ensamble ("+models+")"
 
 if __name__ == '__main__':
     import doctest

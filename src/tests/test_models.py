@@ -65,7 +65,7 @@ class LogisticTest(unittest.TestCase):
 
     def test_fit(self):
         self.le.fit(self.df)
-        self.assertIsNotNone(self.le.logit)
+        self.assertIsNotNone(self.le.model)
 
     def test_predict(self):
         self.le.fit(self.df)
