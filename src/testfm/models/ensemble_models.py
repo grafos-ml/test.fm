@@ -91,7 +91,7 @@ class LogisticEnsemble(ModelInterface):
             self._item_features = {}
             for item, entries in grouped:
                 self._item_features[item[0]] = item[1:]
-        print self._item_features
+        #print self._item_features
 
     def _extract_features(self, user, item, relevant=True):
         '''
