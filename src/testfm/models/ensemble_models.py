@@ -148,6 +148,50 @@ class LinearFit(LogisticEnsemble):
         models = ",".join([m.getName() for m in self._models])
         return "Linear Ensamble ("+models+")"
 
+
+class LinearRank(LogisticEnsemble):
+
+    def fit(self, df):
+        from sklearn.linear_model import LinearRegression
+
+        X, Y = self.prepare_data(df)
+        self.model = LinearRegression(copy_X=False)
+        self.model.fit(X, Y)
+        print self.model.coef_
+
+    def _extract_features(self, user, item, relevant=True):
+        '''
+        Gives proper feature for the logistic function to train on.
+        '''
+        features = [m.getScore(user, item) for m in self._models]
+
+        if relevant:
+            return features, 1
+        else:
+            return features, 0
+
+    def getName(self):
+        models = ",".join([m.getName() for m in self._models])
+        return "SVMRank Ensamble ("+models+")"
+
+    def prepare_data(self, df):
+        from random import choice
+        X = []
+        Y = []
+        items = df.item.unique()
+        self._prepare_feature_extraction(df)
+
+        for _, tuple in df.iterrows():
+            x, y = self._extract_features(tuple['user'], tuple['item'], relevant=True)
+            bad_item = choice(items)
+            x2, y2 = self._extract_features(tuple['user'], bad_item, relevant=False)
+            X.append([a-b for a,b in zip(x,x2)])
+            Y.append(1)
+            X.append([b-a for a,b in zip(x,x2)])
+            Y.append(-1)
+
+        return X, Y
+
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
