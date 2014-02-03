@@ -16,7 +16,7 @@ training, testing = testfm.split.holdoutByRandom(df, 0.9)
 #tell me what models we want to evaluate
 models = [  RandomModel(),
             Popularity(),
-            TensorCoFi(),
+            TensorCoFi(dim=20, nIter=5, lamb=0.05, alph=40, user_features=["user"], item_features=["item", 'title']),
          ]
 
 #models += [LinearFit([models[1], models[2]])]
