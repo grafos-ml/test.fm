@@ -6,7 +6,7 @@ import numpy as np
 
 
 from testfm.models.tensorCoFi import TensorCoFi, JavaTensorCoFi
-from testfm.models.baseline_model import IdModel
+from testfm.models.baseline_model import IdModel, Item2Item
 from testfm.models.ensemble_models import LogisticEnsemble
 
 class TestTensorCofi(unittest.TestCase):
@@ -109,6 +109,30 @@ class LogisticTest(unittest.TestCase):
     def test_predict(self):
         self.le.fit(self.df)
         self.assertIsInstance(self.le.getScore(10, 110), float)
+
+
+class Item2ItemTest(unittest.TestCase):
+
+    def test_fit(self):
+        df = pd.DataFrame([{'user':10, 'item':100}, {'user':10,'item':110}, {'user':12,'item':100}])
+        i2i = Item2Item()
+        i2i.fit(df)
+
+        self.assertEqual(i2i._items[100], set([10, 12]))
+        self.assertEqual(i2i._items[110], set([10]))
+
+        self.assertEqual(i2i._users[10], set([100, 110]))
+        self.assertEqual(i2i._users[12], set([100]))
+
+        self.assertEqual(i2i.similarity(100, 100), 1.0)
+        self.assertEqual(i2i.similarity(100, 110), 1.0/2.0)
+
+    def test_score(self):
+        df = pd.DataFrame([{'user':10, 'item':100}, {'user':10,'item':110}, {'user':12,'item':100}])
+        i2i = Item2Item()
+        i2i.fit(df)
+
+        self.assertEqual(i2i.getScore(10, 110), 1+0.5)
 
 if __name__ == '__main__':
     unittest.main()

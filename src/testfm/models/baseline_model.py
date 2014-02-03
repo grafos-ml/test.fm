@@ -56,6 +56,37 @@ class ConstantModel(ModelInterface):
         return "Constant "+str(self._c)
 
 
+class Item2Item(ModelInterface):
+
+    k = 5
+
+    def compute_jaccard_index(self, set_1, set_2):
+        n = len(set_1.intersection(set_2))
+        return n / float(len(set_1) + len(set_2) - n)
+
+    def similarity(self, i1, i2):
+        return self.compute_jaccard_index(self._items[i1], self._items[i2])
+
+    def fit(self, training_dataframe):
+        '''
+        Stores set of user ids for each item
+        '''
+        self._items = {}
+        self._users = {}
+        grouped = training_dataframe.groupby('item')['user']
+        for item, entries in grouped:
+            users = set(entries)
+            self._items[item] = users
+
+        grouped = training_dataframe.groupby('user')['item']
+        for user, entries in grouped:
+            items = set(entries)
+            self._users[user] = items
+
+    def getScore(self,user,item):
+        scores = [self.similarity(i, item) for i in self._users[user]]
+        return sum(scores[:self.k])
+
 class Popularity(ModelInterface):
 
     _counts = {}
@@ -85,3 +116,5 @@ class Popularity(ModelInterface):
 
     def getName(self):
         return "Popularity"
+
+
