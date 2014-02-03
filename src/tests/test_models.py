@@ -134,5 +134,9 @@ class Item2ItemTest(unittest.TestCase):
 
         self.assertEqual(i2i.getScore(10, 110), 1+0.5)
 
+        #lets change k
+        i2i.k = 1
+        self.assertEqual(i2i.getScore(10, 110), 1)
+
 if __name__ == '__main__':
     unittest.main()
