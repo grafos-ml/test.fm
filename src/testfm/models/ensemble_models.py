@@ -98,7 +98,8 @@ class LogisticEnsemble(ModelInterface):
         Gives proper feature for the logistic function to train on.
         '''
         features = [self._user_count.get(user, 0)]
-        features += [f for f in self._item_features[item]]
+        if self._item_features:
+            features += [f for f in self._item_features[item]]
         features += [m.getScore(user, item) for m in self._models]
 
         if relevant:
@@ -169,7 +170,7 @@ class LinearRank(LogisticEnsemble):
         X, Y = self.prepare_data(df)
         self.model = LinearRegression(copy_X=False)
         self.model.fit(X, Y)
-        print self.model.coef_
+        #print self.model.coef_
 
     def getName(self):
         models = ",".join([m.getName() for m in self._models])
