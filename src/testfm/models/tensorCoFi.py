@@ -136,7 +136,7 @@ class TensorCoFi(ModelInterface):
 
 class TensorCoFiByFile(TensorCoFi):
 
-    raise NotImplementedError("Not implemented yet!")
+
 
     def _map(self,dataframe):
         d, md, rmd, result = dataframe.to_dict(outtype='list'), {USER: {},
@@ -163,6 +163,7 @@ class TensorCoFiByFile(TensorCoFi):
         return result, rmd
 
     def fit(self,dataframe):
+        raise NotImplementedError("Not implemented yet!")
         data, tmap = self._map(dataframe)
         self._dmap = tmap
         direc = datetime.datetime.now().isoformat('_')
