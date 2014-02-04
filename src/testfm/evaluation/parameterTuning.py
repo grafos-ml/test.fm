@@ -118,11 +118,11 @@ class ParameterTuning(object):
         model.fit()
     '''
 
-    __Zscore = st.norm.ppf(.995)
+    __Zscore = st.norm.ppf(.9)
     __max_iter = 100
 
     @classmethod
-    def setZvalue(cls,percentage):
+    def setZvalue(cls, percentage):
         '''
         Set a new z value based in percentege.
 
@@ -150,7 +150,7 @@ class ParameterTuning(object):
 
 
     @staticmethod
-    def getBestParams(model,training,testing,**kwargs):
+    def getBestParams(model, training, testing, **kwargs):
         '''
         Search for the best set of parameters in the model
 
@@ -169,7 +169,6 @@ class ParameterTuning(object):
 
         gp = GaussianProcess(theta0=.1, thetaL=.001, thetaU=5.)
         for i in xrange(0,ParameterTuning.__max_iter): # To make it reasonable
-            print '#try{}'.format(i+1)
             param, response = zip(*values.items())
             gp.fit(np.array(param), np.array(response).T)
             y_pred, MSE = gp.predict(grid, eval_MSE=True)
@@ -180,6 +179,7 @@ class ParameterTuning(object):
             next_list = zip(UCB_u, grid)
             next_list.sort(reverse=True)
             new_x = next_list[0][1]
+            print 'try #{}, {}'.format(i+1, new_x)
             if new_x not in values:
                 values[new_x] = ParameterTuning.tune(m_instance,training,
                     testing,**{k:v for k,v in zip(kwargs,new_x)})
@@ -190,10 +190,3 @@ class ParameterTuning(object):
         return {k:v for k,v in zip(kwargs,sv[0][0])}
 
             #Precisa de Receber os parametros
-
-
-
-
-
-
-

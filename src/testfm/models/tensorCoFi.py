@@ -162,6 +162,9 @@ class TensorCoFi(ModelInterface):
         self._lamb = lamb
         self._alph = alph
 
+    def getName(self):
+        return "TensorCofi (dim={},iter={},lambda={},alpha={}".format(self._dim, self._nIter, self._lamb, self._alph)
+
 class TensorCoFiByFile(TensorCoFi):
 
 

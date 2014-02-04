@@ -31,4 +31,5 @@ for m in models:
     print m.getName().ljust(50),
     print testfm.evaluate_model(m, testing, all_items=items)
 
-print ParameterTuning.getBestParams(TensorCoFi,training,testing)
+
+
