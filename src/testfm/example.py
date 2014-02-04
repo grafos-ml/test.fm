@@ -7,6 +7,8 @@ from testfm.models.tensorCoFi import TensorCoFi
 from testfm.models.ensemble_models import LogisticEnsemble, LinearFit, LinearRank
 from pkg_resources import resource_filename
 
+from testfm.evaluation.parameterTuning import ParameterTuning
+
 #prepare the data
 df = pd.read_csv(resource_filename(testfm.__name__,'data/movielenshead.dat'),
     sep="::", header=None, names=['user', 'item', 'rating', 'date', 'title'])
@@ -28,3 +30,9 @@ for m in models:
     m.fit(training)
     print m.getName().ljust(50),
     print testfm.evaluate_model(m, testing, all_items=items)
+
+print ParameterTuning.getBestParams(TensorCoFi,training,testing,
+    dim=(5,20,1,20),
+    nIter=(1,10,2,5),
+    lamb=(0.1,1.,0.1,0.05),
+    alph=(40,60,5,40))

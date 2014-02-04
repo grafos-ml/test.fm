@@ -25,7 +25,9 @@ class split(object):
     holdoutByUser = HoldoutSplitterByUser()
     holdoutByRandom = RandomSplitter()
 
-def evaluate_model(factor_model, testing_dataframe, measures=[MAP_measure()],all_items=None, non_relevant_count=100):
+def evaluate_model(factor_model, testing_dataframe, measures=[MAP_measure()],
+    all_items=None, non_relevant_count=100):
     eval = Evaluator()
     return eval.evaluate_model_multiprocessing(factor_model, testing_dataframe,
-                           measures=measures, all_items=all_items, non_relevant_count=non_relevant_count)
+        measures=measures, all_items=all_items,
+        non_relevant_count=non_relevant_count)

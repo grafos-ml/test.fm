@@ -8,6 +8,10 @@ pandas==0.12.0
 nose>=1.3.0
 gensim>=0.8.6
 jnius==1.1-dev
+scikit-learn
+
+# Needs apt-get install libfreetype6-dev libpng-dev
+matplotlib
 futures
 
 # in case of mac pyobjc

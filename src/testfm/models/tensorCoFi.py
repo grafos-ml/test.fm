@@ -49,7 +49,7 @@ class TensorCoFi(ModelInterface):
                 Dimension of some kind. Default = 20.
 
             *int* nIter:
-                Nmber of iteration. Default = 5.
+                Number of iteration. Default = 5.
 
             *float* lamb:
                 Lambda value for the algorithm. Default = 0,05.
@@ -102,6 +102,7 @@ class TensorCoFi(ModelInterface):
         data, tmap = self._map(dataframe)
         tensor = JavaTensorCoFi(self._dim,self._nIter,self._lamb,self._alph,
             [len(tmap[USER]),len(tmap[ITEM])])
+        print self._dim,self._nIter,self._lamb,self._alph, [len(tmap[USER]),len(tmap[ITEM])]
         tensor.train(data)
 
         final_model = tensor.getModel()
@@ -127,10 +128,17 @@ class TensorCoFi(ModelInterface):
         '''
 
         try:
-            a = numpy.dot(self._users[self._dmap[USER][user]-1], self._items[self._dmap[ITEM][item]-1])
-            return a
+            return numpy.dot(self._users[self._dmap[USER][user]-1],
+                    self._items[self._dmap[ITEM][item]-1])
         except KeyError:
             return 0.0
+
+
+    def tune(self):
+        '''
+        Tune the parameter for optimum result
+        '''
+
 
 class TensorCoFiByFile(TensorCoFi):
 

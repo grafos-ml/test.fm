@@ -8,7 +8,9 @@ Interfaces for models
 '''
 __author__ = 'joaonrb'
 
+import numpy as np
 from pandas import DataFrame
+from sklearn.gaussian_process import GaussianProcess
 
 class ModelInterface(object):
     '''
