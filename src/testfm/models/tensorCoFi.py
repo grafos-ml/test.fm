@@ -104,7 +104,7 @@ class TensorCoFi(ModelInterface):
             self.item_features[tuple['item']] = item_idx
         return mc, id_map
 
-    def fit(self,dataframe):
+    def _fit(self,dataframe):
         '''
         Return the model
         '''
@@ -112,16 +112,25 @@ class TensorCoFi(ModelInterface):
         data, tmap = self._dataframe_to_float_matrix(dataframe)
         self._dmap = tmap
 
-        dims = [len(self._dmap[c]) for c in self.user_column_names+self.item_column_names]
+        dims = [len(self._dmap[c]) for c in self.user_column_names +
+            self.item_column_names]
 
-        tensor = JavaTensorCoFi(self._dim, self._nIter, self._lamb, self._alph, dims)
+        tensor = JavaTensorCoFi(self._dim, self._nIter, self._lamb, self._alph,
+            dims)
         tensor.train(data)
 
         final_model = tensor.getModel()
         self.factors = {}
         for i, c in enumerate(self.user_column_names+self.item_column_names):
-            self.factors[c] = self._float_matrix2numpy(final_model.get(i)).transpose()
+            self.factors[c] = self._float_matrix2numpy(
+                final_model.get(i)).transpose()
+        return tensor
 
+    def fit(self,dataframe):
+        '''
+        Prepare the model
+        '''
+        self._fit(dataframe)
     def _float_matrix2numpy(self, java_float_matrix):
         '''
         Java Float Matrix is a 1-D array writen column after column.
@@ -157,39 +166,42 @@ class TensorCoFiByFile(TensorCoFi):
 
 
 
-    def _map(self,dataframe):
-        d, md, rmd, result = dataframe.to_dict(outtype='list'), {USER: {},
-            ITEM: {}},{USER: {}, ITEM: {}},{USER: [], ITEM: []}
-        rows = len(d[USER])
-        uid_counter, iid_counter = 1, 1
-        for i in xrange(rows):
-            try:
-                nu = md[USER][d[USER][i]]
-            except KeyError:
-                md[USER][d[USER][i]] = uid_counter
-                rmd[USER][uid_counter] = d[USER][i]
-                nu = uid_counter
-                uid_counter += 1
-            try:
-                ni = md[ITEM][d[ITEM][i]]
-            except KeyError:
-                md[ITEM][d[ITEM][i]] = iid_counter
-                rmd[ITEM][iid_counter] = d[ITEM][i]
-                ni = iid_counter
-                iid_counter += 1
-            result[USER].append(nu), result[ITEM].append(ni)
-        self._dmap = md
-        return result, rmd
+    def _map(self,df):
+        id_map = {}
+
+        self.user_features = {}#map from user to indexes
+        self.item_features = {}#map from item to indexes
+
+        features = self.user_column_names + self.item_column_names
+        mc = []
+        for row_id, row_data in enumerate(df.iterrows()):
+            _, tuple = row_data
+            user_idx = []
+            item_idx = []
+            t = []
+            for i, c in enumerate(features):
+                cmap = id_map.get(c, {})
+                value = cmap.get(tuple[c], len(cmap)+1)
+                cmap[tuple[c]] = value
+                id_map[c] = cmap
+                t.append(value)
+                if c in self.user_column_names:
+                    user_idx.append(value)
+                if c in self.item_column_names:
+                    item_idx.append(value)
+            mc.append(t)
+            self.user_features[tuple['user']] = user_idx
+            self.item_features[tuple['item']] = item_idx
+        return pd.DataFrame({k:v for k,v in zip(features,zip(*mc))}), id_map
 
     def fit(self,dataframe):
-        raise NotImplementedError("Not implemented yet!")
         data, tmap = self._map(dataframe)
         self._dmap = tmap
-        direc = datetime.datetime.now().isoformat('_')
-        if not os.path.exists(direc):
-            os.makedirs(direc)
-        with open(direc+'/train.csv','w') as datafile:
-            pd.DataFrame(data).to_csv(datafile,header=False, index=False,
+        dir = 'log/' + datetime.datetime.now().isoformat('_')
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        with open(dir+'/train.csv','w') as datafile:
+            data.to_csv(datafile,header=False, index=False,
                 cols=['user','item'])
             name = os.path.dirname(datafile.name)+'/'
         sub = subprocess.Popen(['java','-cp',
@@ -204,9 +216,13 @@ class TensorCoFiByFile(TensorCoFi):
             #os.remove(name)
             raise Exception(err)
         users, items = out.split(' ')
-        self._users, self._items = numpy.matrix(numpy.genfromtxt(
-            open(users,'r'),delimiter=',')),\
-            numpy.matrix(numpy.genfromtxt(open(items,'r'),delimiter=','))
+        self.factors = {
+            'user': numpy.ma.column_stack(numpy.genfromtxt(open(users,'r'),
+                delimiter=',')),
+            'item': numpy.ma.column_stack(numpy.genfromtxt(open(items,'r'),
+                delimiter=','))
+        }
+
 
 
 if __name__ == '__main__':

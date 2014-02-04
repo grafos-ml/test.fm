@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 
 
-from testfm.models.tensorCoFi import TensorCoFi, JavaTensorCoFi
+from testfm.models.tensorCoFi import TensorCoFi, TensorCoFiByFile
 from testfm.models.baseline_model import IdModel, Item2Item
 from testfm.models.ensemble_models import LogisticEnsemble
 
@@ -79,6 +79,61 @@ class TestTensorCofi(unittest.TestCase):
         self.assertEqual(rand.get(1,0), rand_np[1,0])
         self.assertEqual(rand.get(1,1), rand_np[1,1])
         self.assertEqual((rand.rows, rand.columns), rand_np.shape)
+
+    def test_score_tcff(self):
+        tf = TensorCoFiByFile(dim=2)
+        inp = [{'user':10, 'item':100},
+               {'user':10,'item':110},
+               {'user':12,'item':120}]
+        inp = pd.DataFrame(inp)
+        tf.fit(inp)
+        uid = tf._dmap['user'][10]
+        iid = tf._dmap['item'][100]
+        self.assertEquals(uid, 1)
+        self.assertEquals(iid, 1)
+
+        tf.factors['user'][0][0] = 0
+        tf.factors['user'][0][1] = 1
+        tf.factors['item'][0][0] = 1
+        tf.factors['item'][0][1] = 5
+
+
+        self.assertEqual(0*1+1*5, tf.getScore(10,100))
+
+    def test_result_by_file(self):
+        def floatMatrixToCSV(fm,n):
+            csv = '\n'.join((','.join((str(fm.get(row,column))
+                for column in xrange(0,fm.columns)))
+                for row in xrange(0,fm.rows)))
+            with open(n,'w') as f:
+                f.write(csv)
+        tf = TensorCoFiByFile(dim=2)
+        inp = [{'user':10, 'item':100},
+               {'user':10,'item':110},
+               {'user':12,'item':120}]
+        inp = pd.DataFrame(inp)
+        ten = tf._fit(inp)
+
+        #####
+        floatMatrixToCSV(ten.getModel().get(0),'user.csv')
+        floatMatrixToCSV(ten.getModel().get(1),'item.csv')
+
+        fromFile = {
+            'user': np.ma.column_stack(np.genfromtxt(open('user.csv','r'),
+                delimiter=',')),
+            'item': np.ma.column_stack(np.genfromtxt(open('item.csv','r'),
+                delimiter=','))
+        }
+        for i in xrange(0,2):
+            self.assertAlmostEqual(tf.factors['user'][i][0],
+                fromFile['user'][i][0])
+            self.assertAlmostEqual(tf.factors['user'][i][1],
+                fromFile['user'][i][1])
+        for i in xrange(0,3):
+            self.assertAlmostEqual(tf.factors['item'][i][0],
+                fromFile['item'][i][0])
+            self.assertAlmostEqual(tf.factors['item'][i][1],
+                fromFile['item'][i][1])
 
 class LogisticTest(unittest.TestCase):
 
