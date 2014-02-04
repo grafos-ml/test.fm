@@ -37,7 +37,8 @@ Arrays = autoclass('java.util.Arrays')
 
 class TensorCoFi(ModelInterface):
 
-    def __init__(self,dim=20, nIter=5, lamb=0.05, alph=40, user_features=["user"], item_features=["item"]):
+    def __init__(self,dim=20, nIter=5, lamb=0.05, alph=40,
+        user_features=["user"], item_features=["item"]):
         '''
         Python model creator fro tensor implementation in java
 
@@ -59,13 +60,19 @@ class TensorCoFi(ModelInterface):
                 Alpha number for the algorithm. Default = 40.
 
         '''
-        self._dim = dim
-        self._nIter = nIter
-        self._lamb = lamb
-        self._alph = alph
+        self.setParams(dim,nIter,lamb,alph)
 
         self.user_column_names = user_features
         self.item_column_names = item_features
+
+    @classmethod
+    def paramDetails(cls):
+        return {
+            'dim': (10,20,2,20),
+            'nIter': (1,10,2,5),
+            'lamb': (0.1,1.,0.1,0.05),
+            'alph': (30,50,5,40)
+        }
 
     def _dataframe_to_float_matrix(self, df):
         id_map = {}
@@ -133,6 +140,12 @@ class TensorCoFi(ModelInterface):
             else:
                 ret = np.multiply(ret, self.factors[name][indexes[i]-1])
         return sum(ret)
+
+    def setParams(self,dim=20, nIter=5, lamb=0.05, alph=40):
+        self._dim = dim
+        self._nIter = nIter
+        self._lamb = lamb
+        self._alph = alph
 
 class TensorCoFiByFile(TensorCoFi):
 

@@ -121,11 +121,11 @@ class ParameterTuning(object):
         '''
         Return a mean for the predictive power
         '''
-        m = model(**kwargs)
-        m.fit(training)
+        model.setParams(**kwargs)
+        model.fit(training)
 
         # Return the MAP_mesure in position 0
-        return testfm.evaluate_model(m,testing)[0]
+        return testfm.evaluate_model(model,testing)[0]
 
 
     @staticmethod
@@ -137,28 +137,35 @@ class ParameterTuning(object):
         (min,max,step,default)
         '''
         # Create a grid of parameters
+        if len(kwargs) == 0:
+            kwargs = model.paramDetails()
         grid = zip(*(x.flat for x in np.mgrid[[slice(*row[:3])
             for row in kwargs.values()]]))
-        values = {k: ParameterTuning.tune(model,training,testing,**dict(zip(
-            kwargs.keys()[:2],k))) for k in zip(*(v[:2]
+        m_instance = model()
+        values = {k: ParameterTuning.tune(m_instance,training,testing,**dict(
+            zip(kwargs.keys()[:2],k))) for k in zip(*(v[:2]
             for v in kwargs.values()))}
 
-        gp = GaussianProcess(theta0=1e-1, thetaL=1e-3, thetaU=5.)
-        while True:
+        gp = GaussianProcess(theta0=.1, thetaL=.001, thetaU=5.)
+        for i in xrange(1,101): # To make it reasonable
+            print '#try{}'.format(i)
             param, response = zip(*values.items())
             gp.fit(np.array(param), np.array(response).T)
             y_pred, MSE = gp.predict(grid, eval_MSE=True)
-            #get upper confidence interval. 2.576 z-score corresponds to 99th
+            # get upper confidence interval. 2.576 z-score corresponds to 99th
             # percentile
             UCB_u = y_pred + np.sqrt(MSE) * 2.576
             next_list = zip(UCB_u, grid)
             next_list.sort(reverse=True)
             new_x = next_list[0][1]
             if new_x not in values:
-                values[new_x] = ParameterTuning.tune(model,training,testing,
-                    **dict(zip(kwargs,new_x)))
+                values[new_x] = ParameterTuning.tune(m_instance,training,
+                    testing,**{k:v for k,v in zip(kwargs,new_x)})
             else:
-                return new_x
+                break
+        sv = sorted(values.items(),cmp=lambda x,y:cmp(y[1],x[1]))
+        assert sv[0][1] > sv[-1][1] # test it's well sorted
+        return {k:v for k,v in zip(kwargs,sv[0][0])}
 
             #Precisa de Receber os parametros
 

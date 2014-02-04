@@ -17,6 +17,13 @@ class ModelInterface(object):
     
     '''
 
+    @classmethod
+    def paramDetails(cls):
+        raise NotImplementedError
+
+    def setParams(self,**kwargs):
+        raise NotImplementedError
+
     def getName(self):
         '''
         Get the informative name for the model.
