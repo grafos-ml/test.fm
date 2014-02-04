@@ -2,10 +2,10 @@ Introduction
 ===========
 
 Test.fm is (yet another) testing framework for Collaborative Filtering models.
-It integrates well with pandas as the default data manimulation libarary and
+It integrates well with pandas as the default data manipulation libarary and
 gives an easy wayt to investigate how well your models perform and why.
-You can build model using okapi and then check how it performs on the testing data.
-Or if you have little data sets, you can use it directly.
+You can build a model using okapi and then check how it performs on the testing data.
+Or if you have only a little data set, you can use it directly.
 
 Example of using the Test.fm framework
 ======================================
