@@ -2,8 +2,8 @@ Introduction
 ===========
 
 Test.fm is (yet another) testing framework for Collaborative Filtering models.
-It integrates well with pandas as the default data manipulation libarary and
-gives an easy wayt to investigate how well your models perform and why.
+It integrates well with pandas as the default data manipulation library and
+gives an easy way to investigate how well your models perform and why.
 You can build a model using okapi and then check how it performs on the testing data.
 Or if you have only a little data set, you can use it directly.
 
@@ -42,9 +42,9 @@ Installation
 
 Similar Projects
 ================
-1. [mrec](https://github.com/Mendeley/mrec/tree/master/mrec) from mendeley. Good at building models. (python, ?)
-2. [okapi](http://grafos.ml) from telefonica research. Good at distributed model building using giraph (java, apache2).
-3. [graphlab](http://graphlab.org/) from CMU. Good at distributed model building (c++, apache2).
-4. [mymedialite](http://www.mymedialite.net/) from Uni Hildesheim. Good at model building in (c#, GPL).
+1. [mrec](https://github.com/Mendeley/mrec/tree/master/mrec) from Mendeley. Good at building models. (python, ?)
+2. [okapi](http://grafos.ml) from Telefonica Research. Good at distributed model building using Apache Giraph (java, giraph, apache2).
+3. [graphlab](http://graphlab.org/) from CMU. Probably the richest library of modern algorithms (c++, apache2).
+4. [mymedialite](http://www.mymedialite.net/) from Uni Hildesheim. Has ranking implementations. (c#, GPL).
 5. [mahout](https://mahout.apache.org/) of apache. Uses hadoop to build the models. (java, hadoop, apache2)
-6. [lenskit](http://lenskit.grouplens.org/) of grouplents (java, GPL2.1)
+6. [lenskit](http://lenskit.grouplens.org/) Grouplens (java, GPL2.1)
