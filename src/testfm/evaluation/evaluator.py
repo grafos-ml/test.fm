@@ -3,6 +3,9 @@ __author__ = 'linas'
 from random import sample, shuffle
 
 from pandas import DataFrame
+from multiprocessing import Pool
+from itertools import izip, repeat
+
 
 from testfm.evaluation.meassures import Measure, MAP_measure
 from testfm.models.interface import ModelInterface
@@ -158,17 +161,11 @@ class Evaluator(object):
                     "instances")
         #######################
 
-        partial_measures = {}  # a temp dictionary to store sums of measures we
-                               # compute
-
-        #all_items = all_items or testing_dataframe.item.unique()
         if all_items is None:
             all_items = testing_dataframe.item.unique()
 
         #1. for each user:
         grouped = testing_dataframe.groupby('user')
-        from multiprocessing import Pool
-        from itertools import izip, repeat
 
         pool = Pool(processes=NUMBER_OF_THREADS)
         u, e = zip(*[(user, entries) for user, entries in grouped])

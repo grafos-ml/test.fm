@@ -6,29 +6,68 @@ import numpy as np
 
 
 from testfm.models.tensorCoFi import TensorCoFi, JavaTensorCoFi
-from testfm.models.baseline_model import IdModel
+from testfm.models.baseline_model import IdModel, Item2Item
 from testfm.models.ensemble_models import LogisticEnsemble
 
 class TestTensorCofi(unittest.TestCase):
 
     def setUp(self):
-        self.tf = TensorCoFi()
+        self.tf = TensorCoFi(dim=2)
         self.df = pd.read_csv('../testfm/data/movielenshead.dat',
                               sep="::", header=None, names=['user', 'item', 'rating', 'date', 'title'])
         self.df = self.df.head(n=100)
 
+    def test_array(self):
+        arr, tmap = self.tf._dataframe_to_float_matrix(self.df)
+
+
     def test_fit(self):
         self.tf.fit(self.df)
         #item and user are row vectors
-        self.assertEqual(len(self.df.user.unique()), self.tf._users.shape[0])
-        self.assertEqual(len(self.df.item.unique()), self.tf._items.shape[0])
+        self.assertEqual(len(self.df.user.unique()), self.tf.factors['user'].shape[0])
+        self.assertEqual(len(self.df.item.unique()), self.tf.factors['item'].shape[0])
+        self.assertEqual(self.tf.user_features[1], [1])
+        self.assertEqual(self.tf.item_features[122], [1])
+
+    def test_ids_returns(self):
+        inp = [{'user':10, 'item':100}, {'user':10,'item':110}, {'user':12,'item':120}]
+        inp = pd.DataFrame(inp)
+        self.tf.fit(inp)
+        self.assertEquals(self.tf.user_column_names, ['user'])
+        self.assertEquals(self.tf.item_column_names, ['item'])
+        self.assertEquals(len(self.tf.user_features), 2)
+        self.assertEquals(len(self.tf.item_features), 3)
+
+        self.assertEquals(len(self.tf.factors['user']), 2)
+        self.assertEquals(len(self.tf.factors['item']), 3)
+
+        uid = self.tf._dmap['user'][10]
+        iid = self.tf._dmap['item'][100]
+        self.assertEquals(uid, 1)
+        self.assertEquals(iid, 1)
+
+        self.assertEquals(len(self.tf.factors['user'][uid]), 2)
+        self.assertEquals(len(self.tf.factors['user'][uid]), self.tf._dim)
+        self.assertEquals(len(self.tf.factors['item'][iid]), self.tf._dim)
+
 
     def test_score(self):
-        tf = TensorCoFi()
-        tf.fit(self.df)
-        tf._users = np.arange(12).reshape(3,4)
-        tf._items = np.array([1]*12).reshape(3,4)
-        self.assertEqual(0+1+2+3, tf.getScore(1,122))
+        tf = TensorCoFi(dim=2)
+        inp = [{'user':10, 'item':100}, {'user':10,'item':110}, {'user':12,'item':120}]
+        inp = pd.DataFrame(inp)
+        tf.fit(inp)
+        uid = tf._dmap['user'][10]
+        iid = tf._dmap['item'][100]
+        self.assertEquals(uid, 1)
+        self.assertEquals(iid, 1)
+
+        tf.factors['user'][0][0] = 0
+        tf.factors['user'][0][1] = 1
+        tf.factors['item'][0][0] = 1
+        tf.factors['item'][0][1] = 5
+
+
+        self.assertEqual(0*1+1*5, tf.getScore(10,100))
 
     def test_floatmatrix_to_numpy(self):
         from jnius import autoclass
@@ -70,6 +109,34 @@ class LogisticTest(unittest.TestCase):
     def test_predict(self):
         self.le.fit(self.df)
         self.assertIsInstance(self.le.getScore(10, 110), float)
+
+
+class Item2ItemTest(unittest.TestCase):
+
+    def test_fit(self):
+        df = pd.DataFrame([{'user':10, 'item':100}, {'user':10,'item':110}, {'user':12,'item':100}])
+        i2i = Item2Item()
+        i2i.fit(df)
+
+        self.assertEqual(i2i._items[100], set([10, 12]))
+        self.assertEqual(i2i._items[110], set([10]))
+
+        self.assertEqual(i2i._users[10], set([100, 110]))
+        self.assertEqual(i2i._users[12], set([100]))
+
+        self.assertEqual(i2i.similarity(100, 100), 1.0)
+        self.assertEqual(i2i.similarity(100, 110), 1.0/2.0)
+
+    def test_score(self):
+        df = pd.DataFrame([{'user':10, 'item':100}, {'user':10,'item':110}, {'user':12,'item':100}])
+        i2i = Item2Item()
+        i2i.fit(df)
+
+        self.assertEqual(i2i.getScore(10, 110), 1+0.5)
+
+        #lets change k
+        i2i.k = 1
+        self.assertEqual(i2i.getScore(10, 110), 1)
 
 if __name__ == '__main__':
     unittest.main()
