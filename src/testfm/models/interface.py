@@ -19,9 +19,24 @@ class ModelInterface(object):
 
     @classmethod
     def paramDetails(cls):
+        '''
+        Return a dictionary with the parameters for the set parameters and
+        a tuple with min, max, step and default value.
+
+        {
+            'paramA': (min, max, step, default),
+            'paramB': ...
+            ...
+        }
+        '''
         raise NotImplementedError
 
     def setParams(self,**kwargs):
+        '''
+        set the parameters in the model.
+
+        kwargs can have an arbitrary set of parameters
+        '''
         raise NotImplementedError
 
     def getName(self):

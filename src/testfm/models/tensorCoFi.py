@@ -67,6 +67,9 @@ class TensorCoFi(ModelInterface):
 
     @classmethod
     def paramDetails(cls):
+        '''
+        Return parameter details for dim, nIter, lamb and alph
+        '''
         return {
             'dim': (10,20,2,20),
             'nIter': (1,10,2,5),
@@ -142,6 +145,9 @@ class TensorCoFi(ModelInterface):
         return sum(ret)
 
     def setParams(self,dim=20, nIter=5, lamb=0.05, alph=40):
+        '''
+        Set the parameters for the TensorCoFi
+        '''
         self._dim = dim
         self._nIter = nIter
         self._lamb = lamb
