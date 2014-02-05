@@ -96,7 +96,7 @@ class Item2Item(ModelInterface):
              for user, entries in training_data.groupby('user')['item']}
 
     def getScore(self,user,item):
-        scores = [self.similarity(i, item) for i in self._users[user]]
+        scores = [self.similarity(i, item) for i in self._users[user] if i != item]
         scores.sort(reverse=True)
         return sum(scores[:self.k])
 
@@ -129,5 +129,3 @@ class Popularity(ModelInterface):
 
     def getName(self):
         return "Popularity"
-
-

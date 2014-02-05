@@ -2,7 +2,7 @@ __author__ = 'linas'
 
 from math import sqrt
 
-from gensim import corpora, models
+from gensim import corpora, models, similarities
 from scipy import dot
 
 from testfm.models.interface import ModelInterface
@@ -17,6 +17,7 @@ off,often,on,only,or,other,our,own,rather,said,say,says,she,should\
 ,since,so,some,than,that,the,their,them,then,there,these,they,this\
 ,tis,to,too,twas,us,wants,was,we,were,what,when,where,which,while\
 ,who,whom,why,will,with,would,yet,you,your"
+
 
 class LSIModel(ModelInterface):
     '''
@@ -132,3 +133,43 @@ class LSIModel(ModelInterface):
         for idx, f in factors:
             ret[idx] = f
         return ret
+
+class TFIDFModel(LSIModel):
+
+    def fit(self,training_dataframe):
+
+        #lets take dictionary of clean item descriptions
+        item_desc = self._get_item_models(training_dataframe)
+
+
+        #create a map from external item id, to the index in list of values
+        self.idmap = {}
+        for idx, data in enumerate(item_desc.items()):
+            self.idmap[data[0]] = idx
+
+        #store user data for further use
+        self._users = {}
+        grouped = training_dataframe.groupby('user')['item']
+        for user, entries in grouped:
+            items = set(entries)
+            self._users[user] = items
+
+        #create a tf-idf index
+        dictionary = corpora.Dictionary(item_desc.values())
+        self.corpus = map(dictionary.doc2bow, item_desc.values())
+        self.tfidf_model = models.TfidfModel(self.corpus)
+        tfidf_corpus = self.tfidf_model[self.corpus]
+        self.index = similarities.docsim.MatrixSimilarity(tfidf_corpus)
+
+    def _sim(self, i1, i2):
+        id1 = self.idmap[i1]
+        id2 = self.idmap[i2]
+        return self.index[self.tfidf_model[self.corpus[id1]]][id2]
+
+    def getScore(self,user,item):
+        scores = [self._sim(i, item) for i in self._users[user] if i != item]
+        scores.sort(reverse=True)
+        return sum(scores[:self.k])
+
+    def getName(self):
+        return "TF/IDF"

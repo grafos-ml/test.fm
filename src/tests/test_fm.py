@@ -14,8 +14,8 @@ __version__ = 1,0,0
 __since__ = 20,1,2014
 
 import pandas as pd
-from testfm.splitter.holdout import USER,ITEM,DATE
 import testfm
+from testfm.config import USER, ITEM, DATE
 
 class TestSplitters(object):
     '''
