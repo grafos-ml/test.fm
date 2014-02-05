@@ -4,7 +4,7 @@ python:
   - "2.7"
 # command to install dependencies
 install:
-  - apt-get install libblas3gf libblas-doc libblas-dev liblapack3gf liblapack-doc liblapack-dev
+  - sudo apt-get install python-matplotlib
   - pip install --upgrade setuptools
   - pip install --upgrade cython
   - pip install --upgrade jnius
