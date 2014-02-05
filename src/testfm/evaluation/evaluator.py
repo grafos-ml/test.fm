@@ -19,11 +19,6 @@ from testfm.evaluation.measures import Measure, MAPMeasure
 from testfm.models.interface import ModelInterface
 from testfm.models.baseline_model import IdModel
 
-
-# Number of threads to the thread pool / multiprocess abstraction
-NUMBER_OF_THREADS = 4
-
-
 def pm(args):
     """
     Helper for the threading/multiprocess system
@@ -116,7 +111,7 @@ class Evaluator(object):
 
         #1. for each user:
         grouped = testing_data.groupby('user')
-        with ThreadPoolExecutor(max_workers=NUMBER_OF_THREADS) as e:
+        with ThreadPoolExecutor(max_workers=4) as e:
             jobs = (e.submit(pm, (Evaluator, user, entries, factor_model,
                                   all_items, non_relevant_count, measures))
                     for user, entries in grouped)
@@ -183,7 +178,7 @@ class Evaluator(object):
         #1. for each user:
         grouped = testing_data.groupby('user')
 
-        pool = Pool(processes=NUMBER_OF_THREADS)
+        pool = Pool()
         u, e = zip(*[(user, entries) for user, entries in grouped])
         res = pool.map(pm, izip(repeat(Evaluator), u, e,
                                 repeat(factor_model), repeat(all_items),
