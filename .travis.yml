@@ -4,7 +4,11 @@ python:
   - "2.7"
 # command to install dependencies
 install:
-  - pip install --upgrade -r conf/requirements.txt
+  - apt-get install libblas3gf libblas-doc libblas-dev liblapack3gf liblapack-doc liblapack-dev
+  - pip install --upgrade setuptools
+  - pip install --upgrade cython
+  - pip install --upgrade jnius
+  - pip install -r conf/requirements.txt
   - python setup.py -q install
 # command to run tests
 script: nosetests
