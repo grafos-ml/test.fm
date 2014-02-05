@@ -15,7 +15,7 @@ from multiprocessing import Pool
 from itertools import izip, repeat
 
 
-from testfm.evaluation.meassures import Measure, MAP_measure
+from testfm.evaluation.measures import Measure, MAPMeasure
 from testfm.models.interface import ModelInterface
 from testfm.models.baseline_model import IdModel
 
@@ -36,7 +36,7 @@ class Evaluator(object):
     Takes the model,testing data and evaluation measure and spits out the score.
     """
     def evaluate_model(self, factor_model, testing_data,
-                       measures=[MAP_measure()], all_items=None,
+                       measures=[MAPMeasure()], all_items=None,
                        non_relevant_count=100):
         """
         Evaluate the model using some testing data in pandas.DataFrame
@@ -59,7 +59,7 @@ class Evaluator(object):
 
 
     def evaluate_model_threads(self, factor_model, testing_data, measures=
-        [MAP_measure()],all_items=None, non_relevant_count=100):
+        [MAPMeasure()],all_items=None, non_relevant_count=100):
         """
         Evaluates the model by the following algorithm:
             1. for each user:
@@ -69,12 +69,13 @@ class Evaluator(object):
                 5. sort according to the predicted score
                 6. evaluate according to each measure
             7.average the scores for each user
-        >>> mapm = MAP_measure()
+        >>> mapm = MAPMeasure()
         >>> model = IdModel()
         >>> evaluation = Evaluator()
         >>> df = DataFrame({'user' : [1, 1, 3, 4], 'item' : [1, 2, 3, 4], \
             'rating' : [5,3,2,1], 'date': [11,12,13,14]})
-        >>> len(evaluation.evaluate_model_threads(model, df, non_relevant_count=2))
+        >>> len(evaluation.evaluate_model_threads(model, df, \
+        non_relevant_count=2))
         1
 
         #not the best tests, I need to put seed in order to get an expected \
@@ -125,7 +126,7 @@ class Evaluator(object):
 
 
     def evaluate_model_multiprocessing(self, factor_model, testing_data,
-                                       measures=[MAP_measure()], all_items=None,
+                                       measures=[MAPMeasure()], all_items=None,
                                        non_relevant_count=100):
         """
         Evaluates the model by the following algorithm:
@@ -136,7 +137,7 @@ class Evaluator(object):
                 5. sort according to the predicted score
                 6. evaluate according to each measure
             7.average the scores for each user
-        >>> mapm = MAP_measure()
+        >>> mapm = MAPMeasure()
         >>> model = IdModel()
         >>> evaluation = Evaluator()
         >>> df = DataFrame({'user' : [1, 1, 3, 4], 'item' : [1, 2, 3, 4], \
