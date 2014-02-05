@@ -22,7 +22,7 @@ tf_params = pt.getBestParams(TensorCoFi, tr, validation)
 print tf_params
 
 tf = TensorCoFi()
-tf.setParams(tf_params)
+tf.setParams(**tf_params)
 tf.fit(training)
 print tf.getName().ljust(50),
 print testfm.evaluate_model(tf, testing, all_items=training.item.unique())
