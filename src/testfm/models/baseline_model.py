@@ -129,5 +129,3 @@ class Popularity(ModelInterface):
 
     def getName(self):
         return "Popularity"
-
-

@@ -170,3 +170,6 @@ class TFIDFModel(LSIModel):
         scores = [self._sim(i, item) for i in self._users[user] if i != item]
         scores.sort(reverse=True)
         return sum(scores[:self.k])
+
+    def getName(self):
+        return "TF/IDF"
