@@ -2,7 +2,7 @@ __author__ = 'linas'
 
 import unittest
 
-from testfm.io.load_model import Load_Okapi
+from testfm.fmio.load_model import Load_Okapi
 
 class TestLSI(unittest.TestCase):
 
