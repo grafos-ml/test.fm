@@ -58,7 +58,9 @@ class ParameterTuning(object):
         model.fit(training)
 
         # Return the MAPMeasure in position 0
-        return testfm.evaluate_model(model,testing)[0]
+        measure = testfm.evaluate_model(model,testing)[0]
+        print 'tried {} = {}'.format(kwargs, measure)
+        return measure
 
 
     @staticmethod
@@ -100,7 +102,7 @@ class ParameterTuning(object):
             next_list.sort(reverse=True)
             new_x = next_list[0][1]
 
-            print 'try #{}, {}'.format(i+1, new_x)
+
             if new_x not in values:
                 values[new_x] = ParameterTuning.tune(m_instance,training,
                     testing,**{k:v for k,v in zip(kwargs,new_x)})

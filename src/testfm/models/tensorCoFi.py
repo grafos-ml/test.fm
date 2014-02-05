@@ -131,6 +131,7 @@ class TensorCoFi(ModelInterface):
         Prepare the model
         '''
         self._fit(dataframe)
+
     def _float_matrix2numpy(self, java_float_matrix):
         '''
         Java Float Matrix is a 1-D array writen column after column.

@@ -100,6 +100,22 @@ class Item2Item(ModelInterface):
         scores.sort(reverse=True)
         return sum(scores[:self.k])
 
+    def setParams(self, k):
+        '''
+        :param k int how many closest items in the user profile to consider.
+        '''
+        self.k = k
+
+    @classmethod
+    def paramDetails(cls):
+        '''
+        Return parameter details for k.
+        '''
+        return {
+            'k': (1,50,2,5),
+        }
+
+
 class Popularity(ModelInterface):
 
     _counts = {}
