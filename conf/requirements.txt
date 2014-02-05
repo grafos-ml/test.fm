@@ -1,5 +1,5 @@
 # required for gensim
-setuptools>=1.3.2
+setuptools>=2.1
 gensim>=0.8.6
 cython>=0.20
 #numpy 1.6 has known problems to work with pandas, try to use 1.8
