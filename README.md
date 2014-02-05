@@ -4,7 +4,7 @@ Introduction
 Test.fm is (yet another) testing framework for Collaborative Filtering models.
 It integrates well with pandas as the default data manipulation library and
 gives an easy way to investigate how well your models perform and why.
-You can build a model using okapi and then check how it performs on the testing data.
+You can build a model using [okapi](http://grafos.ml) and then check how it performs on the testing data.
 Or if you have only a little data set, you can use it directly.
 
 Example of using the Test.fm framework
@@ -32,6 +32,9 @@ Example of using the Test.fm framework
 		print m.getName().ljust(50),
 		print testfm.evaluate_model(m, testing, all_items=items)
 ```
+
+See other examples [here...](https://github.com/grafos-ml/test.fm/tree/master/src/testfm/examples)
+
 Installation
 ==========
 1. download and extract the sources.
