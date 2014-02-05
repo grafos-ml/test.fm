@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+"""
+Created on 23 January 2014
+
+Base line model
+
+.. moduleauthor:: Linas
+"""
 __author__ = 'linas'
 
 from random import random
@@ -5,18 +13,20 @@ from testfm.models.interface import ModelInterface
 from math import log
 
 class RandomModel(ModelInterface):
+    """
+    Random model
+    """
     _scores = {}
 
-    def getScore(self,user,item):
-        key = (user, item)
-        if key in self._scores:
+    def getScore(self, user, item):
+        key = user, item
+        try:
             return self._scores[key]
-        else:
-            s = random()
-            self._scores[key] = s
-            return s
+        except KeyError:
+            self._scores[key] = random()
+            return self._scores[key]
 
-    def fit(self,training_dataframe):
+    def fit(self,training_data):
         pass
 
     def getName(self):
@@ -28,10 +38,10 @@ class IdModel(ModelInterface):
     Used for testing purposes
     '''
 
-    def getScore(self,user,item):
+    def getScore(self, user, item):
         return int(item)
 
-    def fit(self,training_dataframe):
+    def fit(self, training_data):
         pass
 
     def getName(self):
@@ -39,21 +49,21 @@ class IdModel(ModelInterface):
 
 
 class ConstantModel(ModelInterface):
-    '''
+    """
     Returns constant for all predictions.
-    Don't use this model in any comparison, because the algorithm will tell its a perfect model (just because
-    of the evaluation implementation)
-    '''
+    Don't use this model in any comparison, because the algorithm will tell its
+    a perfect model (just because of the evaluation implementation)
+    """
     _c = 1.0
 
     def __init__(self, constant=1.0):
         self._c = constant
 
-    def getScore(self,user,item):
+    def getScore(self, user, item):
         return self._c
 
     def getName(self):
-        return "Constant "+str(self._c)
+        return "Constant %d" % self._c
 
 
 class Item2Item(ModelInterface):
@@ -61,27 +71,29 @@ class Item2Item(ModelInterface):
     k = 5
 
     def compute_jaccard_index(self, set_1, set_2):
+        """
+        Computes the Jaccard index for similarity measure between set 1 and set
+        2.
+        """
         n = len(set_1.intersection(set_2))
         return n / float(len(set_1) + len(set_2) - n)
 
     def similarity(self, i1, i2):
+        """
+        Measures the similarity between 2 sets
+        """
         return self.compute_jaccard_index(self._items[i1], self._items[i2])
 
-    def fit(self, training_dataframe):
+    def fit(self, training_data):
         '''
         Stores set of user ids for each item
         '''
-        self._items = {}
-        self._users = {}
-        grouped = training_dataframe.groupby('item')['user']
-        for item, entries in grouped:
-            users = set(entries)
-            self._items[item] = users
-
-        grouped = training_dataframe.groupby('user')['item']
-        for user, entries in grouped:
-            items = set(entries)
-            self._users[user] = items
+        self._items = \
+            {item: set(entries)
+             for item, entries in training_data.groupby('item')['user']}
+        self._users = \
+            {user: set(entries)
+             for user, entries in training_data.groupby('user')['item']}
 
     def getScore(self,user,item):
         scores = [self.similarity(i, item) for i in self._users[user]]
