@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+"""
+Created on 23 January 2014
+
+Evaluator for the test.fm framework
+
+.. moduleauthor:: Linas
+"""
 __author__ = 'linas'
 
 from random import sample, shuffle
@@ -12,30 +20,50 @@ from testfm.models.interface import ModelInterface
 from testfm.models.baseline_model import IdModel
 
 
-# Number of threads to the threadpool
+# Number of threads to the thread pool / multiprocess abstraction
 NUMBER_OF_THREADS = 4
 
 
 def pm(args):
-    return args[0].partial_mesure(*args[1:])
+    """
+    Helper for the threading/multiprocess system
+    """
+    return args[0].partial_measure(*args[1:])
 
-'''
-Takes the model,testing data and evaluation measure and spits out the score.
-'''
+
 class Evaluator(object):
+    """
+    Takes the model,testing data and evaluation measure and spits out the score.
+    """
+    def evaluate_model(self, factor_model, testing_data,
+                       measures=[MAP_measure()], all_items=None,
+                       non_relevant_count=100):
+        """
+        Evaluate the model using some testing data in pandas.DataFrame
 
-    def evaluate_model(self, factor_model, testing_dataframe, measures=
-        [MAP_measure()],all_items=None, non_relevant_count=100):
-        return self.evaluate_model_multiprocessing(factor_model, testing_dataframe,
-                           measures=measures, all_items=all_items, non_relevant_count=non_relevant_count)
+        :param factor_model: ModelInterface  an instance of ModelInterface
+        :param testing_dataframe: DataFrame pandas dataframe of testing data
+        :param measures: list of measure we want to compute (instnces of)
+        :param all_items: list of items available in the data set (used for
+            negative sampling).
+         If set to None, then testing items are used for this
+        :param non_relevant_count: int number of non relevant items to add to
+            the list for performance evaluation
+        :return: list of score corresponding to measures
+        """
+        return self.evaluate_model_multiprocessing(factor_model, testing_data,
+                                                   measures=measures,
+                                                   all_items=all_items,
+                                                   non_relevant_count=
+                                                   non_relevant_count)
 
 
-    def evaluate_model_threads(self, factor_model, testing_dataframe, measures=
+    def evaluate_model_threads(self, factor_model, testing_data, measures=
         [MAP_measure()],all_items=None, non_relevant_count=100):
         """
         Evaluates the model by the following algorithm:
             1. for each user:
-                2. take all relevant items from the testing_dataframe
+                2. take all relevant items from the testing_data
                 3. inject #non_relevant random items
                 4. predict the score for each item
                 5. sort according to the predicted score
@@ -65,52 +93,44 @@ class Evaluator(object):
 
         from concurrent.futures import ThreadPoolExecutor
 
-        # Don't need all this in production. We should assume the method work
-        # work well if is used well. (Zen Python)
-        if not isinstance(factor_model, ModelInterface):
-            raise ValueError("Factor model should be an instance of "
-                "ModelInterface")
+        # Change to assertions. In production run with the -O option on python
+        # to skipp this (Zen Python)
+        assert isinstance(factor_model, ModelInterface), \
+            "Factor model should be an instance of ModelInterface"
 
-        if not isinstance(testing_dataframe, DataFrame):
-            raise ValueError("Testing data should be a pandas dataframe")
+        assert isinstance(testing_data, DataFrame), \
+            "Testing data should be a pandas.DataFrame"
 
-        if not 'item' in testing_dataframe.columns:
-            raise ValueError("Testing data should be a pandas dataframe with "
-                "'item' column")
-        if not 'user' in testing_dataframe.columns:
-            raise ValueError("Testing data should be a pandas dataframe with "
-                "'user' column")
-
+        for column in ['item','user']:
+            assert column in testing_data.columns, \
+                "Testing data should be a pandas.DataFrame with " \
+                "'{}' column".format(column)
         for m in measures:
-            if not isinstance(m, Measure):
-                raise ValueError("Measures should contain only Measure "
-                    "instances")
+            assert isinstance(m, Measure), \
+                "Measures should contain only Measure instances"
         #######################
 
-        partial_measures = {}  # a temp dictionary to store sums of measures we
-                               # compute
-
-        #all_items = all_items or testing_dataframe.item.unique()
         if all_items is None:
-            all_items = testing_dataframe.item.unique()
+            all_items = testing_data.item.unique()
 
         #1. for each user:
-        grouped = testing_dataframe.groupby('user')
+        grouped = testing_data.groupby('user')
         with ThreadPoolExecutor(max_workers=NUMBER_OF_THREADS) as e:
-            jobs = (e.submit(pm, (Evaluator,user,entries,
-                factor_model,all_items,non_relevant_count,measures))
-                for user, entries in grouped)
+            jobs = (e.submit(pm, (Evaluator, user, entries, factor_model,
+                                  all_items, non_relevant_count, measures))
+                    for user, entries in grouped)
             #7.average the scores for each user
-            results =  [job.result() for job in jobs]
-        return list(sum(result)/len(result) for result in zip(*results))
+            results = [job.result() for job in jobs]
+        return [sum(result)/len(result) for result in zip(*results)]
 
 
-    def evaluate_model_multiprocessing(self, factor_model, testing_dataframe, measures=
-        [MAP_measure()],all_items=None, non_relevant_count=100):
+    def evaluate_model_multiprocessing(self, factor_model, testing_data,
+                                       measures=[MAP_measure()], all_items=None,
+                                       non_relevant_count=100):
         """
         Evaluates the model by the following algorithm:
             1. for each user:
-                2. take all relevant items from the testing_dataframe
+                2. take all relevant items from the testing_data
                 3. inject #non_relevant random items
                 4. predict the score for each item
                 5. sort according to the predicted score
@@ -120,16 +140,17 @@ class Evaluator(object):
         >>> model = IdModel()
         >>> evaluation = Evaluator()
         >>> df = DataFrame({'user' : [1, 1, 3, 4], 'item' : [1, 2, 3, 4], \
-                    'rating' : [5,3,2,1], 'date': [11,12,13,14]})
-        >>> len(evaluation.evaluate_model_multiprocessing(model, df, non_relevant_count=2))
+                'rating' : [5,3,2,1], 'date': [11,12,13,14]})
+        >>> len(evaluation.evaluate_model_multiprocessing(model, \
+                df, non_relevant_count=2))
         1
 
         #not the best tests, I need to put seed in order to get an expected \
             behaviour
 
         :param factor_model: ModelInterface  an instance of ModelInterface
-        :param testing_dataframe: DataFrame pandas dataframe of testing data
-        :param measures: list of measure we want to compute (instnces of)
+        :param testing_data: DataFrame pandas.DataFrame of testing data
+        :param measures: list of measure we want to compute (instances of)
         :param all_items: list of items available in the data set (used for
             negative sampling).
          If set to None, then testing items are used for this
@@ -138,60 +159,55 @@ class Evaluator(object):
         :return: list of score corresponding to measures
         """
 
+        # Change to assertions. In production run with the -O option on python
+        # to skipp this (Zen Python)
+        assert isinstance(factor_model, ModelInterface), \
+            "Factor model should be an instance of ModelInterface"
 
-        # Don't need all this in production. We should assume the method work
-        # work well if is used well. (Zen Python)
-        if not isinstance(factor_model, ModelInterface):
-            raise ValueError("Factor model should be an instance of "
-                "ModelInterface")
+        assert isinstance(testing_data, DataFrame), \
+            "Testing data should be a pandas.DataFrame"
 
-        if not isinstance(testing_dataframe, DataFrame):
-            raise ValueError("Testing data should be a pandas dataframe")
-
-        if not 'item' in testing_dataframe.columns:
-            raise ValueError("Testing data should be a pandas dataframe with "
-                "'item' column")
-        if not 'user' in testing_dataframe.columns:
-            raise ValueError("Testing data should be a pandas dataframe with "
-                "'user' column")
-
+        for column in ['item','user']:
+            assert column in testing_data.columns, \
+                "Testing data should be a pandas.DataFrame with " \
+                "'{}' column".format(column)
         for m in measures:
-            if not isinstance(m, Measure):
-                raise ValueError("Measures should contain only Measure "
-                    "instances")
+            assert isinstance(m, Measure), \
+                "Measures should contain only Measure instances"
         #######################
 
         if all_items is None:
-            all_items = testing_dataframe.item.unique()
+            all_items = testing_data.item.unique()
 
         #1. for each user:
-        grouped = testing_dataframe.groupby('user')
+        grouped = testing_data.groupby('user')
 
         pool = Pool(processes=NUMBER_OF_THREADS)
         u, e = zip(*[(user, entries) for user, entries in grouped])
-        res = pool.map(pm, izip(repeat(Evaluator),
-            u, e, repeat(factor_model), repeat(all_items),
-            repeat(non_relevant_count), repeat(measures)))
+        res = pool.map(pm, izip(repeat(Evaluator), u, e,
+                                repeat(factor_model), repeat(all_items),
+                                repeat(non_relevant_count), repeat(measures)))
 
         #7.average the scores for each user
-        ret = list(sum(measure_list)/len(measure_list)
-            for measure_list in zip(*res))
+        ret = [sum(measure_list)/len(measure_list)
+               for measure_list in zip(*res)]
         pool.close()
         pool.join()
         return ret
 
     @classmethod
-    def partial_mesure(cls,user,entries,factor_model,all_items,
-        non_relevant_count,measures):
-        #2. take all relevant items from the testing_dataframe
-        ranked_list = [(True, factor_model.getScore(user,i))
-            for i in entries['item']]
+    def partial_measure(cls, user, entries, factor_model, all_items,
+                        non_relevant_count, measures):
+        #2. take all relevant items from the testing_data
+        ranked_list = [(True, factor_model.getScore(user, i))
+                       for i in entries['item']]
 
         #3. inject #non_relevant random items
         ranked_list += [(False, factor_model.getScore(user,nr))
-            for nr in sample(all_items, non_relevant_count)]
+                        for nr in sample(all_items, non_relevant_count)]
 
-        shuffle(ranked_list)#just to make sure we don't introduce any bias
+        shuffle(ranked_list)  # Just to make sure we don't introduce any bias
+
         #5. sort according to the score
         ranked_list.sort(key=lambda x: x[1], reverse=True)
 

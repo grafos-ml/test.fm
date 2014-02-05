@@ -2,6 +2,7 @@
 '''
 Created on 22 January 2014
 
+Constants and routines for the all project
 
 
 .. moduleauthor:: joaonrb <joaonrb@gmail.com>
