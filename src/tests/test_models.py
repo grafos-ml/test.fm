@@ -8,6 +8,7 @@ import numpy as np
 from testfm.models.tensorCoFi import TensorCoFi, TensorCoFiByFile
 from testfm.models.baseline_model import IdModel, Item2Item
 from testfm.models.ensemble_models import LogisticEnsemble
+from testfm.models.content_based import TFIDFModel
 
 class TestTensorCofi(unittest.TestCase):
 
@@ -187,11 +188,42 @@ class Item2ItemTest(unittest.TestCase):
         i2i = Item2Item()
         i2i.fit(df)
 
-        self.assertEqual(i2i.getScore(10, 110), 1+0.5)
+        self.assertEqual(i2i.getScore(12, 110), 0.5)
 
-        #lets change k
-        i2i.k = 1
-        self.assertEqual(i2i.getScore(10, 110), 1)
+
+class TFIDTest(unittest.TestCase):
+
+    def setUp(self):
+        self.df = pd.DataFrame([{'user':10,'item':100, 'desc': 'car is very nice'},
+                           {'user':11,'item':100, 'desc': 'car is very nice'},
+                           {'user':11,'item':1, 'desc': 'oh my god'},
+                           {'user':12,'item':110, 'desc': 'the sky sky is blue and nice'}])
+
+    def test_item_model(self):
+        tfidf = TFIDFModel('desc')
+        tfidf.fit(self.df)
+
+        self.assertEqual(tfidf._get_item_models(self.df), {1: ['oh', 'god'],
+                                                      100: ['car', 'very', 'nice'],
+                                                      110: ['sky', 'sky', 'blue', 'nice']})
+        self.assertEqual(tfidf._users, {10: set(100), 11: set(100, 1), 12: set(110)})
+
+    def test_item_model(self):
+        tfidf = TFIDFModel('desc')
+        tfidf.fit(self.df)
+
+        self.assertAlmostEqual(tfidf._sim(1, 1), 1, places=2)
+        self.assertAlmostEqual(tfidf._sim(100, 100), 1, places=2)
+        self.assertGreater(tfidf._sim(1, 1), tfidf._sim(1, 100), "similarities do not make sense")
+
+    def test_get_score(self):
+        tfidf = TFIDFModel('desc')
+        tfidf.fit(self.df)
+        tfidf.k = 1
+
+        #the closes item to 1 (in user 10 profile) is 100, so the score should be equal to the similarity
+        self.assertAlmostEqual(tfidf.getScore(10, 1), tfidf._sim(100, 1), places=2)
+
 
 if __name__ == '__main__':
     unittest.main()

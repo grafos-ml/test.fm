@@ -84,7 +84,7 @@ class Item2Item(ModelInterface):
             self._users[user] = items
 
     def getScore(self,user,item):
-        scores = [self.similarity(i, item) for i in self._users[user]]
+        scores = [self.similarity(i, item) for i in self._users[user] if i != item]
         scores.sort(reverse=True)
         return sum(scores[:self.k])
 
