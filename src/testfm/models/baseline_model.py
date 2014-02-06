@@ -33,10 +33,10 @@ class RandomModel(ModelInterface):
         return "Random"
 
 class IdModel(ModelInterface):
-    '''
+    """
     Returns the score as the id of the item.
     Used for testing purposes
-    '''
+    """
 
     def getScore(self, user, item):
         return int(item)
@@ -69,6 +69,10 @@ class ConstantModel(ModelInterface):
 class Item2Item(ModelInterface):
 
     k = 5
+    _items = {}
+    _users = {}
+
+
 
     def compute_jaccard_index(self, set_1, set_2):
         """
@@ -85,9 +89,9 @@ class Item2Item(ModelInterface):
         return self.compute_jaccard_index(self._items[i1], self._items[i2])
 
     def fit(self, training_data):
-        '''
+        """
         Stores set of user ids for each item
-        '''
+        """
         self._items = \
             {item: set(entries)
              for item, entries in training_data.groupby('item')['user']}
@@ -96,36 +100,76 @@ class Item2Item(ModelInterface):
              for user, entries in training_data.groupby('user')['item']}
 
     def getScore(self,user,item):
-        scores = [self.similarity(i, item) for i in self._users[user] if i != item]
-        scores.sort(reverse=True)
-        return sum(scores[:self.k])
+        # scores = [self.similarity(i, item)
+        #           for i in self._users[user] if i != item]
+        # scores.sort(reverse=True)
+        # assert scores == sorted((self.similarity(i, item)
+        #           for i in self._users[user] if i != item),
+        #                         cmp=lambda x, y: cmp(y,x))
+
+        # Returns the sum of the list whit self.k elements the sorted similarity
+        # between items of the user and item(param) excluding the item(param)
+        # itself.
+        return sum(sorted((self.similarity(i, item)
+                           for i in self._users[user] if i != item),
+                          cmp=lambda x, y: cmp(y, x))[:self.k])
+
+    def setParams(self, k):
+        """
+        :param k int how many closest items in the user profile to consider.
+        """
+        self.k = k
+
+    @classmethod
+    def paramDetails(cls):
+        """
+        Return parameter details for k.
+        """
+        return {
+            'k': (1, 50, 2, 5),
+        }
+
 
 class Popularity(ModelInterface):
 
     _counts = {}
+    mn = float("inf")
+    mx = 0.
 
-    def getScore(self,user,item):
+
+    def getScore(self, user, item):
         cnt = self._counts.get(item, 0.0)
-        #normalize between 0 and 1
+        # normalize between 0 and 1
         try:
-            norm = (cnt - self.mn)/float(self.mx - self.mn)
-            return norm
-        except:
+            assert isinstance(self.mx - self.mn, float), 'Not float'
+            return (cnt - self.mn)/(self.mx - self.mn)
+        except ZeroDivisionError:
             return cnt
 
-    def fit(self, training_dataframe):
-        '''
+    def fit(self, training_data):
+        """
         Computes number of times the item was used by a user.
-        :param training_dataframe: DataFrame training data
+        :param training_data: DataFrame training data
         :return:
-        '''
-        self.mn = float("inf")
-        self.mx = 0
-        for i,v in training_dataframe.item.value_counts().iteritems():
-            cnt = log(v+1)
-            self._counts[i] = cnt
-            self.mn = min(self.mn, cnt)
-            self.mx = max(self.mx, cnt)
+        """
+        # self.mn = float("inf")  # This is not needed
+        # self.mx = 0.  # Neither do this
+        # for i, v in training_data.item.value_counts().iteritems():
+        #     self._counts[i] = cnt = log(v+1)
+        #     self.mn = min(self.mn, cnt)
+        #     self.mx = max(self.mx, cnt)
+
+        # Changed to fit behave like other models. Every time it fits it loses
+        # the old data.
+
+        # Linas, do you mind this?
+        self._counts = {
+            i: log(v+1)
+            for i, v in training_data.item.value_counts().iteritems()
+        }
+        s = sorted(self._counts.values())
+        self.mn, self.mx = s[0], s[-1]
+
 
     def getName(self):
         return "Popularity"

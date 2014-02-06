@@ -1,46 +1,46 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 Created on 20 January 2014
 
 Test for splitters
 
 .. moduleauthor:: joaonrb <joaonrb@gmail.com>
-'''
+"""
 __author__ = {
-    'name':'joaonrb',
+    'name': 'joaonrb',
     'e-mail': 'joaonrb@gmail.com'
 }
-__version__ = 1,0,0
-__since__ = 20,1,2014
+__version__ = 1, 0, 0
+__since__ = 20, 1, 2014
 
 import pandas as pd
 import testfm
 from testfm.config import USER, ITEM, DATE
 
 class TestSplitters(object):
-    '''
-    
-    '''
+    """
+
+    """
     @classmethod
     def setup_class(cls):
         cls.data = pd.DataFrame({
             USER: [1,1,1,3,1,3,4,3,5,5,4,6,5,6],
             ITEM: [1,2,3,1,4,2,1,3,1,2,2,1,3,2],
             DATE: [
-                838989347, # 5
-                838991904, # 7
-                838992348, # 9
-                838992136, # 8
-                838989279, # 4
-                838993295, # 11
-                838993443, # 12
-                838993638, # 13
-                838988734, # 3
-                838986416, # 1
-                838992657, # 10
-                838988397, # 2
-                838991564, # 6
-                838993709  # 14
+                838989347,  # 5
+                838991904,  # 7
+                838992348,  # 9
+                838992136,  # 8
+                838989279,  # 4
+                838993295,  # 11
+                838993443,  # 12
+                838993638,  # 13
+                838988734,  # 3
+                838986416,  # 1
+                838992657,  # 10
+                838988397,  # 2
+                838991564,  # 6
+                838993709   # 14
             ]
         })
         cls.fractions = [0.25,0.95]
