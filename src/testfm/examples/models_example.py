@@ -21,7 +21,7 @@ models = [  RandomModel(),
             Popularity(),
             TensorCoFi(dim=20, nIter=5, lamb=0.05, alph=40, user_features=['user'], item_features=['item', 'title']),
             Item2Item(),
-            TFIDFModel('title'),
+            #TFIDFModel('title'),
          ]
 
 #models += [LinearFit([models[1], models[2]])]
