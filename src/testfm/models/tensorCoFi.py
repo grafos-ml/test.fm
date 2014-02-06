@@ -10,8 +10,8 @@ __author__ = {
     'name':'joaonrb',
     'e-mail': 'joaonrb@gmail.com'
 }
-__version__ = 1,0,0
-__since__ = 16,1,2014
+__version__ = 1, 0, 0
+__since__ = 16, 1, 2014
 
 from pkg_resources import resource_filename
 import testfm
