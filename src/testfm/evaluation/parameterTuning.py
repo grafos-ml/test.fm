@@ -14,9 +14,7 @@ Because it is more natural for me, I will use UCB method.
 
 import numpy as np
 import scipy.stats as st
-import math
 from sklearn.gaussian_process import GaussianProcess
-from matplotlib import pyplot as pl
 import testfm
 
 
