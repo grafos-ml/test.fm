@@ -13,7 +13,7 @@ from testfm.models.baseline_model import IdModel, Item2Item
 from testfm.models.ensemble_models import LogisticEnsemble
 from testfm.models.content_based import TFIDFModel, LSIModel
 
-class TestTensorCofi(unittest.TestCase):
+class TestTensorCoFi(unittest.TestCase):
 
     def tearDown(self):
         import os
@@ -24,8 +24,11 @@ class TestTensorCofi(unittest.TestCase):
 
     def setUp(self):
         self.tf = TensorCoFi(dim=2)
-        self.df = pd.read_csv(resource_filename(testfm.__name__,'data/movielenshead.dat'),
-                              sep="::", header=None, names=['user', 'item', 'rating', 'date', 'title'])
+        self.df = pd.read_csv(resource_filename(testfm.__name__,
+                                                'data/movielenshead.dat'),
+                              sep="::", header=None, names=['user', 'item',
+                                                            'rating', 'date',
+                                                            'title'])
         self.df = self.df.head(n=100)
 
     def test_array(self):
@@ -41,7 +44,8 @@ class TestTensorCofi(unittest.TestCase):
         self.assertEqual(self.tf.item_features[122], [1])
 
     def test_ids_returns(self):
-        inp = [{'user':10, 'item':100}, {'user':10,'item':110}, {'user':12,'item':120}]
+        inp = [{'user': 10, 'item': 100}, {'user': 10, 'item': 110},
+               {'user': 12,'item': 120}]
         inp = pd.DataFrame(inp)
         self.tf.fit(inp)
         self.assertEquals(self.tf.user_column_names, ['user'])
@@ -64,7 +68,8 @@ class TestTensorCofi(unittest.TestCase):
 
     def test_score(self):
         tf = TensorCoFi(dim=2)
-        inp = [{'user':10, 'item':100}, {'user':10,'item':110}, {'user':12,'item':120}]
+        inp = [{'user': 10, 'item': 100}, {'user': 10,'item': 110},
+               {'user': 12,'item': 120}]
         inp = pd.DataFrame(inp)
         tf.fit(inp)
         uid = tf._dmap['user'][10]
@@ -93,9 +98,9 @@ class TestTensorCofi(unittest.TestCase):
 
     def test_score_tcff(self):
         tf = TensorCoFiByFile(dim=2)
-        inp = [{'user':10, 'item':100},
-               {'user':10,'item':110},
-               {'user':12,'item':120}]
+        inp = [{'user': 10, 'item': 100},
+               {'user': 10,'item': 110},
+               {'user': 12,'item': 120}]
         inp = pd.DataFrame(inp)
         tf.fit(inp)
         uid = tf._dmap['user'][10]
@@ -109,42 +114,42 @@ class TestTensorCofi(unittest.TestCase):
         tf.factors['item'][0][1] = 5
 
 
-        self.assertEqual(0*1+1*5, tf.getScore(10,100))
+        self.assertEqual(0*1+1*5, tf.getScore(10, 100))
 
     def test_result_by_file(self):
-        def floatMatrixToCSV(fm,n):
-            csv = '\n'.join((','.join((str(fm.get(row,column))
-                for column in xrange(0,fm.columns)))
-                for row in xrange(0,fm.rows)))
-            with open(n,'w') as f:
+        def floatMatrixToCSV(fm, n):
+            csv = '\n'.join((','.join((str(fm.get(row, column))
+                for column in xrange(0, fm.columns)))
+                for row in xrange(0, fm.rows)))
+            with open(n, 'w') as f:
                 f.write(csv)
         tf = TensorCoFiByFile(dim=2)
-        inp = [{'user':10, 'item':100},
-               {'user':10,'item':110},
-               {'user':12,'item':120}]
+        inp = [{'user': 10, 'item': 100},
+               {'user': 10,'item': 110},
+               {'user': 12,'item': 120}]
         inp = pd.DataFrame(inp)
         ten = tf._fit(inp)
 
         #####
-        floatMatrixToCSV(ten.getModel().get(0),'user.csv')
-        floatMatrixToCSV(ten.getModel().get(1),'item.csv')
+        floatMatrixToCSV(ten.getModel().get(0), 'user.csv')
+        floatMatrixToCSV(ten.getModel().get(1), 'item.csv')
 
         fromFile = {
-            'user': np.ma.column_stack(np.genfromtxt(open('user.csv','r'),
-                delimiter=',')),
-            'item': np.ma.column_stack(np.genfromtxt(open('item.csv','r'),
-                delimiter=','))
+            'user': np.ma.column_stack(np.genfromtxt(open('user.csv', 'r'),
+                                                     delimiter=',')),
+            'item': np.ma.column_stack(np.genfromtxt(open('item.csv', 'r'),
+                                                     delimiter=','))
         }
-        for i in xrange(0,2):
+        for i in xrange(0, 2):
             self.assertAlmostEqual(tf.factors['user'][i][0],
-                fromFile['user'][i][0])
+                                   fromFile['user'][i][0])
             self.assertAlmostEqual(tf.factors['user'][i][1],
-                fromFile['user'][i][1])
-        for i in xrange(0,3):
+                                   fromFile['user'][i][1])
+        for i in xrange(0, 3):
             self.assertAlmostEqual(tf.factors['item'][i][0],
-                fromFile['item'][i][0])
+                                   fromFile['item'][i][0])
             self.assertAlmostEqual(tf.factors['item'][i][1],
-                fromFile['item'][i][1])
+                                   fromFile['item'][i][1])
 
 class LogisticTest(unittest.TestCase):
 
