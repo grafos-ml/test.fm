@@ -3,13 +3,13 @@ python:
   - "2.7"
 # command to install dependencies
 install:
-  - sudo apt-get install gfortran
-  - sudo apt-get install libblas-dev liblapack-dev
-  - pip install --upgrade setuptools
-  - pip install --upgrade scikit-learn
-  - pip install --upgrade cython
-  - pip install --upgrade jnius
-  - pip install -r conf/requirements.txt
+  - sudo apt-get -q install gfortran
+  - sudo apt-get -q install libblas-dev liblapack-dev
+  - pip install -q --upgrade setuptools
+  - pip install -q --upgrade scikit-learn
+  - pip install -q --upgrade cython
+  - pip install -q -e git@github.com:kivy/pyjnius.git#egg=jnius
+  - pip install -q -r conf/requirements.txt
   - python setup.py -q install
 # command to run tests
 script: nosetests -w src -vv --with-doctest tests
