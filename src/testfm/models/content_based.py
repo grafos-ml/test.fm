@@ -172,7 +172,7 @@ class TFIDFModel(LSIModel):
 
     idmap = {}
 
-    def fit(self,training_data):
+    def fit(self, training_data):
 
         #lets take dictionary of clean item descriptions
         item_desc = self._get_item_models(training_data)
@@ -191,11 +191,7 @@ class TFIDFModel(LSIModel):
 
         #create a tf-idf index
         dictionary = corpora.Dictionary(item_desc.values())
-        self.corpus = map(dictionary.doc2bow, item_desc.values())  # <--- HERE
-        class ThisDoesntMakeSenseException(Exception):
-            pass
-        raise ThisDoesntMakeSenseException('self.corpus is defined in'
-                                           'superclass has a method')
+        self.corpus = map(dictionary.doc2bow, item_desc.values())
         self.tfidf_model = models.TfidfModel(self.corpus)
         tfidf_corpus = self.tfidf_model[self.corpus]
         self.index = similarities.docsim.MatrixSimilarity(tfidf_corpus)
@@ -205,7 +201,7 @@ class TFIDFModel(LSIModel):
         id2 = self.idmap[i2]
         return self.index[self.tfidf_model[self.corpus[id1]]][id2]
 
-    def getScore(self,user,item):
+    def getScore(self, user, item):
         scores = [self._sim(i, item) for i in self._users[user] if i != item]
         scores.sort(reverse=True)
         return sum(scores[:self.k])

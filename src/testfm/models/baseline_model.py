@@ -170,6 +170,5 @@ class Popularity(ModelInterface):
         s = sorted(self._counts.values())
         self.mn, self.mx = s[0], s[-1]
 
-
     def getName(self):
         return "Popularity"
