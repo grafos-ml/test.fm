@@ -151,17 +151,19 @@ class TestTensorCoFi(unittest.TestCase):
             self.assertAlmostEqual(tf.factors['item'][i][1],
                                    fromFile['item'][i][1])
 
+
 class LogisticTest(unittest.TestCase):
 
     def setUp(self):
         self.le = LogisticEnsemble(models=[IdModel()])
-        inp = [{'user':10, 'item':100}, {'user':10,'item':110}, {'user':12,'item':120}]
+        inp = [{'user': 10, 'item': 100}, {'user': 10,'item': 110},
+               {'user': 12,'item': 120}]
         self.df = pd.DataFrame(inp)
 
     def test_construct_features(self):
 
         self.le._prepare_feature_extraction(self.df)
-        self.assertEqual(self.le._user_count,  {10: 2, 12: 1})
+        self.assertEqual(self.le._user_count, {10: 2, 12: 1})
 
     def test_extract_features(self):
         self.le._prepare_feature_extraction(self.df)

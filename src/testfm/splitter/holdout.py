@@ -30,18 +30,17 @@ class HoldoutSplitter(SplitterInterface):
     Holdout class for split. The dataframe passed by the call should have a user
     field, a app field and a date field.
     '''
-    def __init__(self,sortBy=[DATE]):
+    def __init__(self, sortBy=[DATE]):
         self._sortby = sortBy
 
-
-    def split(self,dataList,fraction, clean_not_seen=True):
-        '''
+    def split(self, data_list, fraction, clean_not_seen=True):
+        """
         Splits every list in dataList by fraction and return 2 dataframes
         (training and tests) according the holdout method.
-        '''
-        training = {k:[] for k in dataList[0].keys()}
-        test= training.copy()
-        for dataset in dataList:
+        """
+        training = {k: [] for k in data_list[0].keys()}
+        test = training.copy()
+        for dataset in data_list:
             for key, value in dataset.items():
                 i = int(len(value)*fraction)
                 training[key], test[key] = value[:i],value[i:]
@@ -54,11 +53,11 @@ class HoldoutSplitter(SplitterInterface):
 
         return df_training, df_testing
 
-    def sort(self,dataframe):
-        '''
+    def sort(self, data):
+        """
         Doesnt do any sorting
-        '''
-        return [dataframe.sort(self._sortby).to_dict(outtype='list')]
+        """
+        return [data.sort(self._sortby).to_dict(outtype='list')]
 
 
 class RandomSplitter(HoldoutSplitter):
