@@ -71,15 +71,29 @@ class TestSplitters(object):
         ]
 
     def test_holdout(self):
-        '''
+        """
         Tests the holdout class
-        '''
+        """
         fractions = self.__class__.fractions
         data = self.__class__.data
         results = self.__class__.holdout_results
         for i, fraction in enumerate(fractions):
             train, test = testfm.split.holdout(data, fraction)
-            print 'fraction ',fractions[i],'   ',
+            print 'fraction ', fraction, '   ',
             assert((train.to_dict(outtype='list'), test.to_dict(outtype='list'))
                    == results[i])
+            print 'passed'
+
+    def test_random(self):
+        fractions = self.__class__.fractions
+        data = self.__class__.data
+        rows = len(data[USER])
+        for fraction in fractions:
+            train, test = testfm.split.holdoutByRandom(data, fraction,
+                                                       clean_not_seen=False)
+            i = int(rows * fraction)
+            print 'fraction ', fraction, '   ',
+
+            print((train.shape[0], test.shape[0]), (i, rows-i))
+            assert((train.shape[0], test.shape[0]) == (i, rows-i))
             print 'passed'
