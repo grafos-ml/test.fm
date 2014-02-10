@@ -1,20 +1,34 @@
+# -*- coding: utf-8 -*-
+
 __author__ = 'linas'
 
 import unittest
 import pandas as pd
 import numpy as np
+from pkg_resources import resource_filename
 
-
+import testfm
 from testfm.models.tensorCoFi import TensorCoFi, TensorCoFiByFile
 from testfm.models.baseline_model import IdModel, Item2Item
 from testfm.models.ensemble_models import LogisticEnsemble
+from testfm.models.content_based import TFIDFModel, LSIModel
 
-class TestTensorCofi(unittest.TestCase):
+class TestTensorCoFi(unittest.TestCase):
+
+    def tearDown(self):
+        import os
+        if os.path.exists('user.csv'):
+            os.remove('user.csv')
+        if os.path.exists('item.csv'):
+            os.remove('item.csv')
 
     def setUp(self):
         self.tf = TensorCoFi(dim=2)
-        self.df = pd.read_csv('../testfm/data/movielenshead.dat',
-                              sep="::", header=None, names=['user', 'item', 'rating', 'date', 'title'])
+        self.df = pd.read_csv(resource_filename(testfm.__name__,
+                                                'data/movielenshead.dat'),
+                              sep="::", header=None, names=['user', 'item',
+                                                            'rating', 'date',
+                                                            'title'])
         self.df = self.df.head(n=100)
 
     def test_array(self):
@@ -30,7 +44,8 @@ class TestTensorCofi(unittest.TestCase):
         self.assertEqual(self.tf.item_features[122], [1])
 
     def test_ids_returns(self):
-        inp = [{'user':10, 'item':100}, {'user':10,'item':110}, {'user':12,'item':120}]
+        inp = [{'user': 10, 'item': 100}, {'user': 10, 'item': 110},
+               {'user': 12,'item': 120}]
         inp = pd.DataFrame(inp)
         self.tf.fit(inp)
         self.assertEquals(self.tf.user_column_names, ['user'])
@@ -53,7 +68,8 @@ class TestTensorCofi(unittest.TestCase):
 
     def test_score(self):
         tf = TensorCoFi(dim=2)
-        inp = [{'user':10, 'item':100}, {'user':10,'item':110}, {'user':12,'item':120}]
+        inp = [{'user': 10, 'item': 100}, {'user': 10,'item': 110},
+               {'user': 12,'item': 120}]
         inp = pd.DataFrame(inp)
         tf.fit(inp)
         uid = tf._dmap['user'][10]
@@ -82,9 +98,9 @@ class TestTensorCofi(unittest.TestCase):
 
     def test_score_tcff(self):
         tf = TensorCoFiByFile(dim=2)
-        inp = [{'user':10, 'item':100},
-               {'user':10,'item':110},
-               {'user':12,'item':120}]
+        inp = [{'user': 10, 'item': 100},
+               {'user': 10,'item': 110},
+               {'user': 12,'item': 120}]
         inp = pd.DataFrame(inp)
         tf.fit(inp)
         uid = tf._dmap['user'][10]
@@ -98,54 +114,56 @@ class TestTensorCofi(unittest.TestCase):
         tf.factors['item'][0][1] = 5
 
 
-        self.assertEqual(0*1+1*5, tf.getScore(10,100))
+        self.assertEqual(0*1+1*5, tf.getScore(10, 100))
 
     def test_result_by_file(self):
-        def floatMatrixToCSV(fm,n):
-            csv = '\n'.join((','.join((str(fm.get(row,column))
-                for column in xrange(0,fm.columns)))
-                for row in xrange(0,fm.rows)))
-            with open(n,'w') as f:
+        def floatMatrixToCSV(fm, n):
+            csv = '\n'.join((','.join((str(fm.get(row, column))
+                for column in xrange(0, fm.columns)))
+                for row in xrange(0, fm.rows)))
+            with open(n, 'w') as f:
                 f.write(csv)
         tf = TensorCoFiByFile(dim=2)
-        inp = [{'user':10, 'item':100},
-               {'user':10,'item':110},
-               {'user':12,'item':120}]
+        inp = [{'user': 10, 'item': 100},
+               {'user': 10,'item': 110},
+               {'user': 12,'item': 120}]
         inp = pd.DataFrame(inp)
         ten = tf._fit(inp)
 
         #####
-        floatMatrixToCSV(ten.getModel().get(0),'user.csv')
-        floatMatrixToCSV(ten.getModel().get(1),'item.csv')
+        floatMatrixToCSV(ten.getModel().get(0), 'user.csv')
+        floatMatrixToCSV(ten.getModel().get(1), 'item.csv')
 
         fromFile = {
-            'user': np.ma.column_stack(np.genfromtxt(open('user.csv','r'),
-                delimiter=',')),
-            'item': np.ma.column_stack(np.genfromtxt(open('item.csv','r'),
-                delimiter=','))
+            'user': np.ma.column_stack(np.genfromtxt(open('user.csv', 'r'),
+                                                     delimiter=',')),
+            'item': np.ma.column_stack(np.genfromtxt(open('item.csv', 'r'),
+                                                     delimiter=','))
         }
-        for i in xrange(0,2):
+        for i in xrange(0, 2):
             self.assertAlmostEqual(tf.factors['user'][i][0],
-                fromFile['user'][i][0])
+                                   fromFile['user'][i][0])
             self.assertAlmostEqual(tf.factors['user'][i][1],
-                fromFile['user'][i][1])
-        for i in xrange(0,3):
+                                   fromFile['user'][i][1])
+        for i in xrange(0, 3):
             self.assertAlmostEqual(tf.factors['item'][i][0],
-                fromFile['item'][i][0])
+                                   fromFile['item'][i][0])
             self.assertAlmostEqual(tf.factors['item'][i][1],
-                fromFile['item'][i][1])
+                                   fromFile['item'][i][1])
+
 
 class LogisticTest(unittest.TestCase):
 
     def setUp(self):
         self.le = LogisticEnsemble(models=[IdModel()])
-        inp = [{'user':10, 'item':100}, {'user':10,'item':110}, {'user':12,'item':120}]
+        inp = [{'user': 10, 'item': 100}, {'user': 10,'item': 110},
+               {'user': 12,'item': 120}]
         self.df = pd.DataFrame(inp)
 
     def test_construct_features(self):
 
         self.le._prepare_feature_extraction(self.df)
-        self.assertEqual(self.le._user_count,  {10: 2, 12: 1})
+        self.assertEqual(self.le._user_count, {10: 2, 12: 1})
 
     def test_extract_features(self):
         self.le._prepare_feature_extraction(self.df)
@@ -187,11 +205,68 @@ class Item2ItemTest(unittest.TestCase):
         i2i = Item2Item()
         i2i.fit(df)
 
-        self.assertEqual(i2i.getScore(10, 110), 1+0.5)
+        self.assertEqual(i2i.getScore(12, 110), 0.5)
 
-        #lets change k
-        i2i.k = 1
-        self.assertEqual(i2i.getScore(10, 110), 1)
+
+class TFIDTest(unittest.TestCase):
+
+    def setUp(self):
+        self.df = pd.DataFrame([{'user':10,'item':100, 'desc': 'car is very nice'},
+                           {'user':11,'item':100, 'desc': 'car is very nice'},
+                           {'user':11,'item':1, 'desc': 'oh my god'},
+                           {'user':12,'item':110, 'desc': 'the sky sky is blue and nice'}])
+
+    def test_item_model(self):
+        tfidf = TFIDFModel('desc')
+        tfidf.fit(self.df)
+
+        self.assertEqual(tfidf._get_item_models(self.df), {1: ['oh', 'god'],
+                                                      100: ['car', 'very', 'nice'],
+                                                      110: ['sky', 'sky', 'blue', 'nice']})
+        self.assertEqual(tfidf._users, {10: set(100), 11: set(100, 1), 12: set(110)})
+
+    def test_item_model(self):
+        tfidf = TFIDFModel('desc')
+        tfidf.fit(self.df)
+
+        self.assertAlmostEqual(tfidf._sim(1, 1), 1, places=2)
+        self.assertAlmostEqual(tfidf._sim(100, 100), 1, places=2)
+        self.assertGreater(tfidf._sim(1, 1), tfidf._sim(1, 100), "similarities do not make sense")
+
+    def test_get_score(self):
+        tfidf = TFIDFModel('desc')
+        tfidf.fit(self.df)
+        tfidf.k = 1
+
+        #the closes item to 1 (in user 10 profile) is 100, so the score should be equal to the similarity
+        self.assertAlmostEqual(tfidf.getScore(10, 1), tfidf._sim(100, 1), places=2)
+
+
+class TestLSI(unittest.TestCase):
+
+    def setUp(self):
+        self.lsi = LSIModel("title")
+        self.df = pd.read_csv(resource_filename(testfm.__name__,'data/movielenshead.dat'), sep="::", header=None, names=['user', 'item', 'rating', 'date', 'title'])
+
+    def test_fit(self):
+        self.lsi.fit(self.df)
+        self.assertEqual(len(self.lsi._user_representation), len(self.df.user.unique()))
+        self.assertEqual(len(self.lsi._item_representation), len(self.df.item.unique()))
+
+    def test_score(self):
+        self.lsi.fit(self.df)
+        #item in the user profile (Booberang) should have higher prediction than movie not in the profile Rob Roy
+        self.assertTrue(self.lsi.getScore(1, 122) > self.lsi.getScore(1, 151))
+
+    def test_user_model(self):
+        um = self.lsi._get_user_models(self.df)
+        self.assertEqual(um[93], ['collateral', 'man', 'fire'])
+
+    def test_item_model(self):
+        im = self.lsi._get_item_models(self.df)
+        self.assertEqual(im[122], ['boomerang'])
+        self.assertEqual(im[329], ['star', 'trek', 'generations'])
+
 
 if __name__ == '__main__':
     unittest.main()

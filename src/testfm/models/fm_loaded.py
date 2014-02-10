@@ -1,3 +1,12 @@
+# -*- coding: utf-8 -*-
+"""
+Created on 25 January 2014
+
+Factor Model
+
+.. moduleauthor:: Linas
+"""
+
 __author__ = 'linas'
 
 from interface import ModelInterface
@@ -15,8 +24,8 @@ class FactorModel(ModelInterface):
     def getName(self):
         return 'FactorModel'
 
-    def getScore(self,user,item):
+    def getScore(self,user, item):
         try:
             return vdot(self._users[user], self._items[item])
-        except:
+        except KeyError:
             return 0.0

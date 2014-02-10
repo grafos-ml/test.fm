@@ -1,0 +1,18 @@
+language: python
+python:
+  - "2.7"
+# command to install dependencies
+install:
+  - sudo apt-get -q install gfortran
+  - sudo apt-get -q install libblas-dev liblapack-dev
+  - pip install -q --upgrade setuptools
+  - pip install -q --upgrade scikit-learn
+  - pip install -q --upgrade cython
+  - pip install -q  https://github.com/kivy/pyjnius/archive/1.0.3.tar.gz
+  - pip install "gensim>=0.8.6"
+  - pip install -q pandas
+  - pip install -q "nose>=1.3.0"
+  - pip install -q futures
+  - python setup.py -q install
+# command to run tests
+script: nosetests -w src -vv --with-doctest tests

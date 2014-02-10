@@ -10,13 +10,13 @@ __author__ = {
     'name':'joaonrb',
     'e-mail': 'joaonrb@gmail.com'
 }
-__version__ = 1,0,0
-__since__ = 17,1,2014
+__version__ = 1, 0, 0
+__since__ = 17, 1, 2014
 
 
 from testfm.splitter.holdout import HoldoutSplitter, HoldoutSplitterByUser, \
     RandomHoldoutSplitter, RandomSplitter
-from evaluation.meassures import MAP_measure
+from evaluation.measures import MAPMeasure
 from evaluation.evaluator import Evaluator
 
 class split(object):
@@ -25,9 +25,9 @@ class split(object):
     holdoutByUser = HoldoutSplitterByUser()
     holdoutByRandom = RandomSplitter()
 
-def evaluate_model(factor_model, testing_dataframe, measures=[MAP_measure()],
+def evaluate_model(factor_model, testing_data, measures=[MAPMeasure()],
     all_items=None, non_relevant_count=100):
     eval = Evaluator()
-    return eval.evaluate_model_multiprocessing(factor_model, testing_dataframe,
+    return eval.evaluate_model_multiprocessing(factor_model, testing_data,
         measures=measures, all_items=all_items,
         non_relevant_count=non_relevant_count)
