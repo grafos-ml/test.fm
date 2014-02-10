@@ -178,7 +178,7 @@ class Evaluator(object):
         #1. for each user:
         grouped = testing_data.groupby('user')
 
-        pool = Pool(processes=4)
+        pool = Pool()
         u, e = zip(*[(user, entries) for user, entries in grouped])
         res = pool.map(pm, izip(repeat(Evaluator), u, e,
                                 repeat(factor_model), repeat(all_items),
