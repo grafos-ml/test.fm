@@ -27,7 +27,7 @@ from testfm.config import USER, DATE
 
 class HoldoutSplitter(SplitterInterface):
     """
-    Holdout class for split. The dataframe passed by the call should have a user
+    Holdout class for split. The data passed by the call should have a user
     field, a app field and a date field.
     """
     def __init__(self, sort_by=[DATE]):
@@ -59,8 +59,8 @@ class RandomSplitter(HoldoutSplitter):
     def split(self, df, fraction, clean_not_seen=True):
         n = int(len(df)*fraction)
         sampler = np.random.permutation(df.shape[0])
-        training_idx = sampler[:n-1]
-        testing_idx = sampler[n+1:]
+        training_idx = sampler[:n]
+        testing_idx = sampler[n:]
 
         training = df.take(training_idx).values
         testing = df.take(testing_idx).values

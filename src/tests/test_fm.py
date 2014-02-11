@@ -95,5 +95,20 @@ class TestSplitters(object):
             print 'fraction ', fraction, '   ',
 
             print((train.shape[0], test.shape[0]), (i, rows-i))
-            assert((train.shape[0], test.shape[0]) == (i, rows-i))
+            # Test if the number of elements in training correspond to the
+            # "fraction" of the data and the test correspond to the rest
+            assert((train.shape[0], test.shape[0]) == (i, rows-i)), \
+                "Number of rows expected is wrong"
+            print pd.concat((train, test)).sort([DATE]).set_index([DATE])
+            print data.sort([DATE]).set_index([DATE])
+
+            # Test if every element in the test plus train are in the full data
+            # set.
+            assert pd.concat((train, test)).sort([DATE]).set_index([DATE]) == \
+                data.sort([DATE]).set_index([DATE]), \
+                "Twilight in test and train data:\n Train+Test" +\
+                str(pd.concat((train, test)).sort([DATE]).set_index([DATE])) +\
+                "\n"
+
             print 'passed'
+
