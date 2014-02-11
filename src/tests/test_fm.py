@@ -16,6 +16,7 @@ __since__ = 20, 1, 2014
 import pandas as pd
 import testfm
 from testfm.config import USER, ITEM, DATE
+from pandas.util.testing import assert_frame_equal
 
 class TestSplitters(object):
     """
@@ -102,11 +103,9 @@ class TestSplitters(object):
 
             # Test if every element in the test plus train are in the full data
             # set.
-            assert pd.concat((train, test)).sort([DATE]).set_index([DATE]) == \
-                data.sort([DATE]).set_index([DATE]), \
-                "Twilight in test and train data:\n Train+Test" +\
-                str(pd.concat((train, test)).sort([DATE]).set_index([DATE])) +\
-                "\n"
+            assert_frame_equal(
+                pd.concat((train, test)).sort([DATE]).set_index([DATE]),
+                data.sort([DATE]).set_index([DATE]))
 
             print 'passed'
 
