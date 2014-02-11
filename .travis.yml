@@ -15,4 +15,4 @@ install:
   - pip install -q futures
   - python setup.py -q install
 # command to run tests
-script: nosetests -w src -vv --with-doctest tests
+script: nosetests -w src/ -vv --with-cover --cover-tests --cover-erase --cover-html --cover-package=testfm --with-doctest --doctest-tests tests testfm/evaluation testfm/models testfm/fmio testfm/splitter
