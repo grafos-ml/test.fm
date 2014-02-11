@@ -99,8 +99,6 @@ class TestSplitters(object):
             # "fraction" of the data and the test correspond to the rest
             assert((train.shape[0], test.shape[0]) == (i, rows-i)), \
                 "Number of rows expected is wrong"
-            print pd.concat((train, test)).sort([DATE]).set_index([DATE])
-            print data.sort([DATE]).set_index([DATE])
 
             # Test if every element in the test plus train are in the full data
             # set.
