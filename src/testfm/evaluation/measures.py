@@ -107,11 +107,80 @@ class PrecisionMeasure(Measure):
         if not isinstance(recs, list) or len(recs) < 1:
             return float('nan')
         #compute number of relevant items in the list
-        assert sum((gt for gt, _ in recs if gt)) == \
-               len([gt for gt, _ in recs if gt])
+        assert sum((gt for gt, _ in recs if gt)) == len(
+            [gt for gt, _ in recs if gt])
         relevant = sum((gt for gt, _ in recs if gt))
 
         return 0.0 if relevant == 0 else float(relevant / len(recs))
+
+
+class Fscorek(Measure):
+
+    def measure(self, recs, k = 10, n = 0):
+
+        ''' k is the truncation parameter e.g. k = 10 wil compute Precision@10 Recall@10 F10
+            n is the total number of relevant items if set to 0 this is computed from the whole list
+        '''
+        if not recs or not isinstance(recs, list) or len(recs) < 1:
+                return float('nan')
+
+        if n == 0:
+        #compute number of relevant items in the list
+            n = float(len([gt for gt, _ in recs if gt]))
+
+        #trunctate
+        recs = recs[0:k]
+        #compute number of relevant items in the list
+        trunrelevant = float(len([gt for gt, _ in recs if gt]))
+
+        precision = trunrelevant/k
+        recall = trunrelevant/n
+        f = precision*recall/(precision + recall)
+
+        return precision, recall, f
+
+
+class Precisionk(Measure):
+
+    def measure(self, recs, k = 10):
+
+        ''' k is the truncation parameter e.g. k = 10 wil compute Precision@10 
+        '''
+        if not recs or not isinstance(recs, list) or len(recs) < 1:
+                return float('nan')
+
+        #trunctate
+        recs = recs[0:k]
+        #compute number of relevant items in the list
+        trunrelevant = float(len([gt for gt, _ in recs if gt]))
+
+        precision = trunrelevant/k
+
+        return precision
+
+class Recallk(Measure):
+
+    def measure(self, recs, k = 10, n = 0):
+
+        ''' k is the truncation parameter e.g. k = 10 wil compute Precision@10 Recall@10 F10
+            n is the total number of relevant items if set to 0 this is computed from the whole list
+        '''
+        if not recs or not isinstance(recs, list) or len(recs) < 1:
+                return float('nan')
+
+        if n == 0:
+        #compute number of relevant items in the list
+            n = float(len([gt for gt, _ in recs if gt]))
+
+        #trunctate
+        recs = recs[0:k]
+        #compute number of relevant items in the list
+        trunrelevant = float(len([gt for gt, _ in recs if gt]))
+
+        recall = trunrelevant/n
+
+        return recall
+
 
 if __name__ == '__main__':
     """

@@ -19,17 +19,17 @@ class LinearEnsemble(ModelInterface):
     _weights = []
 
     def __init__(self, models, weights=None):
-        '''
+        """
         :param models: list of ModelInterface subclasses
         :param weights: list of floats with weights telling how to combine the 
             models
         :return:
-        '''
+        """
 
         if weights is not None:
             if len(models) != len(weights):
                 raise ValueError("The weights vector length should be the same "
-                    "as number of models")
+                                 "as number of models")
 
         self._weights = weights
         self._models = models
@@ -45,8 +45,8 @@ class LinearEnsemble(ModelInterface):
         >>> from testfm.models.baseline_model import IdModel, ConstantModel
         >>> model1 = IdModel()
         >>> model2 = ConstantModel(1.0)
-        >>> ensamble = LinearEnsemble([model1, model2], weights=[0.5, 0.5])
-        >>> ensamble.getScore(0, 5)
+        >>> ensemble = LinearEnsemble([model1, model2], weights=[0.5, 0.5])
+        >>> ensemble.getScore(0, 5)
         3.0
 
         3 because we combine two models in a way: 5 (id of item)*0.5+1(constant
@@ -59,13 +59,13 @@ class LinearEnsemble(ModelInterface):
     def getName(self):
         models = ",".join((m.getName() for m in self._models))
         weights = ",".join(("{:1.4f}".format(w) for w in self._weights))
-        return "Linear Ensamble ("+models+"|"+weights+")"
+        return "Linear Ensemble ("+models+"|"+weights+")"
 
 
 class LogisticEnsemble(ModelInterface):
-    '''
+    """
     A linear ensemble model which is learned using logistic regression.
-    '''
+    """
 
     _user_count = {}
     _item_features = None
@@ -77,7 +77,7 @@ class LogisticEnsemble(ModelInterface):
 
     def getName(self):
         models = ",".join([m.getName() for m in self._models])
-        return "Logistic Ensamble ("+models+")"
+        return "Logistic Ensemble ("+models+")"
 
     def __init__(self, models, item_features_column=[]):
         self._models = models
@@ -133,7 +133,10 @@ class LogisticEnsemble(ModelInterface):
         self.model = LogisticRegression(C=10, penalty='l1', tol=0.1)
         self.model.fit(_X, _Y)
 
+
 class LinearFit(LogisticEnsemble):
+
+    model = None
 
     def fit(self, df):
         from sklearn.linear_model import LinearRegression

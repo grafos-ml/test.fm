@@ -119,7 +119,6 @@ class Evaluator(object):
             results = [job.result() for job in jobs]
         return [sum(result)/len(result) for result in zip(*results)]
 
-
     def evaluate_model_multiprocessing(self, factor_model, testing_data,
                                        measures=[MAPMeasure()], all_items=None,
                                        non_relevant_count=100):
@@ -136,10 +135,12 @@ class Evaluator(object):
         >>> model = IdModel()
         >>> evaluation = Evaluator()
         >>> df = DataFrame({'user' : [1, 1, 3, 4], 'item' : [1, 2, 3, 4], \
-                'rating' : [5,3,2,1], 'date': [11,12,13,14]})
-        >>> len(evaluation.evaluate_model_multiprocessing(model, \
-                df, non_relevant_count=2))
+        'rating': [5,3,2,1], 'date': [11,12,13,14]})
+        >>> a = evaluation.evaluate_model_multiprocessing(model, \
+        df, non_relevant_count=2)
+        >>> print len(a)
         1
+
 
         #not the best tests, I need to put seed in order to get an expected \
             behaviour
@@ -178,7 +179,7 @@ class Evaluator(object):
         #1. for each user:
         grouped = testing_data.groupby('user')
 
-        pool = Pool(processes=4)
+        pool = Pool()
         u, e = zip(*[(user, entries) for user, entries in grouped])
         res = pool.map(pm, izip(repeat(Evaluator), u, e,
                                 repeat(factor_model), repeat(all_items),

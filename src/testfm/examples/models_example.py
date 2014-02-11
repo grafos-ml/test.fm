@@ -18,16 +18,16 @@ training, testing = testfm.split.holdoutByRandom(df, 0.9)
 
 #tell me what models we want to evaluate
 models = [  RandomModel(),
+            TFIDFModel('title'),
             Popularity(),
             TensorCoFi(dim=20, nIter=5, lamb=0.05, alph=40, user_features=['user'], item_features=['item', 'title']),
             Item2Item(),
             LSIModel('title'),
-            TFIDFModel('title'),
          ]
 
 #models += [LinearFit([models[1], models[2]])]
 #models += [LogisticEnsemble([models[1], models[2]])]
-models += [LinearRank([models[1], models[2]],  item_features_column=['rating'])]
+models += [LinearRank([models[2], models[3]],  item_features_column=['rating'])]
 items = training.item.unique()
 for m in models:
     m.fit(training)

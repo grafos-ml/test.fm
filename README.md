@@ -36,13 +36,16 @@ Example of using the Test.fm framework
 See other examples [here...](https://github.com/grafos-ml/test.fm/tree/master/src/testfm/examples)
 
 Installation
-==========
+============
 1. download and extract the sources.
 2. check the dependencies in conf/requirements.txt (the pyjnius could fail if you use pip)
 3. run #sudo python setup.py install
 4. if you are a developer of test.fm better do python setup.py develop
 5. enjoy and contribute
 
+Nosetests
+=========
+$ nosetests -w src/ -vv --with-cover --cover-tests --cover-erase --cover-html --cover-package=testfm --with-doctest --doctest-tests tests testfm/evaluation testfm/models testfm/fmio testfm/splitter
 Similar Projects
 ================
 1. [mrec](https://github.com/Mendeley/mrec/tree/master/mrec) from Mendeley. Good at building models. (python, ?)

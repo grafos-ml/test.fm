@@ -18,7 +18,7 @@ import testfm
 import os
 import numpy as np
 
-os.environ['CLASSPATH'] = resource_filename(testfm.__name__,'lib/'
+os.environ['CLASSPATH'] = resource_filename(testfm.__name__, 'lib/'
     'algorithm-1.0-SNAPSHOT-jar-with-dependencies.jar')
 
 import datetime
