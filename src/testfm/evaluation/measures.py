@@ -108,8 +108,8 @@ class PrecisionMeasure(Measure):
         if not isinstance(recs, list) or len(recs) < 1:
             return float('nan')
         #compute number of relevant items in the list
-        assert sum((gt for gt, _ in recs if gt)) == \
-               len([gt for gt, _ in recs if gt])
+        assert sum((gt for gt, _ in recs if gt)) == len(
+            [gt for gt, _ in recs if gt])
         relevant = sum((gt for gt, _ in recs if gt))
 
         return 0.0 if relevant == 0 else float(relevant / len(recs))

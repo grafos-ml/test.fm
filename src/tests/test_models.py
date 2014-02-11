@@ -208,40 +208,6 @@ class Item2ItemTest(unittest.TestCase):
         self.assertEqual(i2i.getScore(12, 110), 0.5)
 
 
-class TFIDTest(unittest.TestCase):
-
-    def setUp(self):
-        self.df = pd.DataFrame([{'user':10,'item':100, 'desc': 'car is very nice'},
-                           {'user':11,'item':100, 'desc': 'car is very nice'},
-                           {'user':11,'item':1, 'desc': 'oh my god'},
-                           {'user':12,'item':110, 'desc': 'the sky sky is blue and nice'}])
-
-    def test_item_model(self):
-        tfidf = TFIDFModel('desc')
-        tfidf.fit(self.df)
-
-        self.assertEqual(tfidf._get_item_models(self.df), {1: ['oh', 'god'],
-                                                      100: ['car', 'very', 'nice'],
-                                                      110: ['sky', 'sky', 'blue', 'nice']})
-        self.assertEqual(tfidf._users, {10: set(100), 11: set(100, 1), 12: set(110)})
-
-    def test_item_model(self):
-        tfidf = TFIDFModel('desc')
-        tfidf.fit(self.df)
-
-        self.assertAlmostEqual(tfidf._sim(1, 1), 1, places=2)
-        self.assertAlmostEqual(tfidf._sim(100, 100), 1, places=2)
-        self.assertGreater(tfidf._sim(1, 1), tfidf._sim(1, 100), "similarities do not make sense")
-
-    def test_get_score(self):
-        tfidf = TFIDFModel('desc')
-        tfidf.fit(self.df)
-        tfidf.k = 1
-
-        #the closes item to 1 (in user 10 profile) is 100, so the score should be equal to the similarity
-        self.assertAlmostEqual(tfidf.getScore(10, 1), tfidf._sim(100, 1), places=2)
-
-
 class TestLSI(unittest.TestCase):
 
     def setUp(self):
@@ -266,6 +232,41 @@ class TestLSI(unittest.TestCase):
         im = self.lsi._get_item_models(self.df)
         self.assertEqual(im[122], ['boomerang'])
         self.assertEqual(im[329], ['star', 'trek', 'generations'])
+
+
+class TFIDTest(unittest.TestCase):
+
+    def setUp(self):
+        self.df = pd.DataFrame([{'user':10,'item':100, 'desc': 'car is very nice'},
+                           {'user':11,'item':100, 'desc': 'car is very nice'},
+                           {'user':11,'item':1, 'desc': 'oh my god'},
+                           {'user':12,'item':110, 'desc': 'the sky sky is blue and nice'}])
+
+    def test_item_user_model(self):
+        tfidf = TFIDFModel('desc')
+        tfidf.fit(self.df)
+
+        self.assertEqual(tfidf._get_item_models(self.df), {1: ['oh', 'god'],
+                                                      100: ['car', 'very', 'nice'],
+                                                      110: ['sky', 'sky', 'blue', 'nice']})
+        self.assertEqual(tfidf._users, {10: set([100]), 11: set([100, 1]), 12: set([110])})
+        self.assertEqual(sorted(tfidf.tfidf.keys()), sorted([100, 1, 110]))
+
+    def test_item_model(self):
+        tfidf = TFIDFModel('desc')
+        tfidf.fit(self.df)
+
+        self.assertAlmostEqual(tfidf._sim(1, 1), 1, places=2)
+        self.assertAlmostEqual(tfidf._sim(100, 100), 1, places=2)
+        self.assertGreater(tfidf._sim(1, 1), tfidf._sim(1, 100), "similarities do not make sense")
+
+    def test_get_score(self):
+        tfidf = TFIDFModel('desc')
+        tfidf.fit(self.df)
+        tfidf.k = 1
+
+        #the closes item to 1 (in user 10 profile) is 100, so the score should be equal to the similarity
+        self.assertAlmostEqual(tfidf.getScore(10, 1), tfidf._sim(100, 1), places=2)
 
 
 if __name__ == '__main__':

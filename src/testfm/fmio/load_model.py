@@ -19,8 +19,11 @@ class Load_Okapi(object):
     def get_model(self, file_path):
         """
         Loads the model from okapi style file.
+        >>> from pkg_resources import resource_filename
+        >>> import testfm
+        >>> path = resource_filename(testfm.__name__, "data/okapi.tsv")
         >>> okapi = Load_Okapi()
-        >>> model = okapi.get_model('../data/okapi.tsv')
+        >>> model = okapi.get_model(path)
         >>> len(model._users)
         4
         >>> len(model._items)
@@ -47,8 +50,11 @@ class Load_Okapi(object):
     def _parse_file(self, file_path):
         """
         parses file into list of tuples with the model
+        >>> from pkg_resources import resource_filename
+        >>> import testfm
+        >>> path = resource_filename(testfm.__name__, "data/okapi.tsv")
         >>> okapi = Load_Okapi()
-        >>> data = okapi._parse_file('../data/okapi.tsv')
+        >>> data = okapi._parse_file(path)
         >>> len(data)
         6
 
