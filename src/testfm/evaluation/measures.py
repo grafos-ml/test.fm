@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 """
 Created on 20 January 2014
@@ -121,6 +122,28 @@ class Fscorek(Measure):
         ''' k is the truncation parameter e.g. k = 10 wil compute Precision@10 Recall@10 F10
             n is the total number of relevant items if set to 0 this is computed from the whole list
         '''
+        """
+        Example of map:
+        >>> p = PrecisionMeasure()
+        >>> p.measure([])
+        nan
+
+        >>> p.measure([(True, 0.00)])
+        1.0
+
+        >>> p.measure([(False, 0.00)])
+        0.0
+
+        >>> p.measure([(False, 0.01), (True, 0.00)])
+        0.5
+
+        >>> p.measure([(False, 0.9), (True, 0.8), (False, 0.7), (False, 0.6), \
+        (True, 0.5), (True, 0.4), (True, 0.3), (False, 0.2), (False, 0.1), \
+        (False, 0)])
+        0.4
+        """
+
+
         if not recs or not isinstance(recs, list) or len(recs) < 1:
                 return float('nan')
 
@@ -146,6 +169,26 @@ class Precisionk(Measure):
 
         ''' k is the truncation parameter e.g. k = 10 wil compute Precision@10 
         '''
+        """
+        Example of map:
+        >>> p = Precisionk()
+        >>> p.measure([])
+        nan
+
+        >>> p.measure([(True, 0.00)], k = 1)
+        1.0
+
+        >>> p.measure([(False, 0.00)], k = 1)
+        0.0
+
+        >>> p.measure([(True, 0.3), (True, 0.25), (True, 0.25), (True, 0.2), (False, 0.19),(False, 0.19), (True, 0.18), (False, 0.17),(False, 0.17), (False, 0.17)  ])
+        0.5
+
+        >>> p.measure([(False, 0.9), (True, 0.8), (False, 0.7), (False, 0.6), \
+        (True, 0.5), (True, 0.4), (True, 0.3), (False, 0.2), (False, 0.1), \
+        (False, 0)])
+        0.4
+        """
         if not recs or not isinstance(recs, list) or len(recs) < 1:
                 return float('nan')
 
