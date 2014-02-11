@@ -33,6 +33,3 @@ for m in models:
     m.fit(training)
     print m.getName().ljust(50),
     print testfm.evaluate_model(m, testing, all_items=items)
-
-
-
