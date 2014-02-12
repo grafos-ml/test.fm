@@ -79,106 +79,67 @@ class MAPMeasure(Measure):
         return 0.0 if relevant == 0 else map_measure/relevant
 
 
-class PrecisionMeasure(Measure):
-    """
-    Implementation of precision measure
-    """
+
+class Fscore(Measure):
+    def __init__(self, n =0):
+        self.n = n
+
     def measure(self, recs):
+
         """
+        n is the total number of relevant items if set to 0 this is computed from the whole list
         Example of map:
-        >>> p = PrecisionMeasure()
+        >>> p = Fscore()
         >>> p.measure([])
         nan
 
         >>> p.measure([(True, 0.00)])
         1.0
 
-        >>> p.measure([(False, 0.00)])
-        0.0
-
+        >>> p = Fscore(n=2)
         >>> p.measure([(False, 0.01), (True, 0.00)])
         0.5
 
+        >>> p = Fscore()
         >>> p.measure([(False, 0.9), (True, 0.8), (False, 0.7), (False, 0.6), \
         (True, 0.5), (True, 0.4), (True, 0.3), (False, 0.2), (False, 0.1), \
         (False, 0)])
-        0.4
-        """
-
-        if not isinstance(recs, list) or len(recs) < 1:
-            return float('nan')
-        #compute number of relevant items in the list
-        assert sum((gt for gt, _ in recs if gt)) == len(
-            [gt for gt, _ in recs if gt])
-        relevant = sum((gt for gt, _ in recs if gt))
-
-        return 0.0 if relevant == 0 else float(relevant / len(recs))
-
-
-class Fscorek(Measure):
-
-    def measure(self, recs, k = 10, n = 0):
-
-        ''' k is the truncation parameter e.g. k = 10 wil compute Precision@10 Recall@10 F10
-            n is the total number of relevant items if set to 0 this is computed from the whole list
-        '''
-        """
-        Example of map:
-        >>> p = PrecisionMeasure()
-        >>> p.measure([])
-        nan
-
-        >>> p.measure([(True, 0.00)])
-        1.0
-
-        >>> p.measure([(False, 0.00)])
-        0.0
-
-        >>> p.measure([(False, 0.01), (True, 0.00)])
-        0.5
-
-        >>> p.measure([(False, 0.9), (True, 0.8), (False, 0.7), (False, 0.6), \
-        (True, 0.5), (True, 0.4), (True, 0.3), (False, 0.2), (False, 0.1), \
-        (False, 0)])
-        0.4
+        0.5714285714285715
         """
 
 
         if not recs or not isinstance(recs, list) or len(recs) < 1:
                 return float('nan')
 
-        if n == 0:
+        if self.n == 0:
         #compute number of relevant items in the list
-            n = float(len([gt for gt, _ in recs if gt]))
+            self.n = float(len([gt for gt, _ in recs if gt]))
 
-        #trunctate
-        recs = recs[0:k]
         #compute number of relevant items in the list
         trunrelevant = float(len([gt for gt, _ in recs if gt]))
 
-        precision = trunrelevant/k
-        recall = trunrelevant/n
-        f = precision*recall/(precision + recall)
+        precision = trunrelevant/len(recs)
+        recall = trunrelevant/self.n
+        f = 2*precision*recall/(precision + recall)
 
-        return precision, recall, f
+        return f
 
 
-class Precisionk(Measure):
+class Precision(Measure):
 
-    def measure(self, recs, k = 10):
+    def measure(self, recs):
 
-        ''' k is the truncation parameter e.g. k = 10 wil compute Precision@10 
-        '''
         """
-        Example of map:
-        >>> p = Precisionk()
+        k is the truncation parameter e.g. k = 10 wil compute Precision@10
+        Example of Precision@k:
+        >>> p = Precision()
         >>> p.measure([])
         nan
 
-        >>> p.measure([(True, 0.00)], k = 1)
+        >>> p.measure([(True, 0.00)])
         1.0
 
-        >>> p.measure([(False, 0.00)], k = 1)
+        >>> p.measure([(False, 0.00)])
         0.0
 
         >>> p.measure([(True, 0.3), (True, 0.25), (True, 0.25), (True, 0.2), (False, 0.19),(False, 0.19), (True, 0.18), (False, 0.17),(False, 0.17), (False, 0.17)  ])
@@ -192,35 +153,52 @@ class Precisionk(Measure):
         if not recs or not isinstance(recs, list) or len(recs) < 1:
                 return float('nan')
 
-        #trunctate
-        recs = recs[0:k]
         #compute number of relevant items in the list
         trunrelevant = float(len([gt for gt, _ in recs if gt]))
 
-        precision = trunrelevant/k
+        precision = trunrelevant/len(recs)
 
         return precision
 
-class Recallk(Measure):
+class Recall(Measure):
 
-    def measure(self, recs, k = 10, n = 0):
+    def __init__(self, n = 0):
+        self.n = n 
+
+    def measure(self, recs):
 
         ''' k is the truncation parameter e.g. k = 10 wil compute Precision@10 Recall@10 F10
             n is the total number of relevant items if set to 0 this is computed from the whole list
+            xample of Precision@k:
+        >>> p = Recall()
+        >>> p.measure([])
+        nan
+
+        >>> p.measure([(True, 0.00)])
+        1.0
+        >>> p = Recall(n = 1)
+        >>> p.measure([(False, 0.00)])
+        0.0
+        >>> p = Recall(n = 10)
+        >>> p.measure([(True, 0.3), (True, 0.25), (True, 0.25), (True, 0.2), (False, 0.19),(False, 0.19), (True, 0.18), (False, 0.17),(False, 0.17), (False, 0.17)  ])
+        0.5
+
+        >>> p.measure([(False, 0.9), (True, 0.8), (False, 0.7), (False, 0.6), \
+        (True, 0.5), (True, 0.4), (True, 0.3), (False, 0.2), (False, 0.1), \
+        (False, 0)])
+        0.4
         '''
         if not recs or not isinstance(recs, list) or len(recs) < 1:
                 return float('nan')
 
-        if n == 0:
+        if self.n == 0:
         #compute number of relevant items in the list
-            n = float(len([gt for gt, _ in recs if gt]))
+            self.n = float(len([gt for gt, _ in recs if gt]))
 
-        #trunctate
-        recs = recs[0:k]
         #compute number of relevant items in the list
         trunrelevant = float(len([gt for gt, _ in recs if gt]))
 
-        recall = trunrelevant/n
+        recall = trunrelevant/self.n
 
         return recall
 
