@@ -10,10 +10,9 @@ Content based model
 __author__ = 'linas'
 
 from math import sqrt
+import numpy as np
 
 from gensim import corpora, models, similarities
-from scipy import dot
-
 from testfm.models.interface import ModelInterface
 
 
@@ -160,7 +159,7 @@ class LSIModel(ModelInterface):
         self._fit_items(dictionary, training_data)
 
     def cosine(self, v1, v2):
-        return dot(v1, v2) / (sqrt(dot(v1, v1)) * sqrt(dot(v2, v2)))
+        return np.dot(v1, v2) / (sqrt(np.dot(v1, v1)) * sqrt(np.dot(v2, v2)))
 
     def get_vector(self, factors):
         ret = [0] * self._dim
@@ -179,8 +178,8 @@ class TFIDFModel(LSIModel):
 
 
         #create a map from external item id, to the index in list of values
-        self.idmap = {
-            data[0]: idx for idx, data in enumerate(item_desc.items())
+        idmap = {
+            idx: data[0] for idx, data in enumerate(item_desc.items())
         }
 
         #store user data for further use
@@ -191,15 +190,18 @@ class TFIDFModel(LSIModel):
 
         #create a tf-idf index
         dictionary = corpora.Dictionary(item_desc.values())
-        self._item_desc_corpus = map(dictionary.doc2bow, item_desc.values())  # <--- HERE
-        self.tfidf_model = models.TfidfModel(self._item_desc_corpus)
-        tfidf_corpus = self.tfidf_model[self._item_desc_corpus]
-        self.index = similarities.docsim.MatrixSimilarity(tfidf_corpus)
+        _item_desc_corpus = map(dictionary.doc2bow, item_desc.values())  # <--- HERE
+        tfidf_model = models.TfidfModel(_item_desc_corpus)
+        tfidf_corpus = tfidf_model[_item_desc_corpus]
+
+        self.tfidf = {
+            idmap[idx]: np.array(self.get_vector(tfidf)) for idx, tfidf in enumerate(tfidf_corpus)
+        }
+
 
     def _sim(self, i1, i2):
-        id1 = self.idmap[i1]
-        id2 = self.idmap[i2]
-        return self.index[self.tfidf_model[self._item_desc_corpus[id1]]][id2]
+        sim = self.cosine(self.tfidf[i1], self.tfidf[i2])
+        return sim
 
     def getScore(self, user, item):
         scores = [self._sim(i, item) for i in self._users[user] if i != item]
@@ -209,3 +211,5 @@ class TFIDFModel(LSIModel):
 
     def getName(self):
         return "TF/IDF"
+
+
