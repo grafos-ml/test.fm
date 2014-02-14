@@ -42,6 +42,8 @@ Installation
 3. run #sudo python setup.py install
 4. if you are a developer of test.fm better do python setup.py develop
 5. enjoy and contribute
+6. Check travis for the latest [builds...](https://travis-ci.org/grafos-ml/test.fm)
+7. Check [yaml](https://github.com/grafos-ml/test.fm/blob/master/.travis.yml) for the build script.
 
 Nosetests
 =========
