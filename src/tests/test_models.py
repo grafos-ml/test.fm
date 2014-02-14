@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 __author__ = 'linas'
 
 import unittest
@@ -8,10 +7,31 @@ import numpy as np
 from pkg_resources import resource_filename
 
 import testfm
+from testfm.models.graphchi_models import GraphchiBase
 from testfm.models.tensorCoFi import TensorCoFi, TensorCoFiByFile
 from testfm.models.baseline_model import IdModel, Item2Item
 from testfm.models.ensemble_models import LogisticEnsemble
 from testfm.models.content_based import TFIDFModel, LSIModel
+
+
+def which(program):
+    import os
+    def is_exe(fpath):
+        if os.path.isfile(fpath) and os.access(fpath, os.X_OK):
+            return True
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return True
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return True
+
+    return False
 
 class TestTensorCoFi(unittest.TestCase):
 
@@ -267,6 +287,53 @@ class TFIDTest(unittest.TestCase):
 
         #the closes item to 1 (in user 10 profile) is 100, so the score should be equal to the similarity
         self.assertAlmostEqual(tfidf.getScore(10, 1), tfidf._sim(100, 1), places=2)
+
+class SVDppTest(unittest.TestCase):
+
+    def setUp(self):
+        self.df = pd.DataFrame([{'user':10,'item':100, 'rating': 5},
+                           {'user':11,'item':100, 'rating': 4},
+                           {'user':11,'item':1, 'rating': 3},
+                           {'user':12,'item':110, 'rating': 2}])
+        self.df_big = df = pd.read_csv(resource_filename(testfm.__name__,'data/movielenshead.dat'),
+                         sep="::", header=None, names=['user', 'item', 'rating', 'date', 'title'])
+
+    @unittest.skipIf(not which("svdpp"), "svdpp is not on the path")
+    def test_train(self):
+        svdpp = GraphchiBase()
+        self.assertFalse(hasattr(svdpp, 'U_bias'))
+        svdpp.fit(self.df_big)
+        self.assertTrue(hasattr(svdpp, 'U_bias'))
+
+        self.assertEqual(svdpp.U.shape, (len(self.df_big.user.unique()), 20))
+        self.assertEqual(svdpp.V.shape, (len(self.df_big.item.unique()), 20))
+        self.assertEqual(svdpp.U_bias.shape, (len(self.df_big.user.unique()), 1))
+        self.assertEqual(svdpp.V_bias.shape, (len(self.df_big.item.unique()), 1))
+        self.assertEqual(svdpp.global_mean.shape, (1, 1))
+
+    @unittest.skipIf(not which("svdpp"), "svdpp is not on the path")
+    def test_score(self):
+        import types
+
+        svdpp = GraphchiBase()
+        svdpp.fit(self.df)
+        self.assertTrue(isinstance(svdpp.getScore(10, 100), types.FloatType))
+
+    def test_dump(self):
+        svdpp = GraphchiBase()
+        filename = svdpp.dump_data(self.df)
+        lines = open(filename).readlines()
+        self.assertEqual(lines[0], "%%MatrixMarket matrix coordinate real general\n")
+        self.assertEqual(lines[2], "3 3 4\n")
+        self.assertEqual(lines[3], "1 2 5\n")
+        self.assertEqual(lines[4], "2 2 4\n")
+
+        self.assertEqual(svdpp.umap[10], 1)
+        self.assertEqual(svdpp.umap[11], 2)
+        self.assertEqual(svdpp.imap[1], 1)
+        self.assertEqual(svdpp.imap[100], 2)
+        self.assertEqual(svdpp.imap[110], 3)
+
 
 
 if __name__ == '__main__':
