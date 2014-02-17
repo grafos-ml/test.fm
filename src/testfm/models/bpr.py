@@ -18,7 +18,7 @@ class BPR(ModelInterface):
                 
         self.setParams(eta, reg, dim, nIter)
         self.U = {}
-        self.V = {}
+        self.M = {}
 
 
     def setParams(self,eta = 0.001, reg = 0.0001, dim = 10, nIter = 15):
@@ -29,12 +29,6 @@ class BPR(ModelInterface):
         self._nIter = nIter
         self._reg = reg
         self._eta = eta
-<<<<<<< HEAD
-        self._model = DictModel(dim)
-       
-=======
-
->>>>>>> ca1f505bd7ffac5a56ff893b4e578932bc0972a5
 
     @classmethod
     def paramDetails(cls):
@@ -54,29 +48,20 @@ class BPR(ModelInterface):
         """
 
         datarray =  data[["user","item"]]
-
-        #initialize item keys, we need this to sample negative items
         items = data.item.unique()
 
-        for i in range(self.nIter):
-        #iterate over rows
-<<<<<<< HEAD
-            for row in datarray:
-                self._additiveupdate(row)
-
-=======
         for iter in range(self._nIter):
             for idx, row in datarray.iterrows():
                 self._additiveupdate(row, items)
->>>>>>> ca1f505bd7ffac5a56ff893b4e578932bc0972a5
+
 
     def _additiveupdate(self, row, items):
 
         #take the factors for user, item and negative item
         u = self.U.get(row['user'], self._initVector())
-        m = self.V.get(row['item'], self._initVector())
+        m = self.M.get(row['item'], self._initVector())
         rand = random.choice(items)
-        m_neg = self.V.get(rand, self._initVector())
+        m_neg = self.M.get(rand, self._initVector())
 
         #do updates
         hscore = np.dot(u,m) - np.dot(u, m_neg)
@@ -92,11 +77,11 @@ class BPR(ModelInterface):
         m_neg -= self._eta*((ploss * (-u)) +  self._reg* m)
 
         self.U[row['user']] = u
-        self.V[row['item']] = m
-        self.V[rand] = m_neg
+        self.M[row['item']] = m
+        self.M[rand] = m_neg
 
     def getScore(self, user, item):
-        return np.dot(self.U[user], self.V[item])
+        return np.dot(self.U[user], self.M[item])
 
     def getName(self):
         return "BPR (dim={},iter={},reg={},eta={})".format(
