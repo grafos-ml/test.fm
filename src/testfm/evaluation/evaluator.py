@@ -61,7 +61,7 @@ class Evaluator(object):
         for idx, row in testing_data.iterrows():
             p = model.getScore(row['user'], row['item'])
             sum += (p - float(row['rating'])) ** 2
-        return sqrt(sum)
+        return sqrt(sum/len(testing_data))
 
 
     def evaluate_model_threads(self, factor_model, testing_data, measures=

@@ -18,15 +18,11 @@ class SVDpp(ModelInterface):
         self.setParams(**params)
 
     def getScore(self, user, item):
-        try:
-            uid = self.umap[user]
-            iid = self.imap[item]
-
-            pred = self.global_mean + self.U_bias[uid] + self.V_bias[iid] + np.dot(self.U[uid], self.V[iid])
-            return float(pred)
-        except:
-            print user, item, uid, iid, self.U.shape, self.V.shape
-            return 0.0
+        uid = self.umap[user]
+        iid = self.imap[item]
+        u = np.multiply(self.U[uid, :20], self.U[uid, 20:])
+        pred = self.global_mean + self.U_bias[uid] + self.V_bias[iid] + np.dot(u, self.V[iid])
+        return float(pred)
 
 
     def setParams(self, nIter=5, lamb=0.05, gamma=0.01):
@@ -66,6 +62,7 @@ class SVDpp(ModelInterface):
                         "--maxval=5 ",
                         "--max_iter={}".format(self._nIter),
                         "--quiet=1 "])
+        logger.debug(cmd)
         self.execute_command(cmd)
 
         self.global_mean = self.read_matrix(training_filename+"_global_mean.mm")
@@ -94,7 +91,10 @@ class SVDpp(ModelInterface):
         f.write("% Generated {}\n".format(datetime.datetime.now()))
         f.write("{} {} {}\n".format(len(df.user.unique()), len(df.item.unique()), len(df)))
         for idx, row in df.iterrows():
-            f.write("{} {} {}\n".format(row['u']+1,row['i']+1,row['rating']))
+            r = int(row['rating'])
+            if r == 0:
+                r = 1
+            f.write("{} {} {}\n".format(row['u']+1,row['i']+1,r))
         f.close()
         return filename[1]
 

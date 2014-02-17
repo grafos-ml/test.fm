@@ -308,7 +308,7 @@ class SVDppTest(unittest.TestCase):
         svdpp.fit(self.df_big)
         self.assertTrue(hasattr(svdpp, 'U_bias'))
 
-        self.assertEqual(svdpp.U.shape, (len(self.df_big.user.unique()), 20))
+        self.assertEqual(svdpp.U.shape, (len(self.df_big.user.unique()), 40))
         self.assertEqual(svdpp.V.shape, (len(self.df_big.item.unique()), 20))
         self.assertEqual(svdpp.U_bias.shape, (len(self.df_big.user.unique()), 1))
         self.assertEqual(svdpp.V_bias.shape, (len(self.df_big.item.unique()), 1))
