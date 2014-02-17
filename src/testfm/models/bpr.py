@@ -28,7 +28,7 @@ class BPR(ModelInterface):
         self._nIter = nIter
         self._reg = reg
         self._eta = eta
-        self._model = DictModel(10)
+        self._model = DictModel(dim)
        
 
     @classmethod
@@ -57,8 +57,9 @@ class BPR(ModelInterface):
         for row in datarray:
                 tmp = self._model.getM(row[1])
 
+        for i in range(self.nIter):
         #iterate over rows
-        for row in datarray:
+            for row in datarray:
                 self._additiveupdate(row)
 
 
