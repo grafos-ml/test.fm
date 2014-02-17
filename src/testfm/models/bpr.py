@@ -62,25 +62,26 @@ class BPR(ModelInterface):
 
         #take the factors for user, item and negative item
         u = self.U.get(row['user'], self._initVector())
-        self.U[row['user']] = u
         m = self.V.get(row['item'], self._initVector())
-        self.V[row['item']] = m
         rand = random.choice(items)
-        mneg = self.V.get(rand, self._initVector())
-        self.V[rand] = mneg
+        m_neg = self.V.get(rand, self._initVector())
 
         #do updates
-        hscore = np.dot(u,m) - np.dot(u, mneg)
+        hscore = np.dot(u,m) - np.dot(u, m_neg)
         ploss = self.computePartialLoss(0, hscore)
 
         # update user
-        u -= self._eta * ((ploss * (m - mneg)) + self._reg * u) 
+        u -= self._eta * ((ploss * (m - m_neg)) + self._reg * u)
 
         #update positive item
         m -= self._eta*((ploss * u) +  self._reg* m)
 
         #update negative item
-        mneg -= self._eta*((ploss * (-u)) +  self._reg* m)
+        m_neg -= self._eta*((ploss * (-u)) +  self._reg* m)
+
+        self.U[row['user']] = u
+        self.V[row['item']] = m
+        self.V[rand] = m_neg
 
     def getScore(self, user, item):
         return np.dot(self.U[user], self.V[item])
