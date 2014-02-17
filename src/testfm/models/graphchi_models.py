@@ -10,10 +10,12 @@ from interface import ModelInterface
 logger = logging.getLogger(__name__)
 from scipy.io.mmio import mminfo, mmread, mmwrite
 
-class GraphchiBase(ModelInterface):
+class SVDpp(ModelInterface):
 
     def __init__(self, tmp_dir="/tmp"):
         self.tmp_dir = tmp_dir
+        params = {k: v[2] for k,v in self.paramDetails().items()}
+        self.setParams(**params)
 
     def getScore(self, user, item):
         try:
@@ -26,6 +28,28 @@ class GraphchiBase(ModelInterface):
             print user, item, uid, iid, self.U.shape, self.V.shape
             return 0.0
 
+
+    def setParams(self, nIter=5, lamb=0.05, gamma=0.01):
+        """
+        Set the parameters for the TensorCoFi
+        """
+        self._nIter = nIter
+        self._lamb = lamb
+        self._gamm = gamma
+
+
+    @classmethod
+    def paramDetails(cls):
+        """
+        Return parameter details for parameters
+        """
+        return {
+            #sorry but authors of svdpp do not provide a way to set dimensionality 'dim': (2, 100, 2, 5),
+            'nIter': (1, 20, 2, 5),
+            'lamb': (.1, 1., .1, .05),
+            'gamma': (0.001, 1.0, 0.1, 0.01)
+        }
+
     def fit(self, training_data):
         '''
         executes something on the lines
@@ -35,13 +59,12 @@ class GraphchiBase(ModelInterface):
         training_filename = self.dump_data(training_data)
         logger.debug("Started training model {}".format(__name__))
         cmd = " ".join(["svdpp",
-                        "--D=1 ",
                         "--training={} ".format(training_filename),
-                        "--biassgd_lambda=1e-4 ",
-                        "--biassgd_gamma=1e-4 ",
+                        "--biassgd_lambda={}".format(self._lamb),
+                        "--biassgd_gamma={}".format(self._gamm),
                         "--minval=1 ",
                         "--maxval=5 ",
-                        "--max_iter=1 ",
+                        "--max_iter={}".format(self._nIter),
                         "--quiet=1 "])
         self.execute_command(cmd)
 
@@ -66,7 +89,7 @@ class GraphchiBase(ModelInterface):
 
         filename = tempfile.mkstemp(prefix='graphchi', dir=self.tmp_dir, suffix=".mtx")
         f = os.fdopen(filename[0], "w")
-        print filename[1]
+        #print filename[1]
         f.write("%%MatrixMarket matrix coordinate real general\n")
         f.write("% Generated {}\n".format(datetime.datetime.now()))
         f.write("{} {} {}\n".format(len(df.user.unique()), len(df.item.unique()), len(df)))
@@ -78,7 +101,7 @@ class GraphchiBase(ModelInterface):
     def execute_command(self, cmd):
         if not os.environ['GRAPHCHI_ROOT']:
             raise EnvironmentError("Please set GRAPHCHI_ROOT")
-        print cmd
+        #print cmd
         sub = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = sub.communicate()
 

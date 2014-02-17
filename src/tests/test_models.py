@@ -7,7 +7,7 @@ import numpy as np
 from pkg_resources import resource_filename
 
 import testfm
-from testfm.models.graphchi_models import GraphchiBase
+from testfm.models.graphchi_models import SVDpp
 from testfm.models.tensorCoFi import TensorCoFi, TensorCoFiByFile
 from testfm.models.baseline_model import IdModel, Item2Item
 from testfm.models.ensemble_models import LogisticEnsemble
@@ -300,7 +300,7 @@ class SVDppTest(unittest.TestCase):
 
     @unittest.skipIf(not which("svdpp"), "svdpp is not on the path")
     def test_train(self):
-        svdpp = GraphchiBase()
+        svdpp = SVDpp()
         self.assertFalse(hasattr(svdpp, 'U_bias'))
         svdpp.fit(self.df_big)
         self.assertTrue(hasattr(svdpp, 'U_bias'))
@@ -315,13 +315,13 @@ class SVDppTest(unittest.TestCase):
     def test_score(self):
         import types
 
-        svdpp = GraphchiBase()
+        svdpp = SVDpp()
         svdpp.fit(self.df)
         self.assertTrue(isinstance(svdpp.getScore(10, 100), types.FloatType))
         self.assertTrue(isinstance(svdpp.getScore(12, 110), types.FloatType))
 
     def test_dump(self):
-        svdpp = GraphchiBase()
+        svdpp = SVDpp()
         filename = svdpp.dump_data(self.df)
         lines = open(filename).readlines()
         self.assertEqual(lines[0], "%%MatrixMarket matrix coordinate real general\n")
