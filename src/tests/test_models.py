@@ -318,6 +318,7 @@ class SVDppTest(unittest.TestCase):
         svdpp = GraphchiBase()
         svdpp.fit(self.df)
         self.assertTrue(isinstance(svdpp.getScore(10, 100), types.FloatType))
+        self.assertTrue(isinstance(svdpp.getScore(12, 110), types.FloatType))
 
     def test_dump(self):
         svdpp = GraphchiBase()
@@ -328,13 +329,15 @@ class SVDppTest(unittest.TestCase):
         self.assertEqual(lines[3], "1 2 5\n")
         self.assertEqual(lines[4], "2 2 4\n")
 
-        self.assertEqual(svdpp.umap[10], 1)
-        self.assertEqual(svdpp.umap[11], 2)
-        self.assertEqual(svdpp.imap[1], 1)
-        self.assertEqual(svdpp.imap[100], 2)
-        self.assertEqual(svdpp.imap[110], 3)
+        self.assertEqual(3, len(svdpp.umap))
+        self.assertEqual(svdpp.umap[10], 0)
+        self.assertEqual(svdpp.umap[11], 1)
+        self.assertEqual(svdpp.umap[12], 2)
 
-
+        self.assertEqual(3, len(svdpp.imap))
+        self.assertEqual(svdpp.imap[1], 0)
+        self.assertEqual(svdpp.imap[100], 1)
+        self.assertEqual(svdpp.imap[110], 2)
 
 if __name__ == '__main__':
     unittest.main()

@@ -170,6 +170,7 @@ class LSIModel(ModelInterface):
 class TFIDFModel(LSIModel):
 
     idmap = {}
+    k = 6
 
     def fit(self, training_data):
 
@@ -190,6 +191,7 @@ class TFIDFModel(LSIModel):
 
         #create a tf-idf index
         dictionary = corpora.Dictionary(item_desc.values())
+        self._dim = len(dictionary)
         _item_desc_corpus = map(dictionary.doc2bow, item_desc.values())  # <--- HERE
         tfidf_model = models.TfidfModel(_item_desc_corpus)
         tfidf_corpus = tfidf_model[_item_desc_corpus]
