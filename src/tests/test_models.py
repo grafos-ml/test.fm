@@ -9,12 +9,15 @@ from pkg_resources import resource_filename
 import testfm
 from testfm.models.graphchi_models import SVDpp
 from testfm.models.tensorCoFi import TensorCoFi, TensorCoFiByFile
-from testfm.models.baseline_model import IdModel, Item2Item
+from testfm.models.baseline_model import IdModel, Item2Item, AverageModel
 from testfm.models.ensemble_models import LogisticEnsemble
 from testfm.models.content_based import TFIDFModel, LSIModel
 
 
 def which(program):
+    '''
+    Returns True if program is on the path to be executed in unix
+    '''
     import os
     def is_exe(fpath):
         if os.path.isfile(fpath) and os.access(fpath, os.X_OK):
@@ -338,6 +341,19 @@ class SVDppTest(unittest.TestCase):
         self.assertEqual(svdpp.imap[1], 0)
         self.assertEqual(svdpp.imap[100], 1)
         self.assertEqual(svdpp.imap[110], 2)
+
+class MeanPredTest(unittest.TestCase):
+
+    df = pd.DataFrame([{'user':10,'item':100, 'rating': 5},
+                           {'user':11,'item':100, 'rating': 4},
+                           {'user':11,'item':1, 'rating': 3},
+                           {'user':12,'item':110, 'rating': 2}])
+
+    def test_fit(self):
+        model = AverageModel()
+        model.fit(self.df)
+
+        self.assertEqual(model.getScore(10, 100), 4.5)
 
 if __name__ == '__main__':
     unittest.main()
