@@ -17,7 +17,8 @@ class BPR(ModelInterface):
     def __init__(self, eta = 0.001, reg = 0.0001, dim = 10, nIter = 15):
                 
         self.setParams(eta, reg, dim, nIter)
-		
+        self.U = {}
+        self.V = {}
 
 
     def setParams(self,eta = 0.001, reg = 0.0001, dim = 10, nIter = 15):
@@ -28,8 +29,12 @@ class BPR(ModelInterface):
         self._nIter = nIter
         self._reg = reg
         self._eta = eta
+<<<<<<< HEAD
         self._model = DictModel(dim)
        
+=======
+
+>>>>>>> ca1f505bd7ffac5a56ff893b4e578932bc0972a5
 
     @classmethod
     def paramDetails(cls):
@@ -43,53 +48,55 @@ class BPR(ModelInterface):
                 'eta': (0.01, 0.03, 0.004, 0.0009)
                 }
 
-    def _fit(self,data):
+    def fit(self, data):
         """
         Train the model
         """
-        """ 
-        Get user item and convert to numby array
-        """
-        
-        datarray =  data[["user","item"]].values
+
+        datarray =  data[["user","item"]]
 
         #initialize item keys, we need this to sample negative items
-        for row in datarray:
-                tmp = self._model.getM(row[1])
+        items = data.item.unique()
 
         for i in range(self.nIter):
         #iterate over rows
+<<<<<<< HEAD
             for row in datarray:
                 self._additiveupdate(row)
 
+=======
+        for iter in range(self._nIter):
+            for idx, row in datarray.iterrows():
+                self._additiveupdate(row, items)
+>>>>>>> ca1f505bd7ffac5a56ff893b4e578932bc0972a5
 
-    def fit(self,data):
-        """
-        Get the model
-        """
-        self._fit(data)
+    def _additiveupdate(self, row, items):
 
+        #take the factors for user, item and negative item
+        u = self.U.get(row['user'], self._initVector())
+        m = self.V.get(row['item'], self._initVector())
+        rand = random.choice(items)
+        m_neg = self.V.get(rand, self._initVector())
 
-    def _additiveupdate(self, row):
-
-        u = self._model.getU(row[0])
-        m = self._model.getM(row[1])
-        mneg = self._model.getM(random.choice(self._model.getAllMIDs()))
-        hscore = np.dot(u,m) - np.dot(u, mneg)
+        #do updates
+        hscore = np.dot(u,m) - np.dot(u, m_neg)
         ploss = self.computePartialLoss(0, hscore)
 
         # update user
-        u -= self._eta * ((ploss * (m - mneg)) + self._reg * u) 
+        u -= self._eta * ((ploss * (m - m_neg)) + self._reg * u)
 
         #update positive item
         m -= self._eta*((ploss * u) +  self._reg* m)
 
         #update negative item
-        mneg -= self._eta*((ploss * (-u)) +  self._reg* m)        
+        m_neg -= self._eta*((ploss * (-u)) +  self._reg* m)
 
+        self.U[row['user']] = u
+        self.V[row['item']] = m
+        self.V[rand] = m_neg
 
     def getScore(self, user, item):
-        return np.dot(self._model.getU(user), self._model.getM(item))
+        return np.dot(self.U[user], self.V[item])
 
     def getName(self):
         return "BPR (dim={},iter={},reg={},eta={})".format(
@@ -103,43 +110,8 @@ class BPR(ModelInterface):
 
         exponential = np.exp(- score)
         return exponential/(1.0 + exponential)
-         
 
-class DictModel(object):
-
-    def __init__(self, nFactors): 
-        self.__u = {}
-        self.__m = {}
-        self.__nFactors = nFactors
-
-    def getM(self, j):
-        try:
-            return self.__m[j]
-        except KeyError:
-            self.__m[j] = self.__initVector()
-            return self.__m[j]
-
-    def getU(self, i):
-        try:
-            return self.__u[i]
-        except KeyError:
-           
-            self.__u[i] = self.__initVector()
-            return self.__u[i]
-
-    def getEmptyVector(self):
-        return numpy.zeros(self.__nFactors)
-
-    def getAllMIDs(self):
-        return self.__m.keys()
-
-    def getAllUIDs(self):
-        return self.__u.keys()
-        
-    def __initVector(self):
-        return np.random.normal(0, 2.5/self.__nFactors, size=self.__nFactors)
-
-
-
+    def _initVector(self):
+        return np.random.normal(0, 2.5/self._dim, size=self._dim)
     
 

@@ -11,6 +11,7 @@ __author__ = 'linas'
 from random import random
 from testfm.models.interface import ModelInterface
 from math import log
+import numpy as np
 
 class RandomModel(ModelInterface):
     """
@@ -128,6 +129,24 @@ class Item2Item(ModelInterface):
         return {
             'k': (1, 50, 2, 5),
         }
+
+class AverageModel(ModelInterface):
+    _avg = {}
+
+    def fit(self, training_data):
+        """
+        Computes average rating of the item..
+        :param training_data: DataFrame training data
+        :return:
+        """
+        movie_stats = training_data.groupby('item').agg({'rating': [np.mean]})
+        self._avg = {
+            i: m[0]
+            for i, m in movie_stats.iterrows()
+        }
+
+    def getScore(self, user, item):
+        return self._avg[item]
 
 
 class Popularity(ModelInterface):

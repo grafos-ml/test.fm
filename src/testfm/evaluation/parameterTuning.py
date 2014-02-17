@@ -48,7 +48,7 @@ class ParameterTuning(object):
         cls.__max_iterations = newMax
 
     @staticmethod
-    def tune(model,training,testing,**kwargs):
+    def tune(model,training,testing, non_relevant_count=100, **kwargs):
         '''
         Return a mean for the predictive power
         '''
@@ -56,13 +56,13 @@ class ParameterTuning(object):
         model.fit(training)
 
         # Return the MAPMeasure in position 0
-        measure = testfm.evaluate_model(model,testing)[0]
+        measure = testfm.evaluate_model(model,testing, non_relevant_count=non_relevant_count)[0]
         print 'tried {} = {}'.format(kwargs, measure)
         return measure
 
 
     @staticmethod
-    def getBestParams(model, training, testing, **kwargs):
+    def getBestParams(model, training, testing, non_relevant_count=100, **kwargs):
         '''
         Search for the best set of parameters in the model
 
@@ -74,7 +74,7 @@ class ParameterTuning(object):
         grid = zip(*(x.flat for x in np.mgrid[[slice(*row[:3])
                      for row in kwargs.values()]]))
         m_instance = model()
-        values = {k: ParameterTuning.tune(m_instance, training, testing,
+        values = {k: ParameterTuning.tune(m_instance, training, testing, non_relevant_count,
                                           **dict(zip(kwargs.keys()[:2], k)))
                   for k in zip(*(v[:2] for v in kwargs.values()))}
 

@@ -13,7 +13,7 @@ from random import sample, shuffle
 from pandas import DataFrame
 from multiprocessing import Pool
 from itertools import izip, repeat
-
+from math import sqrt
 
 from testfm.evaluation.measures import Measure, MAPMeasure
 from testfm.models.interface import ModelInterface
@@ -51,6 +51,17 @@ class Evaluator(object):
                                                    all_items=all_items,
                                                    non_relevant_count=
                                                    non_relevant_count)
+
+
+    def evaluate_model_rmse(self, model, testing_data):
+        '''
+        This is just a hack to evaluate RMSE. Nobody should bother with RMSE anymore, so no good support for it.
+        '''
+        sum = 0.0
+        for idx, row in testing_data.iterrows():
+            p = model.getScore(row['user'], row['item'])
+            sum += (p - float(row['rating'])) ** 2
+        return sqrt(sum/len(testing_data))
 
 
     def evaluate_model_threads(self, factor_model, testing_data, measures=
