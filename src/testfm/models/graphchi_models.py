@@ -16,10 +16,15 @@ class GraphchiBase(ModelInterface):
         self.tmp_dir = tmp_dir
 
     def getScore(self, user, item):
-        uid = self.umap[user]
-        iid = self.imap[item]
-        pred = self.global_mean + self.U_bias[uid] + self.V_bias[iid] + np.dot(self.U[uid], self.V[iid])
-        return float(pred)
+        try:
+            uid = self.umap[user]
+            iid = self.imap[item]
+
+            pred = self.global_mean + self.U_bias[uid] + self.V_bias[iid] + np.dot(self.U[uid], self.V[iid])
+            return float(pred)
+        except:
+            print user, item, uid, iid, self.U.shape, self.V.shape
+            return 0.0
 
     def fit(self, training_data):
         '''
@@ -30,13 +35,14 @@ class GraphchiBase(ModelInterface):
         training_filename = self.dump_data(training_data)
         logger.debug("Started training model {}".format(__name__))
         cmd = " ".join(["svdpp",
-                        "--training={}".format(training_filename),
-                        "--biassgd_lambda=1e-4",
-                        "--biassgd_gamma=1e-4",
-                        "--minval=1",
-                        "--maxval=5",
-                        "--max_iter=6",
-                        "--quiet=1"])
+                        "--D=1 ",
+                        "--training={} ".format(training_filename),
+                        "--biassgd_lambda=1e-4 ",
+                        "--biassgd_gamma=1e-4 ",
+                        "--minval=1 ",
+                        "--maxval=5 ",
+                        "--max_iter=1 ",
+                        "--quiet=1 "])
         self.execute_command(cmd)
 
         self.global_mean = self.read_matrix(training_filename+"_global_mean.mm")
@@ -51,11 +57,11 @@ class GraphchiBase(ModelInterface):
         _,df['i'] = np.unique(df.item, return_inverse=True)
 
         self.umap = {
-            key[0]: key[1]+1 for key, _ in df.groupby(['user', 'u'])
+            key[0]: key[1] for key, _ in df.groupby(['user', 'u'])
         }
 
         self.imap = {
-            key[0]: key[1]+1 for key, _ in df.groupby(['item', 'i'])
+            key[0]: key[1] for key, _ in df.groupby(['item', 'i'])
         }
 
         filename = tempfile.mkstemp(prefix='graphchi', dir=self.tmp_dir, suffix=".mtx")
@@ -77,8 +83,25 @@ class GraphchiBase(ModelInterface):
         out, err = sub.communicate()
 
     def read_matrix(self, filename):
+        '''reads grapchi format in the numpy array. The order is wrong in grapchi, therefore, we play tricks.
+
+        About the second (order of rows vs. columns), we have a problem that in distributed graphlab we
+        output the matrix by rows, since each node is a row, and nodes are on different machines.
+        So to be compatible I left GraphChi code to confirm to GraphLab. In case it helps, here is a matlab mmread.m
+        function which switches the order to be sorted by rows http://select.cs.cmu.edu/code/graphlab/mmread.m
+        I am not sure if it is easy to fix it in python or not. [...]
+        You are definitely right the the standard describes column
+        order and not row order.
+        '''
+
         logger.debug("Loading matrix market matrix ")
         f = open(filename, "rb")
-        m = mmread(f)
+        r = mmread(f)
+        m = np.array(r.ravel())
+        m = m.reshape(r.shape, order='F')
+        # print "mmread", r.ravel(), r.shape
+        # print "trans", m.ravel(), m.shape
+        # if m.shape[0] > 1:
+        #     print m[1]
         f.close()
         return m
