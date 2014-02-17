@@ -10,6 +10,7 @@ __author__ = 'alexis'
 
 import numpy as np
 import random
+from interface import ModelInterface
 
 class BPR(ModelInterface):
 
@@ -28,12 +29,12 @@ class BPR(ModelInterface):
         self._reg = reg
         self._eta = eta
         self._model = DictModel(10)
-        self._loss = LeastSquares()
+       
 
     @classmethod
     def paramDetails(cls):
         """
-        Return parameter details for dim, nIter, lamb and alph
+        Return parameter details for dim, nIter, reg, eta
         """
         return {
                 'dim': (10, 20, 4, 15),
@@ -58,7 +59,7 @@ class BPR(ModelInterface):
 
         #iterate over rows
         for row in datarray:
-                additiveupdate(row)
+                self._additiveupdate(row)
 
 
     def fit(self,data):
@@ -68,22 +69,22 @@ class BPR(ModelInterface):
         self._fit(data)
 
 
-    def additiveupdate(self, row):
+    def _additiveupdate(self, row):
 
         u = self._model.getU(row[0])
         m = self._model.getM(row[1])
-        mneg = self._model.getM(random.choice(d.keys()))
+        mneg = self._model.getM(random.choice(self._model.getAllMIDs()))
         hscore = np.dot(u,m) - np.dot(u, mneg)
-        ploss = computePartialLoss(0, hscore)
+        ploss = self.computePartialLoss(0, hscore)
 
         # update user
-        u -= self._eta * ((ploss * (m - mneg)) + self.__reg * u) 
+        u -= self._eta * ((ploss * (m - mneg)) + self._reg * u) 
 
         #update positive item
-        m -= self._eta*((ploss * u) +  self.__reg* m)
+        m -= self._eta*((ploss * u) +  self._reg* m)
 
         #update negative item
-        mneg -= self._eta*((ploss * (-u)) +  self.__reg* m)        
+        mneg -= self._eta*((ploss * (-u)) +  self._reg* m)        
 
 
     def getScore(self, user, item):
@@ -95,7 +96,7 @@ class BPR(ModelInterface):
 
     def computePartialLoss(self, y, f):
 
-        return gdiff(f)
+        return self.gdiff(f)
 
     def  gdiff(self, score):
 
@@ -105,18 +106,15 @@ class BPR(ModelInterface):
 
 class DictModel(object):
 
-    def __init__(self, nFactors):
-        logger.info('Instanciating a DictModel with nFactors=%s'%nFactors)
+    def __init__(self, nFactors): 
         self.__u = {}
         self.__m = {}
-
         self.__nFactors = nFactors
 
-    def getM(self, d, j):
+    def getM(self, j):
         try:
             return self.__m[j]
         except KeyError:
-            logger.info('Setting up M[%s]'%j)
             self.__m[j] = self.__initVector()
             return self.__m[j]
 
@@ -124,7 +122,7 @@ class DictModel(object):
         try:
             return self.__u[i]
         except KeyError:
-            logger.info('Setting up U[%s]'%i)
+           
             self.__u[i] = self.__initVector()
             return self.__u[i]
 
