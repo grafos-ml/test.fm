@@ -207,12 +207,14 @@ class PersonalizedPopularity(ModelInterface):
     def fit(self, training_data):
         #add date dependency
         # normalize ?
-        for useritem, count in  df.groupby(['user']).item.value_counts().iteritems():
+        for useritem, count in training_data.groupby(['user']).item.value_counts().iteritems():
              try:
                 self._counts[useritem[0]].update({useritem[1]:count})
-            except KeyError:
+             except KeyError:
                 self._counts.update({users[0]:{useritem[1]:count}})
 
+    def getName(self):
+        return "PersonalizedPopularity"
 
 
 
