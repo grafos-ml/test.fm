@@ -193,14 +193,16 @@ class Popularity(ModelInterface):
         return "Popularity"
 
 
-class PersonalizedPopularity(ModelInterface)
+class PersonalizedPopularity(ModelInterface):
 
     _counts = {}
 
     def getScore(self, user,  item):
 
-        return self._counts[user][item]
-
+        try:
+            self._counts[user][item]
+        except KeyError:
+            return 0
 
     def fit(self, training_data):
         #add date dependency

@@ -10,7 +10,7 @@ __author__ = 'joaonrb'
 
 import numpy as np
 from pandas import DataFrame
-from sklearn.gaussian_process import GaussianProcess
+#from sklearn.gaussian_process import GaussianProcess
 
 class ModelInterface(object):
     """
