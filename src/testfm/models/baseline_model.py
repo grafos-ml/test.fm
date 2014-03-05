@@ -200,9 +200,9 @@ class PersonalizedPopularity(ModelInterface):
     def getScore(self, user,  item):
 
         try:
-            self._counts[user][item]
+            return float(self._counts[user][item])
         except KeyError:
-            return 0
+            return 0.0
 
     def fit(self, training_data):
         #add date dependency
@@ -211,7 +211,7 @@ class PersonalizedPopularity(ModelInterface):
              try:
                 self._counts[useritem[0]].update({useritem[1]:count})
              except KeyError:
-                self._counts.update({users[0]:{useritem[1]:count}})
+                self._counts.update({useritem[0]:{useritem[1]:count}})
 
     def getName(self):
         return "PersonalizedPopularity"

@@ -25,7 +25,7 @@ __author__ = 'linas'
 
 class Measure(object):
 
-    def measure(self, recs):
+    def measure(self, recs, n):
         """
         Each class of the Measure has to implement this method. It basically
         knows how to compute the performance measure such as MAP, P@k, etc.
@@ -41,7 +41,7 @@ class MAPMeasure(Measure):
     Implementation of Mean Average Precision.
     """
 
-    def measure(self, recs):
+    def measure(self, recs, n = None):
         """
         Example of how to use map and the input format.
         >>> mapm = MAPMeasure()
@@ -81,10 +81,8 @@ class MAPMeasure(Measure):
 
 
 class Fscore(Measure):
-    def __init__(self, n =0):
-        self.n = n
-
-    def measure(self, recs):
+   
+    def measure(self, recs, n = None):
 
         """
         n is the total number of relevant items if set to 0 this is computed from the whole list
@@ -111,23 +109,29 @@ class Fscore(Measure):
         if not recs or not isinstance(recs, list) or len(recs) < 1:
                 return float('nan')
 
-        if self.n == 0:
+        if n == None:
         #compute number of relevant items in the list
-            self.n = float(len([gt for gt, _ in recs if gt]))
+            n = float(len([gt for gt, _ in recs if gt]))
+
+        # if we find 0 say bye bye and return 
+        if n == 0:
+            return 0.0
 
         #compute number of relevant items in the list
         trunrelevant = float(len([gt for gt, _ in recs if gt]))
 
         precision = trunrelevant/len(recs)
-        recall = trunrelevant/self.n
-        f = 2*precision*recall/(precision + recall)
+        recall = trunrelevant/n
 
-        return f
+        if (precision + recall) == 0.0:
+            return 0.0
+        else:
+            return 2*precision*recall/(precision + recall)
 
 
 class Precision(Measure):
 
-    def measure(self, recs):
+    def measure(self, recs, n = None):
 
         """
         k is the truncation parameter e.g. k = 10 wil compute Precision@10
@@ -162,10 +166,8 @@ class Precision(Measure):
 
 class Recall(Measure):
 
-    def __init__(self, n = 0):
-        self.n = n 
 
-    def measure(self, recs):
+    def measure(self, recs, n = None):
 
         ''' k is the truncation parameter e.g. k = 10 wil compute Precision@10 Recall@10 F10
             n is the total number of relevant items if set to 0 this is computed from the whole list
@@ -191,14 +193,18 @@ class Recall(Measure):
         if not recs or not isinstance(recs, list) or len(recs) < 1:
                 return float('nan')
 
-        if self.n == 0:
+        if n == None:
         #compute number of relevant items in the list
-            self.n = float(len([gt for gt, _ in recs if gt]))
+            n = float(len([gt for gt, _ in recs if gt]))
+
+
+        if n ==0:
+            return 0.0
 
         #compute number of relevant items in the list
         trunrelevant = float(len([gt for gt, _ in recs if gt]))
 
-        recall = trunrelevant/self.n
+        recall = trunrelevant/n
 
         return recall
 

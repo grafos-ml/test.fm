@@ -21,7 +21,7 @@ class BPR(ModelInterface):
         self.M = {}
 
 
-    def setParams(self,eta = 0.001, reg = 0.0001, dim = 10, nIter = 15):
+    def setParams(self,eta = 0.01, reg = 0.0001, dim = 10, nIter = 15):
         """
         Set the parameters for the BPR model
         """
@@ -66,15 +66,14 @@ class BPR(ModelInterface):
         #do updates
         hscore = np.dot(u,m) - np.dot(u, m_neg)
         ploss = self.computePartialLoss(0, hscore)
-
         # update user
-        u -= self._eta * ((ploss * (m - m_neg)) + self._reg * u)
+        u += self._eta * ((ploss * (m - m_neg)) + self._reg * u)
 
         #update positive item
-        m -= self._eta*((ploss * u) +  self._reg* m)
+        m += self._eta*((ploss * u) +  self._reg* m)
 
         #update negative item
-        m_neg -= self._eta*((ploss * (-u)) +  self._reg* m)
+        m_neg += self._eta*((ploss * (-u)) +  self._reg* m)
 
         self.U[row['user']] = u
         self.M[row['item']] = m

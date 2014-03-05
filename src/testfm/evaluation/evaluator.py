@@ -32,7 +32,7 @@ class Evaluator(object):
     """
     def evaluate_model(self, factor_model, testing_data,
                        measures=[MAPMeasure()], all_items=None,
-                       non_relevant_count=100):
+                       non_relevant_count=100, k = None):
         """
         Evaluate the model using some testing data in pandas.DataFrame
 
@@ -50,7 +50,7 @@ class Evaluator(object):
                                                    measures=measures,
                                                    all_items=all_items,
                                                    non_relevant_count=
-                                                   non_relevant_count)
+                                                   non_relevant_count, k = k)
 
 
     def evaluate_model_rmse(self, model, testing_data):
@@ -132,7 +132,7 @@ class Evaluator(object):
 
     def evaluate_model_multiprocessing(self, factor_model, testing_data,
                                        measures=[MAPMeasure()], all_items=None,
-                                       non_relevant_count=100):
+                                       non_relevant_count=100, k=None):
         """
         Evaluates the model by the following algorithm:
             1. for each user:
@@ -194,7 +194,7 @@ class Evaluator(object):
         u, e = zip(*[(user, entries) for user, entries in grouped])
         res = pool.map(pm, izip(repeat(Evaluator), u, e,
                                 repeat(factor_model), repeat(all_items),
-                                repeat(non_relevant_count), repeat(measures)))
+                                repeat(non_relevant_count), repeat(measures), repeat(k)))
 
         #7.average the scores for each user
         ret = [sum(measure_list)/len(measure_list)
@@ -205,23 +205,37 @@ class Evaluator(object):
 
     @classmethod
     def partial_measure(cls, user, entries, factor_model, all_items,
-                        non_relevant_count, measures):
-        #2. take all relevant items from the testing_data
-        ranked_list = [(True, factor_model.getScore(user, i))
-                       for i in entries['item']]
+                        non_relevant_count, measures, k=None):
 
-        #3. inject #non_relevant random items
-        ranked_list += [(False, factor_model.getScore(user,nr))
+        if non_relevant_count is None:
+            # Add all items except relevant 
+            ranked_list = [(False, factor_model.getScore(user, nr)) for nr in all_items if nr not in entries['item']]
+            # Add relevant items 
+            ranked_list += [(True, factor_model.getScore(user,r)) for r in entries['item']]
+       
+        else:    
+
+            #2. inject #non_relevant random items        
+            ranked_list = [(False, factor_model.getScore(user,nr))
                         for nr in sample(all_items, non_relevant_count)]
 
-        shuffle(ranked_list)  # Just to make sure we don't introduce any bias
+            #2. add all relevant items from the testing_data
+            ranked_list += [(True, factor_model.getScore(user, i))
+                       for i in entries['item']]
 
+        #shuffle(ranked_list)  # Just to make sure we don't introduce any bias (AK: do we need this?)
+        
+        #number of relevant items 
+        n = entries['item'].size
         #5. sort according to the score
         ranked_list.sort(key=lambda x: x[1], reverse=True)
 
         #6. evaluate according to each measure
-        return [measure.measure(ranked_list) for measure in measures]
-
+        if k is None:
+            return [measure.measure(ranked_list, n = n) for measure in measures]
+        else:
+            return [measure.measure(ranked_list[:k], n = n) for measure in measures]
+            
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
