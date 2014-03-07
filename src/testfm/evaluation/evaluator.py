@@ -19,6 +19,8 @@ from testfm.evaluation.measures import Measure, MAPMeasure
 from testfm.models.interface import ModelInterface
 from testfm.models.baseline_model import IdModel
 
+POOL = Pool()
+
 def pm(args):
     """
     Helper for the threading/multiprocess system
@@ -166,7 +168,8 @@ class Evaluator(object):
             the list for performance evaluation
         :return: list of score corresponding to measures
         """
-
+        global POOL
+        pool = POOL
         # Change to assertions. In production run with the -O option on python
         # to skipp this (Zen Python)
         assert isinstance(factor_model, ModelInterface), \
@@ -175,7 +178,7 @@ class Evaluator(object):
         assert isinstance(testing_data, DataFrame), \
             "Testing data should be a pandas.DataFrame"
 
-        for column in ['item','user']:
+        for column in ['item', 'user']:
             assert column in testing_data.columns, \
                 "Testing data should be a pandas.DataFrame with " \
                 "'{}' column".format(column)
@@ -190,7 +193,6 @@ class Evaluator(object):
         #1. for each user:
         grouped = testing_data.groupby('user')
 
-        pool = Pool()
         u, e = zip(*[(user, entries) for user, entries in grouped])
         res = pool.map(pm, izip(repeat(Evaluator), u, e,
                                 repeat(factor_model), repeat(all_items),
