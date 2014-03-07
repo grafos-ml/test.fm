@@ -36,4 +36,4 @@ for m in models:
     print m.getName().ljust(50),
     print eval.evaluate_model(m, testing, all_items=items,)
 
-eval.close()
+eval.close()#need this call to clean up the worker processes

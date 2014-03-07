@@ -16,6 +16,7 @@ import numpy as np
 import scipy.stats as st
 from sklearn.gaussian_process import GaussianProcess
 import testfm
+from testfm.evaluation.evaluator import Evaluator
 
 
 class ParameterTuning(object):
@@ -54,9 +55,9 @@ class ParameterTuning(object):
         '''
         model.setParams(**kwargs)
         model.fit(training)
-
+        eval = Evaluator()
         # Return the MAPMeasure in position 0
-        measure = testfm.evaluate_model(model,testing, non_relevant_count=non_relevant_count)[0]
+        measure = eval.evaluate_model(model,testing, non_relevant_count=non_relevant_count)[0]
         print 'tried {} = {}'.format(kwargs, measure)
         return measure
 

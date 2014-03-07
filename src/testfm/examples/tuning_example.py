@@ -3,9 +3,12 @@ __author__ = 'linas'
 import pandas as pd
 import testfm
 from testfm.models.tensorCoFi import TensorCoFi
+from testfm.evaluation.evaluator import Evaluator
 from pkg_resources import resource_filename
 
 from testfm.evaluation.parameterTuning import ParameterTuning
+
+eval = Evaluator()
 
 #prepare the data
 df = pd.read_csv(resource_filename(testfm.__name__,'data/movielenshead.dat'),
@@ -25,4 +28,6 @@ tf = TensorCoFi()
 tf.setParams(**tf_params)
 tf.fit(training)
 print tf.getName().ljust(50),
-print testfm.evaluate_model(tf, testing, all_items=training.item.unique())
+print eval.evaluate_model(tf, testing, all_items=training.item.unique())
+
+eval.close()#need this call to clean up the worker processes
