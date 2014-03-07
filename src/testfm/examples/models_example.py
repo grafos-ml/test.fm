@@ -10,7 +10,7 @@ from testfm.models.ensemble_models import LinearRank
 from testfm.models.bpr import BPR
 from pkg_resources import resource_filename
 
-#because of Global Interpreter Lock we need to initialize evaluator
+#because of Global Interpreter Lock we need to initialize evaluator here (it forks processes)
 eval = Evaluator()
 
 #prepare the data

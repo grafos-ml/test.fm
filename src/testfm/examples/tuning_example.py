@@ -8,7 +8,7 @@ from pkg_resources import resource_filename
 
 from testfm.evaluation.parameterTuning import ParameterTuning
 
-eval = Evaluator()
+eval = Evaluator()#call this before loading the data to save memory (fork of process takes place)
 
 #prepare the data
 df = pd.read_csv(resource_filename(testfm.__name__,'data/movielenshead.dat'),
