@@ -213,7 +213,7 @@ class TensorCoFiByFile(TensorCoFi):
             data.to_csv(datafile, header=False, index=False,
                         cols=['user','item'])
             name = os.path.dirname(datafile.name)+'/'
-        sub = subprocess.Popen(['java', '-cp', resource_filename(
+        sub = subprocess.Popen(['java', '-cp' , resource_filename(
             testfm.__name__, 'lib/algorithm-1.0-SNAPSHOT-jar-with-dependencies'
                              '.jar'),
             'es.tid.frappe.python.TensorCoPy', name, str(self._dim),
@@ -223,6 +223,7 @@ class TensorCoFiByFile(TensorCoFi):
         out, err = sub.communicate()
         if err:
             #os.remove(name)
+            print out
             raise Exception(err)
         users, items = out.split(' ')
         self.factors = {
