@@ -17,3 +17,5 @@ futures
 # Need BLAS and LAPACK for scipy:
 # ex: apt-get install libblas3gf libblas-doc libblas-dev liblapack3gf
 # liblapack-doc liblapack-dev
+
+http://www.parallelpython.com/downloads/pp/pp-1.6.4.tar.gz

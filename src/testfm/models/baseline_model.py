@@ -13,6 +13,7 @@ from testfm.models.interface import ModelInterface
 from math import log
 import numpy as np
 
+
 class RandomModel(ModelInterface):
     """
     Random model
@@ -27,7 +28,7 @@ class RandomModel(ModelInterface):
             self._scores[key] = random()
             return self._scores[key]
 
-    def fit(self,training_data):
+    def fit(self, training_data):
         pass
 
     def getName(self):

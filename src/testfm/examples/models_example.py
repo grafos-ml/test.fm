@@ -1,7 +1,8 @@
 __author__ = 'linas'
 
-import pandas as pd
 import testfm
+from testfm.evaluation.evaluator import partial_measure
+import pandas as pd
 from testfm.models.baseline_model import Popularity, RandomModel, Item2Item
 from testfm.models.tensorCoFi import TensorCoFi
 from testfm.models.content_based import TFIDFModel, LSIModel
