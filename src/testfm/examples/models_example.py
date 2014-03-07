@@ -21,7 +21,7 @@ training, testing = testfm.split.holdoutByRandom(df, 0.9)
 
 #tell me what models we want to evaluate
 models = [  RandomModel(),
-            SVDpp(),
+            #SVDpp(),
             BPR(),
             TFIDFModel('title'),
             Popularity(),

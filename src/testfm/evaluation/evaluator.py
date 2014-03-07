@@ -9,8 +9,14 @@ Evaluator for the test.fm framework
 __author__ = 'linas'
 
 
-import time
-import random
+from random import sample, shuffle
+from pandas import DataFrame
+from itertools import izip, repeat
+from math import sqrt
+from testfm.evaluation.measures import Measure, MAPMeasure
+from testfm.models.interface import ModelInterface
+from testfm.models.baseline_model import IdModel
+
 from multiprocessing import Process, Queue, current_process, cpu_count
 
 
@@ -22,6 +28,30 @@ def worker(input, output):
         result = func(*args)
         output.put(result)
 
+def partial_measure(user, entries, factor_model, all_items, non_relevant_count, measure, k=None):
+    if non_relevant_count is None:
+        # Add all items except relevant
+        ranked_list = [(False, factor_model.getScore(user, nr)) for nr in all_items if nr not in entries['item']]
+        # Add relevant items
+        ranked_list += [(True, factor_model.getScore(user, r)) for r in entries['item']]
+    else:
+        #2. inject #non_relevant random items
+        ranked_list = [(False, factor_model.getScore(user, nr)) for nr in sample(all_items, non_relevant_count)]
+        #2. add all relevant items from the testing_data
+        ranked_list += [(True, factor_model.getScore(user, i)) for i in entries['item']]
+
+        #shuffle(ranked_list)  # Just to make sure we don't introduce any bias (AK: do we need this?)
+
+    #number of relevant items
+    n = entries['item'].size
+    #5. sort according to the score
+    ranked_list.sort(key=lambda x: x[1], reverse=True)
+
+    #6. evaluate according to each measure
+    if k is None:
+        return measure.measure(ranked_list, n = n)
+    else:
+        return measure.measure(ranked_list[:k], n = n)
 
 class EvaluatorPool(object):
     """
@@ -68,16 +98,6 @@ class EvaluatorPool(object):
 
 
 POOL = EvaluatorPool()
-
-from random import sample, shuffle
-import pp
-from pandas import DataFrame
-from multiprocessing import Pool
-from itertools import izip, repeat
-from math import sqrt
-from testfm.evaluation.measures import Measure, MAPMeasure
-from testfm.models.interface import ModelInterface
-from testfm.models.baseline_model import IdModel
 
 
 def pm(args):
@@ -222,24 +242,7 @@ class Evaluator(object):
             the list for performance evaluation
         :return: list of score corresponding to measures
         """
-
-        # Change to assertions. In production run with the -O option on python
-        # to skipp this (Zen Python)
-        assert isinstance(factor_model, ModelInterface), \
-            "Factor model should be an instance of ModelInterface"
-
-        assert isinstance(testing_data, DataFrame), \
-            "Testing data should be a pandas.DataFrame"
-
-        for column in ['item', 'user']:
-            assert column in testing_data.columns, \
-                "Testing data should be a pandas.DataFrame with " \
-                "'{}' column".format(column)
-        for m in measures:
-            assert isinstance(m, Measure), \
-                "Measures should contain only Measure instances"
-        #######################
-
+        ret =[]
         if all_items is None:
             all_items = testing_data.item.unique()
 
@@ -247,113 +250,15 @@ class Evaluator(object):
         grouped = testing_data.groupby('user')
 
         u, e = zip(*[(user, entries) for user, entries in grouped])
-        for job in izip(u, e, repeat(factor_model), repeat(all_items), repeat(non_relevant_count), repeat(measures),
-                        repeat(k)):
-            POOL.put(partial_measure, *job)
-
-        #7.average the scores for each user
-        ret = [sum(measure_list)/len(measure_list) for measure_list in POOL]
-        return ret
-
-    '''
-    @staticmethod
-    def evaluate_model_parallel_processing(factor_model, testing_data, measures=[MAPMeasure()], all_items=None,
-                                           non_relevant_count=100, k=None):
-        """
-        Evaluates the model by the following algorithm:
-            1. for each user:
-                2. take all relevant items from the testing_data
-                3. inject #non_relevant random items
-                4. predict the score for each item
-                5. sort according to the predicted score
-                6. evaluate according to each measure
-            7.average the scores for each user
-        >>> mapm = MAPMeasure()
-        >>> model = IdModel()
-        >>> evaluation = Evaluator()
-        >>> df = DataFrame({'user' : [1, 1, 3, 4], 'item' : [1, 2, 3, 4], \
-        'rating': [5,3,2,1], 'date': [11,12,13,14]})
-        >>> a = evaluation.evaluate_model_multiprocessing(model, \
-        df, non_relevant_count=2)
-        >>> print len(a)
-        1
-
-
-        #not the best tests, I need to put seed in order to get an expected \
-            behaviour
-
-        :param factor_model: ModelInterface  an instance of ModelInterface
-        :param testing_data: DataFrame pandas.DataFrame of testing data
-        :param measures: list of measure we want to compute (instances of)
-        :param all_items: list of items available in the data set (used for
-            negative sampling).
-         If set to None, then testing items are used for this
-        :param non_relevant_count: int number of non relevant items to add to
-            the list for performance evaluation
-        :return: list of score corresponding to measures
-        """
-        global PP_SERVER
-        # Change to assertions. In production run with the -O option on python
-        # to skipp this (Zen Python)
-        assert isinstance(factor_model, ModelInterface), \
-            "Factor model should be an instance of ModelInterface"
-
-        assert isinstance(testing_data, DataFrame), \
-            "Testing data should be a pandas.DataFrame"
-
-        if not PP_SERVER:
-            PP_SERVER = pp.Server()
-
-        for column in ['item', 'user']:
-            assert column in testing_data.columns, \
-                "Testing data should be a pandas.DataFrame with " \
-                "'{}' column".format(column)
         for m in measures:
-            assert isinstance(m, Measure), \
-                "Measures should contain only Measure instances"
-        #######################
-
-        if all_items is None:
-            all_items = testing_data.item.unique()
-
-        #1. for each user:
-        grouped = testing_data.groupby('user')
-
-        u, e = zip(*[(user, entries) for user, entries in grouped])
-        args = izip(repeat(Evaluator), u, e, repeat(factor_model), repeat(all_items), repeat(non_relevant_count),
-                    repeat(measures), repeat(k))
-        results = (PP_SERVER.submit(pm, arg) for arg in args)
-        #7.average the scores for each user
-        ret = [sum(measure_list)/len(measure_list) for measure_list in zip(*[r() for r in results])]
+            for job in izip(u, e, repeat(factor_model), repeat(all_items), repeat(non_relevant_count), repeat(m),
+                            repeat(k)):
+                POOL.put(partial_measure, *job)
+            scores = [job_result for job_result in POOL]
+            #7.average the scores for each user
+            ret.append(sum(scores)/len(scores))
         return ret
-    '''
 
-
-def partial_measure(user, entries, factor_model, all_items, non_relevant_count, measures, k=None):
-    if non_relevant_count is None:
-        # Add all items except relevant
-        ranked_list = [(False, factor_model.getScore(user, nr)) for nr in all_items if nr not in entries['item']]
-        # Add relevant items
-        ranked_list += [(True, factor_model.getScore(user, r)) for r in entries['item']]
-    else:
-        #2. inject #non_relevant random items
-        ranked_list = [(False, factor_model.getScore(user, nr)) for nr in sample(all_items, non_relevant_count)]
-        #2. add all relevant items from the testing_data
-        ranked_list += [(True, factor_model.getScore(user, i)) for i in entries['item']]
-
-        #shuffle(ranked_list)  # Just to make sure we don't introduce any bias (AK: do we need this?)
-        
-    #number of relevant items
-    n = entries['item'].size
-    #5. sort according to the score
-    ranked_list.sort(key=lambda x: x[1], reverse=True)
-
-    #6. evaluate according to each measure
-    if k is None:
-        return [measure.measure(ranked_list, n = n) for measure in measures]
-    else:
-        return [measure.measure(ranked_list[:k], n = n) for measure in measures]
-            
 if __name__ == "__main__":
     import doctest
     doctest.testmod()

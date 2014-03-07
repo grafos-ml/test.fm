@@ -7,7 +7,7 @@ from math import sqrt
 
 from testfm.evaluation.evaluator import Evaluator
 from testfm.models.baseline_model import ConstantModel
-class TestTensorCoFi(unittest.TestCase):
+class TestEvaluator(unittest.TestCase):
 
     def test_rmse(self):
         eval = Evaluator()
