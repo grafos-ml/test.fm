@@ -59,14 +59,14 @@ class EvaluatorPool(object):
     """
 
     def __init__(self, workers=None):
-        workers = workers or cpu_count()
+        self.workers = workers or cpu_count()
 
         # Create queues
         self._jobs = 0
         self._task_queue = Queue()
         self._done_queue = Queue()
         # Start worker processes
-        for i in range(workers):
+        for i in range(self.workers):
             Process(target=worker, args=(self._task_queue, self._done_queue)).start()
 
     def put(self, function, *args):
@@ -94,7 +94,8 @@ class EvaluatorPool(object):
         return self
 
     def __del__(self):
-        self._task_queue.put("STOP")
+        for i in range(self.workers):
+            self._task_queue.put("STOP")
 
 
 POOL = EvaluatorPool()
@@ -176,24 +177,6 @@ class Evaluator(object):
         """
 
         from concurrent.futures import ThreadPoolExecutor
-
-        # Change to assertions. In production run with the -O option on python
-        # to skipp this (Zen Python)
-        assert isinstance(factor_model, ModelInterface), \
-            "Factor model should be an instance of ModelInterface"
-
-        assert isinstance(testing_data, DataFrame), \
-            "Testing data should be a pandas.DataFrame"
-
-        for column in ['item', 'user']:
-            assert column in testing_data.columns, \
-                "Testing data should be a pandas.DataFrame with " \
-                "'{}' column".format(column)
-        for m in measures:
-            assert isinstance(m, Measure), \
-                "Measures should contain only Measure instances"
-        #######################
-
         if all_items is None:
             all_items = testing_data.item.unique()
 
@@ -225,9 +208,9 @@ class Evaluator(object):
         'rating': [5,3,2,1], 'date': [11,12,13,14]})
         >>> a = evaluation.evaluate_model_multiprocessing(model, \
         df, non_relevant_count=2)
+        >>> evaluation.close()
         >>> print len(a)
         1
-
 
         #not the best tests, I need to put seed in order to get an expected \
             behaviour
@@ -258,6 +241,9 @@ class Evaluator(object):
             #7.average the scores for each user
             ret.append(sum(scores)/len(scores))
         return ret
+
+    def close(self):
+        POOL.__del__()
 
 if __name__ == "__main__":
     import doctest
