@@ -19,3 +19,5 @@ futures
 # liblapack-doc liblapack-dev
 
 http://www.parallelpython.com/downloads/pp/pp-1.6.4.tar.gz
+
+fabric
