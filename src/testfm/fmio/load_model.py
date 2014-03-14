@@ -14,6 +14,7 @@ import re
 from testfm.models.fm_loaded import FactorModel
 non_decimal = re.compile(r'[^\d.]+')
 
+
 class Load_Okapi(object):
 
     def get_model(self, file_path):
@@ -73,11 +74,9 @@ class Load_Okapi(object):
         The first number is the id of user or item, second is the type of node,
         then tab and then factors.
 
-        :line: str containing a string with a model
-
-        @return: (0, (6523, [0.838237, 0.508268]) a tuple (nodetype,
-            (id: factors)), where nodetype 0=user, 1=item, factors is list of
-            floats
+        :param line: str containing a string with a model
+        :return: (0, (6523, [0.838237, 0.508268]) a tuple (nodetype, (id: factors)), where nodetype 0=user, 1=item, \
+        factors is list of floats.
         """
         node, model = line.split('\t')
         node_id, node_type = node.split()
