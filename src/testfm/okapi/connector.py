@@ -11,12 +11,18 @@ __author__ = "joaonrb"
 
 
 import os
+import logging
 import hashlib
-from fabric.api import env, run
+from fabric.api import env, run, put
 from pkg_resources import resource_filename
 from testfm import okapi
 
-OKAPI_REMOTE = "joaonrb@graph-01"  # <-- Change to the proper remote account
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+logger.addHandler(logging.StreamHandler())
+
+OKAPI_REMOTE = "joaonrb@igraph-01"  # <-- Change to the proper remote account
 
 env.hosts = [
     OKAPI_REMOTE
@@ -24,7 +30,7 @@ env.hosts = [
 
 HADOOP_COMMAND = "hadoop jar %(hadoop_parameters)s"
 GIRAPH_COMMAND = HADOOP_COMMAND % {
-    "haddop_parameters": "%(giraph_jar)s org.apache.giraph.GiraphRunner -Dmapred.job.name=OkapiTrainModelTask "
+    "hadoop_parameters": "%(giraph_jar)s org.apache.giraph.GiraphRunner -Dmapred.job.name=OkapiTrainModelTask "
                          "-Dmapred.reduce.tasks=0 -libjars %(giraph_jar)s,%(okapi_jar)s %(giraph_parameters)s"
 }
 OKAPI_COMMAND = GIRAPH_COMMAND % {
@@ -33,8 +39,11 @@ OKAPI_COMMAND = GIRAPH_COMMAND % {
                          "-eif ml.grafos.okapi.cf.CfLongIdFloatTextInputFormat -eip %(input)s "
                          "-vof org.apache.giraph.io.formats.IdWithValueTextOutputFormat -op %(output)s -w 1 "
                          "-ca giraph.numComputeThreads=1 -ca minItemId=1 -ca maxItemId=%(max_item_id)s",
+    "giraph_jar": "%(giraph_jar)s",
+    "okapi_jar": "%(okapi_jar)s"
 }
 
+HADOOP_SOURCE = "source /data/b.ajf/hadoop1_env.sh && %s"
 
 class OkapiConnectorError(Exception):
     """
@@ -45,6 +54,7 @@ class OkapiConnectorError(Exception):
     def raise_this(cls, msg=""):
         """
         Raise an exception of this
+        :param msg: The error message
         """
         raise cls(msg)
 
@@ -80,9 +90,6 @@ class ModelConnector(object):
     _result = None
     data_map = {}
 
-    def __init__(self):
-        raise NotImplemented("This class should extend others, not to be used has it is.")
-
     @staticmethod
     def get_jar_location(jar):
         """
@@ -91,10 +98,9 @@ class ModelConnector(object):
         :param jar: The jar file
         :return: The location of the jar
         """
-        return "%(dir)s/%(jar_place)s/%(jar_name)s" % {
+        return "%(dir)s/%(jar_place)s" % {
             "dir": ModelConnector.OKAPI_JAR_REPOSITORY,
-            "jar_place": ModelConnector.hash_file(jar),
-            "jar_name": jar.name
+            "jar_place": ModelConnector.hash_file(jar)
         }
 
     @staticmethod
@@ -174,9 +180,8 @@ class ModelConnector(object):
         if "rating" not in data:
             data["rating"] = [1. for _ in xrange(len(data))]
 
-        # Map the data
-        self.map_data(data)
-        okapi_rows = ("%(user)s %(item)s %(rating)s" % {
+        # Make a generator with lines for okapi file format
+        okapi_rows = ("%(user)s %(item)s %(rating)s" % {  # okapi line
             "user": self.data_map["user_to_id"][row["user"]],
             "item": self.data_map["item_to_id"][row["item"]],
             "rating": row["rating"]
@@ -214,7 +219,7 @@ class ModelConnector(object):
         """
         command = "[ -f %s ] && echo 1 || echo 0" % path
         do_result_exist = run(command, quiet=True)
-        return bool(do_result_exist)
+        return bool(int(do_result_exist))
 
     @property
     def jar_dependencies(self):
@@ -263,24 +268,28 @@ class ModelConnector(object):
 
         :param data: Data to produce the model
         """
-        if self.result_exist_for(data):
-            return self.result
-        else:
+        # Map the data
+        self.map_data(data)
+        logger.info("Checking if result is computed ..")
+        result_file = self.get_result_location(data)
+        if not self.result_exist_for(result_file):
+            logger.info("- Result is not computed yet ..")
+            logger.info("Preparing environment ..")
             command = self.get_remote_command(data)
-            return self.execute_okapi(command)
+            self.execute_okapi(command)
+            self.push_result_from_hadoop(result_file)
+        self.read_result(result_file)
+        logger.info("- Done ..")
+        return self.result
 
-    def result_exist_for(self, data):
+    def result_exist_for(self, result_file):
         """
         Check if the result of this algorithm with this data is already computed.
 
-        :param data: Data to compute
+        :param result_file: Location in the remote of the data to compute
         :return: True if the data is already computed with this algorithm
         """
-        result_file = self.get_result_location(data)
-        if self.exist_for(result_file):
-            self.read_result(result_file)
-            return True
-        return False
+        return self.exist_for(result_file)
 
     def read_result(self, file_location):
         """
@@ -288,9 +297,11 @@ class ModelConnector(object):
 
         :param file_location: The location of the result in the remote location
         """
+        logger.info("Reading result from remote to local ..")
         result_data = run("cat %s" % file_location, quiet=True)
         print(result_data)
         self._result = result_data
+        logger.info("- Result in local ..")
 
     def get_jar(self, jar_name):
         """
@@ -301,7 +312,7 @@ class ModelConnector(object):
         :raise OkapiJarNotInRepository: When the jar is not in the repository
         """
         try:
-            jar_file = open(self.OKAPI_LOCAL_REPOSITORY)
+            jar_file = open(self.OKAPI_LOCAL_REPOSITORY+"/%s" % jar_name)
         except IOError:
             raise OkapiJarNotInRepository("The jar %s is not in %s" % (jar_name, self.OKAPI_LOCAL_REPOSITORY))
         return jar_file
@@ -315,12 +326,10 @@ class ModelConnector(object):
         :param to: The path in the remote to put the file
         :raise TypeError: When to is not a string
         """
-        if not isinstance(to, str) or isinstance(some_file, str):
+        if not (isinstance(to, str) and isinstance(some_file, str)):
             raise TypeError("First parameter and to keyword parameter must be a string")
-        run("scp %(from)s %(to)s" % {
-            "from": some_file,
-            "to": to
-            })
+        run("[ -d %s ] || mkdir %s" % (to, to))
+        put(some_file, to, quiet=True)
 
     def upload_jar(self, jar_file, to=None):
         """
@@ -330,8 +339,9 @@ class ModelConnector(object):
         :param to: The remote file where jar_file is going to be be copied
         :raise TypeError: When to is not a string
         """
+        logger.info("Uploading %s to remote:%s .." % (jar_file.name, to))
         jar_path = os.path.abspath(jar_file.name)
-        self.upload_jar(jar_path, to=to)
+        self.upload(jar_path, to=to)
 
     def upload_data(self, data, to=None):
         """
@@ -339,13 +349,14 @@ class ModelConnector(object):
         :param data: Pandas DataFrame with the data
         :param to: The remote file where the data is going to be be copied
         """
-        if isinstance(to, str):
+        logger.info("Uploading data to remote:%s .." % to)
+        if not isinstance(to, str):
             raise TypeError("Keyword parameter \"to\" must be a string")
         data_in_okapi = self.input_pandas_to_okapi(data)
-        run("echo \"%(okapi_data)s > %(to)s" % {
+        run("echo \"%(okapi_data)s\">%(to)s" % {
             "okapi_data": data_in_okapi,
             "to": to
-            })
+            }, quiet=True)
 
     def get_remote_command(self, data):
         """
@@ -356,6 +367,7 @@ class ModelConnector(object):
         """
         jars = {}
 
+        logger.info("Preparing jars ..")
         # Check if jars exist and load them if they don't
         for jar_name in self.jar_dependencies:  # jar_dependencies should give a list with all jars needed
             jar_file = self.get_jar(jar_name)  # Get a open file of the jar
@@ -364,14 +376,22 @@ class ModelConnector(object):
             # Keep the locations in a mapped structure
             jars[jar_name] = jar_location
 
+            logger.info("Check if %s is in remote .." % jar_name)
             # If the jar don't exist in the remote than a copy should be uploaded
-            if not self.exist_for(jar_location):
+            if not self.exist_for(jar_location+"/%s" % jar_name):
+                logger.info("- Jar %s is not in remote .." % jar_name)
                 self.upload_jar(jar_file, to=jar_location)
+            logger.info("- %s ready in remote .." % jar_name)
 
+        logger.info("Preparing data ..")
         # Check if data is in the remote. If don't it upload it.
         data_location = self.get_data_location(data)
+        logger.info("Check if data %s is in remote .." % data_location)
         if not self.exist_for(data_location):
+            logger.info("- Data %s is not in remote .." % data_location)
             self.upload_data(data, to=data_location)
+
+        logger.info("- Data is ready in remote ..")
 
         self.put_data_to_hadoop(data_location)
         return self.build_command(jars=jars)
@@ -382,7 +402,7 @@ class ModelConnector(object):
         The standard output name in the hadoop file system
         :return: A string
         """
-        return "%s.output" % self.name
+        return "%s_output" % self.name
 
     @property
     def std_input_name(self):
@@ -401,14 +421,16 @@ class ModelConnector(object):
         :type jars: dict
         :return: A str with the full okapi command
         """
-        command = OKAPI_COMMAND % {
+        giraph = jars[self.GIRAPH_JAR]+"/%s" % self.GIRAPH_JAR
+        okapi = jars[self.OKAPI_JAR]+"/%s" % self.OKAPI_JAR
+        command = "HADOOP_PATH=%s %s" % ("%s:%s" % (giraph, okapi), OKAPI_COMMAND % {
             "model_class": self.model_class,
-            "giraph_jar": jars[self.GIRAPH_JAR],
-            "okapi_jar": jars[self.OKAPI_JAR],
+            "giraph_jar": giraph,
+            "okapi_jar": okapi,
             "max_item_id": len(self.data_map["item_to_id"]),
             "input": self.std_input_name,
             "output": self.std_output_name
-        }
+        })
         return command
 
     def put_data_to_hadoop(self, data_location):
@@ -416,8 +438,63 @@ class ModelConnector(object):
         Puts the data in the hadoop file system. If there is data with the same name there it erases it
         :param data_location: The location of the data in the remote file system
         """
+        logger.info("Pushing data to hadoop ..")
+        logger.info("Remove %s if exists .." % self.std_input_name)
         remove_old_command = "hadoop dfs -rmr %s" % self.std_input_name
         run(remove_old_command, quiet=True)
-        put_new_data = "hadoop dfs -copyFromLocal %s %s" % (data_location, self.std_input_name)
+        logger.info("- %s removed .." % self.std_input_name)
+
+        logger.info("Create %s with new data .." % self.std_input_name)
+        put_new_data = HADOOP_SOURCE % "hadoop dfs -copyFromLocal %s %s" % (data_location, self.std_input_name)
         run(put_new_data, quiet=True)
 
+        logger.info("- Data in hadoop ..")
+
+    @staticmethod
+    def execute_okapi(command):
+        """
+        Execute this command fetch the result and returns it.
+
+        :param command: Hadoop command to be executed
+        :param data: The data location
+        :return: The data in a pandas DataFrame
+        """
+        logger.info("Hadoop is building the model ..")
+        logger.info("Running: %s" % command)
+        run(HADOOP_SOURCE % command, quiet=False)
+        logger.info("- Hadoop finished ..")
+
+    def push_result_from_hadoop(self, data_location):
+        """
+        Push the result from the hadoop to the remote
+        :param data_location: The location of the data in the remote
+        """
+        logger.info("Pushing the result from hadoop to remote ..")
+        run(HADOOP_SOURCE % "hadoop dfs -copyToLocal %s/* okapi/tmp" % self.std_output_name, quiet=True)
+        run("for f in `ls okapi/tmp | sort -V`; do cat $f >> output; done;", quiet=True)
+        logger.info("- Result in remote ..")
+
+
+class RandomOkapi(ModelConnector):
+    """
+    Test
+    """
+
+    @property
+    def name(self):
+        return "random"
+
+    @property
+    def model_class(self):
+        return "Pop"
+
+if __name__ == "__main__":
+    import pandas as pd
+    import testfm
+    env.hosts = [OKAPI_REMOTE]
+    df = pd.read_csv(
+        resource_filename(
+            testfm.__name__, 'data/movielenshead.dat'), sep="::", header=None,
+        names=['user', 'item', 'rating', 'date', 'title'])
+    r = RandomOkapi()
+    r.call_okapi(df)
