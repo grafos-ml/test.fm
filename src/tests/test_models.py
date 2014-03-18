@@ -15,9 +15,9 @@ from testfm.models.content_based import TFIDFModel, LSIModel
 
 
 def which(program):
-    '''
+    """
     Returns True if program is on the path to be executed in unix
-    '''
+    """
     import os
     def is_exe(fpath):
         if os.path.isfile(fpath) and os.access(fpath, os.X_OK):
@@ -33,8 +33,8 @@ def which(program):
             exe_file = os.path.join(path, program)
             if is_exe(exe_file):
                 return True
-
     return False
+
 
 class TestTensorCoFi(unittest.TestCase):
 

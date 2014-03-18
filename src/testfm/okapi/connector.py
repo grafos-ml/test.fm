@@ -18,7 +18,7 @@ from pkg_resources import resource_filename
 from testfm import okapi
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.ERROR)
 
 logger.addHandler(logging.StreamHandler())
 
@@ -283,6 +283,7 @@ class ModelConnector(object):
 
         :param data: Data to produce the model
         """
+        self._result = None
         # Map the data
         self.map_data(data)
         logger.info("Checking if result is computed ..")
@@ -494,15 +495,23 @@ class ModelConnector(object):
 
 class RandomOkapi(ModelConnector):
     """
-    Test
+    Random okapi model creator
     """
 
     @property
     def name(self):
+        """
+        The name of this model
+        :return:
+        """
         return "random"
 
     @property
     def model_class(self):
+        """
+        The java class that call upon this model
+        :return:
+        """
         return "ml.grafos.okapi.cf.ranking.RandomRankingComputation"
 
 if __name__ == "__main__":
