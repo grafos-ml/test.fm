@@ -28,26 +28,20 @@ env.hosts = [
     OKAPI_REMOTE
 ]
 
-HADOOP_COMMAND = "hadoop jar %(hadoop_parameters)s"
-GIRAPH_COMMAND = HADOOP_COMMAND % {
-    "hadoop_parameters": "%(giraph_jar)s org.apache.giraph.GiraphRunner -Dmapred.job.name=OkapiTrainModelTask "
-                         "-Dmapred.reduce.tasks=0 -libjars %(giraph_jar)s,%(okapi_jar)s %(giraph_parameters)s"
-}
-OKAPI_COMMAND = GIRAPH_COMMAND % {
-    "giraph_parameters": "-Dmapred.child.java.opts=-Xmx1g -Dgiraph.zkManagerDirectory=_bsp "
-                         "-Dgiraph.useSuperstepCounters=false %(model_class)s "
-                         "-eif ml.grafos.okapi.cf.CfLongIdFloatTextInputFormat -eip %(input)s "
-                         "-vof org.apache.giraph.io.formats.IdWithValueTextOutputFormat -op %(output)s -w 1 "
-                         "-ca giraph.numComputeThreads=1 -ca minItemId=1 -ca maxItemId=%(max_item_id)s",
-    "giraph_jar": "%(giraph_jar)s",
-    "okapi_jar": "%(okapi_jar)s"
-}
+OKAPI_COMMAND = "hadoop jar %(okapi_jar)s org.apache.giraph.GiraphRunner -Dmapred.job.name=OkapiTrainModelTask " \
+                "-Dmapred.reduce.tasks=0 -libjars %(giraph_jar)s -Dmapred.child.java.opts=-Xmx1g " \
+                "-Dgiraph.zkManagerDirectory=_bsp -Dgiraph.useSuperstepCounters=false %(model_class)s " \
+                "-eif ml.grafos.okapi.cf.CfLongIdFloatTextInputFormat -eip %(input)s " \
+                "-vof org.apache.giraph.io.formats.IdWithValueTextOutputFormat -op %(output)s -w 1 " \
+                "-ca giraph.numComputeThreads=1 -ca minItemId=1 -ca maxItemId=%(max_item_id)s"
+
 
 HADOOP_SOURCE = "source /data/b.ajf/hadoop1_env.sh && %s"
 
+
 class OkapiConnectorError(Exception):
     """
-    Generic exception for okapi conection models for test.fm
+    Generic exception for okapi connection models for test.fm
     """
 
     @classmethod
@@ -80,12 +74,18 @@ class ModelConnector(object):
     OKAPI_JAR_REPOSITORY = OKAPI_REPOSITORY + "/jar"
     OKAPI_DATA_REPOSITORY = OKAPI_REPOSITORY + "/data"
     OKAPI_RESULTS_REPOSITORY = OKAPI_REPOSITORY + "/results"
+    OKAPI_TMP_REPOSITORY = OKAPI_REPOSITORY + "/tmp"
 
     OKAPI_LOCAL_REPOSITORY = resource_filename(okapi.__name__, "lib/")
     GIRAPH_JAR = "giraph-1.1.0-SNAPSHOT-for-hadoop-0.20.203.0-jar-with-dependencies.jar"
     OKAPI_JAR = "okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar"
 
     EXTRA_JAR = []
+
+    MAP_DICT = {
+        "0": "id_to_user",
+        "1": "id_to_item"
+    }
 
     _result = None
     data_map = {}
@@ -188,6 +188,21 @@ class ModelConnector(object):
         } for _, row in data.iterrows())
         return "\n".join(okapi_rows)
 
+    def output_okapi_to_pandas(self, result_data):
+        """
+        Return 2 pandas DataFrame. The first for the user and the second for the items.
+
+        :param result_data: String with output from okapi
+        :return: A tuple with 2 DataFrame. (user, item)
+        """
+        data = {"0": {}, "1": {}}
+        okapi_data = result_data.split("\n")
+        for line in okapi_data:
+            obj_id, obj_type, factors = line.replace("; ", ",").replace("\t", " ").split(" ")
+            obj = self.data_map[self.MAP_DICT[obj_type]][float(obj_id)]
+            data[obj_type][obj] = eval(factors)
+        return pd.DataFrame(data["0"]), pd.DataFrame(data["1"])
+
     def map_data(self, data):
         """
         Maps the data to indexes starting in one
@@ -277,7 +292,7 @@ class ModelConnector(object):
             logger.info("Preparing environment ..")
             command = self.get_remote_command(data)
             self.execute_okapi(command)
-            self.push_result_from_hadoop(result_file)
+            self.pull_result_from_hadoop(result_file)
         self.read_result(result_file)
         logger.info("- Done ..")
         return self.result
@@ -299,8 +314,7 @@ class ModelConnector(object):
         """
         logger.info("Reading result from remote to local ..")
         result_data = run("cat %s" % file_location, quiet=True)
-        print(result_data)
-        self._result = result_data
+        self._result = self.output_okapi_to_pandas(result_data)
         logger.info("- Result in local ..")
 
     def get_jar(self, jar_name):
@@ -328,8 +342,8 @@ class ModelConnector(object):
         """
         if not (isinstance(to, str) and isinstance(some_file, str)):
             raise TypeError("First parameter and to keyword parameter must be a string")
-        run("[ -d %s ] || mkdir %s" % (to, to))
-        put(some_file, to, quiet=True)
+        run("[ -d %s ] || mkdir %s" % (to, to), quiet=True)
+        put(some_file, to)
 
     def upload_jar(self, jar_file, to=None):
         """
@@ -440,7 +454,7 @@ class ModelConnector(object):
         """
         logger.info("Pushing data to hadoop ..")
         logger.info("Remove %s if exists .." % self.std_input_name)
-        remove_old_command = "hadoop dfs -rmr %s" % self.std_input_name
+        remove_old_command = "hadoop dfs -rmr _bsp %s" % self.std_input_name
         run(remove_old_command, quiet=True)
         logger.info("- %s removed .." % self.std_input_name)
 
@@ -461,17 +475,20 @@ class ModelConnector(object):
         """
         logger.info("Hadoop is building the model ..")
         logger.info("Running: %s" % command)
-        run(HADOOP_SOURCE % command, quiet=False)
+        run(HADOOP_SOURCE % command, quiet=True)
         logger.info("- Hadoop finished ..")
 
-    def push_result_from_hadoop(self, data_location):
+    def pull_result_from_hadoop(self, data_location):
         """
-        Push the result from the hadoop to the remote
+        Pull the result from the hadoop to the remote
         :param data_location: The location of the data in the remote
         """
-        logger.info("Pushing the result from hadoop to remote ..")
+        logger.info("Pulling the result from hadoop to remote ..")
         run(HADOOP_SOURCE % "hadoop dfs -copyToLocal %s/* okapi/tmp" % self.std_output_name, quiet=True)
-        run("for f in `ls okapi/tmp | sort -V`; do cat $f >> output; done;", quiet=True)
+        data_dir = "%s/%s" % (self.OKAPI_RESULTS_REPOSITORY, self.name)
+        run("[ -d %s ] || mkdir %s" % (data_dir, data_dir), quiet=True)
+        run("for f in `ls okapi/tmp/part-* | sort -V`; do cat $f >> %s; done;" % data_location, quiet=True)
+        run("rm -r okapi/tmp/*", quiet=True)
         logger.info("- Result in remote ..")
 
 
@@ -486,7 +503,7 @@ class RandomOkapi(ModelConnector):
 
     @property
     def model_class(self):
-        return "Pop"
+        return "ml.grafos.okapi.cf.ranking.RandomRankingComputation"
 
 if __name__ == "__main__":
     import pandas as pd
@@ -497,4 +514,6 @@ if __name__ == "__main__":
             testfm.__name__, 'data/movielenshead.dat'), sep="::", header=None,
         names=['user', 'item', 'rating', 'date', 'title'])
     r = RandomOkapi()
-    r.call_okapi(df)
+    user, item = r.call_okapi(df)
+    print(user)
+    print(item)
