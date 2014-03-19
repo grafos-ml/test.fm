@@ -7,30 +7,31 @@ Connect to the okapi to create some model.
 .. moduleauthor:: joaonrb <joaonrb@gmail.com>
 
 """
+from distutils.sysconfig import EXEC_PREFIX
+
 __author__ = "joaonrb"
 
 
 import os
 import logging
 import hashlib
+import numpy as np
 from fabric.api import env, run, put
 from pkg_resources import resource_filename
 from testfm import okapi
+from testfm.models.interface import ModelInterface
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.INFO)
 
 logger.addHandler(logging.StreamHandler())
 
-OKAPI_REMOTE = "joaonrb@igraph-01"  # <-- Change to the proper remote account
-
-env.hosts = [
-    OKAPI_REMOTE
-]
+#OKAPI_REMOTE = "joaonrb@igraph-01"  # <-- Change to the proper remote account
+#env.host_string = OKAPI_REMOTE
 
 OKAPI_COMMAND = "hadoop jar %(okapi_jar)s org.apache.giraph.GiraphRunner -Dmapred.job.name=OkapiTrainModelTask " \
                 "-Dmapred.reduce.tasks=0 -libjars %(giraph_jar)s -Dmapred.child.java.opts=-Xmx1g " \
-                "-Dgiraph.zkManagerDirectory=_bsp -Dgiraph.useSuperstepCounters=false %(model_class)s " \
+                "-Dgiraph.zkManagerDirectory=%(manager_dir)s -Dgiraph.useSuperstepCounters=false %(model_class)s " \
                 "-eif ml.grafos.okapi.cf.CfLongIdFloatTextInputFormat -eip %(input)s " \
                 "-vof org.apache.giraph.io.formats.IdWithValueTextOutputFormat -op %(output)s -w 1 " \
                 "-ca giraph.numComputeThreads=1 -ca minItemId=1 -ca maxItemId=%(max_item_id)s"
@@ -65,7 +66,7 @@ class OkapiJarNotInRepository(OkapiConnectorError):
     """
 
 
-class ModelConnector(object):
+class ModelConnector(ModelInterface):
     """
     Connect a model to okapi
     """
@@ -87,8 +88,22 @@ class ModelConnector(object):
         "1": "id_to_item"
     }
 
+    _users = None
+    _items = None
     _result = None
+    _std_input = "okapi/%(name)s_input"
+    _std_output = "okapi/%s_output"
+    _manager_dir = "okapi/_bsp"
     data_map = {}
+
+    def __init__(self, host=None):
+        """
+        Constructor
+        :param host: The host of the remote
+        :return:
+        """
+        if host:
+            env.host_string = host
 
     @staticmethod
     def get_jar_location(jar):
@@ -103,18 +118,19 @@ class ModelConnector(object):
             "jar_place": ModelConnector.hash_file(jar)
         }
 
-    @staticmethod
-    def get_data_location(data):
+    def get_data_location(self, data):
         """
         Returns the location in the remote system of this pandas data object
 
         :param data: The pandas data object
         :return: The location of the data
         """
-        return "%(dir)s/%(data_set)s" % {
+        result = "%(dir)s/%(data_set)s" % {
             "dir": ModelConnector.OKAPI_DATA_REPOSITORY,
             "data_set": ModelConnector.hash_data(data)
         }
+        self._std_input = result
+        return result
 
     def get_result_location(self, data):
         """
@@ -123,11 +139,12 @@ class ModelConnector(object):
         :param data: The pandas data object
         :return: The location of the data
         """
-        return "%(dir)s/%(model)s/%(data_set)s" % {
+        result = "%(dir)s/%(model)s/%(data_set)s" % {
             "dir": ModelConnector.OKAPI_RESULTS_REPOSITORY,
             "model": self.name,
             "data_set": ModelConnector.hash_data(data)
         }
+        return result
 
     @staticmethod
     def hash_data(data):
@@ -195,13 +212,17 @@ class ModelConnector(object):
         :param result_data: String with output from okapi
         :return: A tuple with 2 DataFrame. (user, item)
         """
-        data = {"0": {}, "1": {}}
+        data = {"0": [], "1": []}
         okapi_data = result_data.split("\n")
         for line in okapi_data:
             obj_id, obj_type, factors = line.replace("; ", ",").replace("\t", " ").split(" ")
             obj = self.data_map[self.MAP_DICT[obj_type]][float(obj_id)]
-            data[obj_type][obj] = eval(factors)
-        return pd.DataFrame(data["0"]), pd.DataFrame(data["1"])
+            data[obj_type].append((obj, eval(factors)))
+        return pd.DataFrame({
+            key: value for key, value in sorted(data["0"], key=lambda x: x[0])
+        }), pd.DataFrame({
+            key: value for key, value in sorted(data["1"], key=lambda x: x[0])
+        })
 
     def map_data(self, data):
         """
@@ -283,6 +304,7 @@ class ModelConnector(object):
 
         :param data: Data to produce the model
         """
+        self.initialize()
         self._result = None
         # Map the data
         self.map_data(data)
@@ -297,6 +319,22 @@ class ModelConnector(object):
         self.read_result(result_file)
         logger.info("- Done ..")
         return self.result
+
+    def fit(self, data):
+        """
+        Train the model
+        :param data: Data to train the model
+        """
+        self._users, self._items = self.call_okapi(data)
+
+    def getScore(self, user, item):
+        """
+        A score for a user and item that method predicts.
+        :param user: id of the user
+        :param item: id of the item
+        :return:
+        """
+        return np.dot(self._users[user].transpose(), self._items[item])
 
     def result_exist_for(self, result_file):
         """
@@ -417,7 +455,7 @@ class ModelConnector(object):
         The standard output name in the hadoop file system
         :return: A string
         """
-        return "%s_output" % self.name
+        return self._std_output % self.name
 
     @property
     def std_input_name(self):
@@ -425,7 +463,7 @@ class ModelConnector(object):
         The standard input name in the hadoop file system
         :return: A string
         """
-        return "%s_input" % self.name
+        return self._std_input % {"name": self.name}
 
     def build_command(self, jars=None):
         """
@@ -444,7 +482,8 @@ class ModelConnector(object):
             "okapi_jar": okapi,
             "max_item_id": len(self.data_map["item_to_id"]),
             "input": self.std_input_name,
-            "output": self.std_output_name
+            "output": self.std_output_name,
+            "manager_dir": self._manager_dir
         })
         return command
 
@@ -454,16 +493,27 @@ class ModelConnector(object):
         :param data_location: The location of the data in the remote file system
         """
         logger.info("Pushing data to hadoop ..")
-        logger.info("Remove %s if exists .." % self.std_input_name)
-        remove_old_command = "hadoop dfs -rmr _bsp %s" % self.std_input_name
-        run(remove_old_command, quiet=True)
-        logger.info("- %s removed .." % self.std_input_name)
+        remove_old_command = "hadoop dfs -rmr %s" % self._manager_dir
+        run(HADOOP_SOURCE % remove_old_command, quiet=True)
+        logger.info("Check %s if exists .." % self.std_input_name)
 
-        logger.info("Create %s with new data .." % self.std_input_name)
-        put_new_data = HADOOP_SOURCE % "hadoop dfs -copyFromLocal %s %s" % (data_location, self.std_input_name)
-        run(put_new_data, quiet=True)
+        if not self.in_hadoop(self.std_input_name):
+            logger.info("Create %s with new data .." % self.std_input_name)
+            put_new_data = HADOOP_SOURCE % "hadoop dfs -copyFromLocal %s %s" % (data_location, self.std_input_name)
+            run(put_new_data, quiet=True)
+            logger.info("- Data in hadoop ..")
+        else:
+            logger.info("- %s exists .." % self.std_input_name)
 
-        logger.info("- Data in hadoop ..")
+    @staticmethod
+    def in_hadoop(file_or_dict):
+        """
+        Check if file or directory is in hadoop
+        :param file_or_dict:
+        :return:
+        """
+        check_if_exists = HADOOP_SOURCE % "hadoop dfs -ls %s" % file_or_dict
+        return 0 == run(check_if_exists, warn_only=True, quiet=True).return_code
 
     @staticmethod
     def execute_okapi(command):
@@ -492,6 +542,28 @@ class ModelConnector(object):
         run("rm -r okapi/tmp/*", quiet=True)
         logger.info("- Result in remote ..")
 
+    @staticmethod
+    def initialize():
+        """
+        Check if the needed files exists and create them otherwise
+        """
+        logger.info("Create okapi if it doesn't exist ..")
+        run("[ -d okapi ] || mkdir okapi", quiet=True)
+        for direct in ("tmp", "results", "jar", "data"):
+            logger.info("Create okapi/%s if it doesn't exist .." % direct)
+            run("[ -d okapi/%s ] || mkdir okapi/%s" % (direct, direct), quiet=True)
+
+    @staticmethod
+    def clean():
+        """
+        Remove all the files from okapi
+        """
+        logger.info("Removing files from hadoop ..")
+        run(HADOOP_SOURCE % "hadoop dfs -rmr okapi", quiet=True)
+        logger.info("removing files from remote ..")
+        run("rm -r okapi/*", quiet=True)
+        logger.info("- done ..")
+
 
 class RandomOkapi(ModelConnector):
     """
@@ -514,15 +586,179 @@ class RandomOkapi(ModelConnector):
         """
         return "ml.grafos.okapi.cf.ranking.RandomRankingComputation"
 
+
+class PopularityOkapi(ModelConnector):
+    """
+    Popularity models calculated using hadoops okapi
+    """
+
+    @property
+    def name(self):
+        """
+        The name of this model
+        :return:
+        """
+        return "popularity"
+
+    @property
+    def model_class(self):
+        """
+        The java class that call upon this model
+        :return:
+        """
+        return "ml.grafos.okapi.cf.ranking.PopularityRankingComputation"
+
+
+class BPROkapi(ModelConnector):
+    """
+    BPR models calculated using hadoops okapi
+    """
+
+    @property
+    def name(self):
+        """
+        The name of this model
+        :return:
+        """
+        return "BPR"
+
+    @property
+    def model_class(self):
+        """
+        The java class that call upon this model
+        :return:
+        """
+        return "ml.grafos.okapi.cf.ranking.BPRRankingComputation"
+
+
+class TFMAPOkapi(ModelConnector):
+    """
+    TFMAP models calculated using hadoops okapi
+    """
+
+    @property
+    def name(self):
+        """
+        The name of this model
+        :return:
+        """
+        return "TFMAP"
+
+    @property
+    def model_class(self):
+        """
+        The java class that call upon this model
+        :return:
+        """
+        return "ml.grafos.okapi.cf.ranking.TFMAPRankingComputation"
+
+
+class SGDAPOkapi(ModelConnector):
+    """
+    SGD models calculated using hadoops okapi
+    """
+
+    @property
+    def name(self):
+        """
+        The name of this model
+        :return:
+        """
+        return "SGD"
+
+    @property
+    def model_class(self):
+        """
+        The java class that call upon this model
+        :return:
+        """
+        return "ml.grafos.okapi.cf.sgd.Sgd$InitUsersComputation"
+
+
+class ALSOkapi(ModelConnector):
+    """
+    ALS models calculated using hadoops okapi
+    """
+
+    @property
+    def name(self):
+        """
+        The name of this model
+        :return:
+        """
+        return "ALS"
+
+    @property
+    def model_class(self):
+        """
+        The java class that call upon this model
+        :return:
+        """
+        return "ml.grafos.okapi.cf.als.Als$InitUsersComputation"
+
+
+class SVDOkapi(ModelConnector):
+    """
+    SVD models calculated using hadoops okapi
+    """
+
+    @property
+    def name(self):
+        """
+        The name of this model
+        :return:
+        """
+        return "SVD"
+
+    @property
+    def model_class(self):
+        """
+        The java class that call upon this model
+        :return:
+        """
+        return "ml.grafos.okapi.cf.svd.Svdpp$InitUsersComputation"
+
+
+class ClimfOkapi(ModelConnector):
+    """
+    Climf models calculated using hadoops okapi
+    """
+
+    @property
+    def name(self):
+        """
+        The name of this model
+        :return:
+        """
+        return "Climf"
+
+    @property
+    def model_class(self):
+        """
+        The java class that call upon this model
+        :return:
+        """
+        return "ml.grafos.okapi.cf.ranking.ClimfRankingComputation"
+
+
 if __name__ == "__main__":
     import pandas as pd
     import testfm
-    env.hosts = [OKAPI_REMOTE]
     df = pd.read_csv(
         resource_filename(
             testfm.__name__, 'data/movielenshead.dat'), sep="::", header=None,
         names=['user', 'item', 'rating', 'date', 'title'])
-    r = RandomOkapi()
-    user, item = r.call_okapi(df)
-    print(user)
-    print(item)
+    for r_class in [RandomOkapi,
+                    PopularityOkapi,
+                    #BPROkapi,
+                    TFMAPOkapi,
+                    SGDAPOkapi,
+                    ALSOkapi,
+                    SVDOkapi,
+                    ClimfOkapi]:
+        r = r_class("joaonrb@igraph-01")
+        user, item = r.call_okapi(df)
+        r.fit(df)
+        print r.getScore(1, 1)
+        print(user)
+        print(item)
