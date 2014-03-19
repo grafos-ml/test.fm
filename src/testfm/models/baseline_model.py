@@ -158,13 +158,7 @@ class Popularity(ModelInterface):
 
 
     def getScore(self, user, item):
-        cnt = self._counts.get(item, 0.0)
-        # normalize between 0 and 1
-        try:
-            assert isinstance(self.mx - self.mn, float), 'Not float'
-            return (cnt - self.mn)/(self.mx - self.mn)
-        except ZeroDivisionError:
-            return cnt
+        return self._counts.get(item, 0.0)
 
     def fit(self, training_data):
         """
@@ -172,23 +166,15 @@ class Popularity(ModelInterface):
         :param training_data: DataFrame training data
         :return:
         """
-        # self.mn = float("inf")  # This is not needed
-        # self.mx = 0.  # Neither do this
-        # for i, v in training_data.item.value_counts().iteritems():
-        #     self._counts[i] = cnt = log(v+1)
-        #     self.mn = min(self.mn, cnt)
-        #     self.mx = max(self.mx, cnt)
-
-        # Changed to fit behave like other models. Every time it fits it loses
-        # the old data.
-
-        # Linas, do you mind this?
         self._counts = {
             i: log(v+1)
             for i, v in training_data.item.value_counts().iteritems()
         }
         s = sorted(self._counts.values())
-        self.mn, self.mx = s[0], s[-1]
+        mn, mx = s[0], s[-1]
+
+        for k in self._counts.keys():
+            self._counts[k] = (self._counts[k]-mn)/(mx-mn)
 
     def getName(self):
         return "Popularity"
