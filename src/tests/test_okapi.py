@@ -7,6 +7,7 @@ __author__ = 'joaonrb'
 from testfm.okapi.connector import RandomOkapi, OkapiNoResultError, PopularityOkapi
 import testfm
 from testfm.splitter.holdout import RandomSplitter
+from testfm.models.baseline_model import Popularity
 import pandas as pd
 from pkg_resources import resource_filename
 
@@ -67,8 +68,21 @@ class TestOkapi(object):
         """
         splitter = RandomSplitter()
         for i in range(10):
-            training, testing = splitter.split(self.df, 0.05)
+            training, testing = splitter.split(self.df, 0.20)
             self.popularity.fit(training)
             for _, row in testing.iterrows():
                 score = self.popularity.getScore(row["user"], row["item"])
                 assert isinstance(score, float), "The result of the score is not a float"
+
+    def test_popularity(self):
+        """
+        Test the popularity okapi algorithm
+        """
+        splitter = RandomSplitter()
+        training, testing = splitter.split(self.df, 0.20)
+        pop = Popularity()
+        pop.fit(training)
+        self.popularity.fit(training)
+        for _, row in testing.iterrows():
+            assert self.popularity.getScore(row["user"], row["item"]) == pop.getScore(row["user"], row["item"]), \
+                "Okapi popularity is don't give the same score as his python implementation"

@@ -34,6 +34,7 @@ class RandomModel(ModelInterface):
     def getName(self):
         return "Random"
 
+
 class IdModel(ModelInterface):
     """
     Returns the score as the id of the item.
@@ -131,6 +132,7 @@ class Item2Item(ModelInterface):
             'k': (1, 50, 2, 5),
         }
 
+
 class AverageModel(ModelInterface):
     _avg = {}
 
@@ -155,7 +157,6 @@ class Popularity(ModelInterface):
     _counts = {}
     mn = float("inf")
     mx = 0.
-
 
     def getScore(self, user, item):
         cnt = self._counts.get(item, 0.0)
@@ -184,8 +185,7 @@ class Popularity(ModelInterface):
 
         # Linas, do you mind this?
         self._counts = {
-            i: log(v+1)
-            for i, v in training_data.item.value_counts().iteritems()
+            i: log(v+1) for i, v in training_data.item.value_counts().iteritems()
         }
         s = sorted(self._counts.values())
         self.mn, self.mx = s[0], s[-1]
