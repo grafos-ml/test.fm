@@ -4,12 +4,15 @@ Nosetest package for the okapi connector class. This test implies that you have 
 
 __author__ = 'joaonrb'
 
-from testfm.okapi.connector import RandomOkapi, OkapiNoResultError, PopularityOkapi
+from testfm.okapi.connector import RandomOkapi, OkapiNoResultError, PopularityOkapi, BPROkapi
 import testfm
 from testfm.splitter.holdout import RandomSplitter
 from testfm.models.baseline_model import Popularity
+from testfm.models.bpr import BPR
 import pandas as pd
 from pkg_resources import resource_filename
+
+REMOTE = "joaonrb@igraph-01"
 
 
 class TestOkapi(object):
@@ -20,6 +23,7 @@ class TestOkapi(object):
     df = None
     random_okapi = None
     popularity = None
+    bpr = None
 
     def setUp(self):
         """
@@ -27,8 +31,9 @@ class TestOkapi(object):
         """
         self.df = pd.read_csv(resource_filename(testfm.__name__, 'data/movielenshead.dat'), sep="::", header=None,
                               names=['user', 'item', 'rating', 'date', 'title'])
-        self.random_okapi = RandomOkapi("joaonrb@igraph-01")
-        self.popularity = PopularityOkapi("joaonrb@igraph-01")
+        self.random_okapi = RandomOkapi(REMOTE)
+        self.popularity = PopularityOkapi(REMOTE)
+        self.bpr = BPROkapi(REMOTE)
 
     def test_get_result(self):
         """
@@ -86,3 +91,16 @@ class TestOkapi(object):
         for _, row in testing.iterrows():
             assert self.popularity.getScore(row["user"], row["item"]) == pop.getScore(row["user"], row["item"]), \
                 "Okapi popularity is don't give the same score as his python implementation"
+
+    def test_bpr(self):
+        """
+        Test the bpr okapi algorithm
+        """
+        splitter = RandomSplitter()
+        training, testing = splitter.split(self.df, 0.20)
+        bpr = BPR()
+        bpr.fit(training)
+        self.bpr.fit(training)
+        for _, row in testing.iterrows():
+            assert self.bpr.getScore(row["user"], row["item"]) == bpr.getScore(row["user"], row["item"]), \
+                "Okapi bpr is don't give the same score as his python implementation"
