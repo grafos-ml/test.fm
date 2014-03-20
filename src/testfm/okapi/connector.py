@@ -16,6 +16,7 @@ import os
 import logging
 import hashlib
 import numpy as np
+import pandas as pd
 from fabric.api import env, run, put
 from pkg_resources import resource_filename
 from testfm import okapi
@@ -159,7 +160,7 @@ class ModelConnector(ModelInterface):
         :param data: data to hash
         """
         md5 = hashlib.md5()
-        for row in data:
+        for _, row in data.iterrows():
             md5.update(str(row))
         return md5.hexdigest()
 
@@ -305,9 +306,10 @@ class ModelConnector(ModelInterface):
         :param data: Data to produce the model
         """
         self.initialize()
-        self._result = None
+
         # Map the data
         self.map_data(data)
+
         logger.info("Checking if result is computed ..")
         result_file = self.get_result_location(data)
         if not self.result_exist_for(result_file):
@@ -443,6 +445,8 @@ class ModelConnector(ModelInterface):
         if not self.exist_for(data_location):
             logger.info("- Data %s is not in remote .." % data_location)
             self.upload_data(data, to=data_location)
+        else:
+            logger.info("- Data %s already in remote .." % data_location)
 
         logger.info("- Data is ready in remote ..")
 
@@ -542,8 +546,7 @@ class ModelConnector(ModelInterface):
         run("rm -r okapi/tmp/*", quiet=True)
         logger.info("- Result in remote ..")
 
-    @staticmethod
-    def initialize():
+    def initialize(self):
         """
         Check if the needed files exists and create them otherwise
         """
@@ -552,6 +555,9 @@ class ModelConnector(ModelInterface):
         for direct in ("tmp", "results", "jar", "data"):
             logger.info("Create okapi/%s if it doesn't exist .." % direct)
             run("[ -d okapi/%s ] || mkdir okapi/%s" % (direct, direct), quiet=True)
+        self._users = None
+        self._items = None
+        self._result = None
 
     @staticmethod
     def clean():
@@ -740,9 +746,8 @@ class ClimfOkapi(ModelConnector):
         """
         return "ml.grafos.okapi.cf.ranking.ClimfRankingComputation"
 
-
+"""
 if __name__ == "__main__":
-    import pandas as pd
     import testfm
     df = pd.read_csv(
         resource_filename(
@@ -751,7 +756,7 @@ if __name__ == "__main__":
     for r_class in [RandomOkapi,
                     PopularityOkapi,
                     #BPROkapi,
-                    TFMAPOkapi,
+                    #TFMAPOkapi,
                     SGDAPOkapi,
                     ALSOkapi,
                     SVDOkapi,
@@ -762,3 +767,4 @@ if __name__ == "__main__":
         print r.getScore(1, 1)
         print(user)
         print(item)
+"""
