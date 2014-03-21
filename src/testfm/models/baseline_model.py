@@ -156,7 +156,6 @@ class Popularity(ModelInterface):
     mn = float("inf")
     mx = 0.
 
-
     def getScore(self, user, item):
         cnt = self._counts.get(item, 0.0)
         # normalize between 0 and 1
@@ -216,8 +215,3 @@ class PersonalizedPopularity(ModelInterface):
 
     def getName(self):
         return "PersonalizedPopularity"
-
-
-
-
-

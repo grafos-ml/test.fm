@@ -16,6 +16,7 @@ import os
 import logging
 import hashlib
 import numpy as np
+import pandas as pd
 from fabric.api import env, run, put
 from pkg_resources import resource_filename
 from testfm import okapi
@@ -539,7 +540,7 @@ class ModelConnector(ModelInterface):
         data_dir = "%s/%s" % (self.OKAPI_RESULTS_REPOSITORY, self.name)
         run("[ -d %s ] || mkdir %s" % (data_dir, data_dir), quiet=True)
         run("for f in `ls okapi/tmp/part-* | sort -V`; do cat $f >> %s; done;" % data_location, quiet=True)
-        run("rm -r okapi/tmp/*", quiet=True)
+        #run("rm -r okapi/tmp/*", quiet=True)
         logger.info("- Result in remote ..")
 
     @staticmethod
