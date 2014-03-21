@@ -14,6 +14,9 @@ Example of using the Test.fm framework
 	import testfm
 	from testfm.models.baseline_model import Popularity, RandomModel
 	from testfm.models.tensorCoFi import TensorCoFi
+	from testfm.evaluation.evaluator import Evaluator
+	
+	evaluator=Evaluator()
 
 	#prepare the data
 	df = pd.read_csv(..., names=['user', 'item', 'rating', 'date', 'title'])
@@ -30,7 +33,7 @@ Example of using the Test.fm framework
 	for m in models:
 		m.fit(training)
 		print m.getName().ljust(50),
-		print testfm.evaluate_model(m, testing, all_items=items)
+		print evaluator.evaluate_model(m, testing, all_items=items)
 ```
 
 See other examples [here...](https://github.com/grafos-ml/test.fm/tree/master/src/testfm/examples)
