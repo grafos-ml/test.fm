@@ -142,7 +142,7 @@ class Evaluator(object):
             sum += (p - float(row['rating'])) ** 2
         return sqrt(sum/len(testing_data))
 
-    def evaluate_model_threads(self, factor_model, testing_data, measures=[MAPMeasure()], all_items=None,
+    def evaluate_simple(self, factor_model, testing_data, measures=[MAPMeasure()], all_items=None,
                                non_relevant_count=100):
         """
         Evaluates the model by the following algorithm:
@@ -158,7 +158,7 @@ class Evaluator(object):
         >>> evaluation = Evaluator()
         >>> df = DataFrame({'user' : [1, 1, 3, 4], 'item' : [1, 2, 3, 4], \
             'rating' : [5,3,2,1], 'date': [11,12,13,14]})
-        >>> len(evaluation.evaluate_model_threads(model, df, \
+        >>> len(evaluation.evaluate_simple(model, df, \
         non_relevant_count=2))
         1
 
@@ -175,20 +175,20 @@ class Evaluator(object):
             the list for performance evaluation
         :return: list of score corresponding to measures
         """
-
+        ret = []
         from concurrent.futures import ThreadPoolExecutor
         if all_items is None:
             all_items = testing_data.item.unique()
 
         #1. for each user:
-        grouped = testing_data.groupby('user')
-        with ThreadPoolExecutor(max_workers=4) as e:
-            jobs = (e.submit(pm, (Evaluator, user, entries, factor_model,
-                                  all_items, non_relevant_count, measures))
-                    for user, entries in grouped)
+        for m in measures:
+            scores = []
+            for user, entries in testing_data.groupby('user'):
+                pm = partial_measure(user, entries, factor_model, all_items, non_relevant_count, m)
+                scores.append(pm)
             #7.average the scores for each user
-            results = [job.result() for job in jobs]
-        return [sum(result)/len(result) for result in zip(*results)]
+            ret.append(sum(scores)/len(scores))
+        return ret
 
     def evaluate_model_multiprocessing(self, factor_model, testing_data, measures=[MAPMeasure()], all_items=None,
                                        non_relevant_count=100, k=None):

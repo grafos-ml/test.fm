@@ -42,7 +42,7 @@ logger.addHandler(logging.StreamHandler())
 #env.host_string = OKAPI_REMOTE
 
 OKAPI_COMMAND = "hadoop jar %(okapi_jar)s org.apache.giraph.GiraphRunner -Dmapred.job.name=OkapiTrainModelTask " \
-                "-Dmapred.reduce.tasks=0 -libjars %(giraph_jar)s -Dmapred.child.java.opts=-Xmx1g " \
+                "-Dmapred.reduce.tasks=0 -libjars %(okapi_jar)s -Dmapred.child.java.opts=-Xmx1g " \
                 "-Dgiraph.zkManagerDirectory=%(manager_dir)s -Dgiraph.useSuperstepCounters=false %(model_class)s " \
                 "-eif ml.grafos.okapi.cf.CfLongIdFloatTextInputFormat -eip %(input)s " \
                 "-vof org.apache.giraph.io.formats.IdWithValueTextOutputFormat -op %(output)s -w 1 " \
@@ -90,7 +90,6 @@ class ModelConnector(ModelInterface):
     OKAPI_TMP_REPOSITORY = OKAPI_REPOSITORY + "/tmp"
 
     OKAPI_LOCAL_REPOSITORY = resource_filename(okapi.__name__, "lib/")
-    GIRAPH_JAR = "giraph-1.1.0-SNAPSHOT-for-hadoop-0.20.203.0-jar-with-dependencies.jar"
     OKAPI_JAR = "okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar"
 
     EXTRA_JAR = []
@@ -108,13 +107,23 @@ class ModelConnector(ModelInterface):
     _manager_dir = "okapi/_bsp"
     data_map = {}
 
-    def __init__(self, host=None):
+    def __init__(self, host=None, username=None, okapi_jar_dir=None, okapi_jar_base_name=None, public_key_path=None):
         """
         Constructor
         :param host: The host of the remote
         :return:
         """
         env.host_string = host or REMOTE
+
+        if okapi_jar_base_name or okapi_jar_dir:
+            self.OKAPI_LOCAL_REPOSITORY = okapi_jar_dir
+            self.OKAPI_JAR = okapi_jar_base_name
+
+        if public_key_path:
+            env.key_filename = public_key_path
+
+        if username:
+            env.user = username
 
     @staticmethod
     def get_jar_location(jar):
@@ -272,7 +281,6 @@ class ModelConnector(ModelInterface):
 
         :return: A generator with strings
         """
-        yield self.GIRAPH_JAR
         yield self.OKAPI_JAR
         for jar in self.extra_jar:
             yield jar
@@ -376,18 +384,18 @@ class ModelConnector(ModelInterface):
         self._result = self.output_okapi_to_pandas(result_data)
         logger.info("- Result in local ..")
 
-    def get_jar(self, jar_name):
+    def get_jar(self, jar_base_name):
         """
         Return a open file of the jar. This jar is expected to be in the OKAPI_LOCAL_REPOSITORY of the class.
 
-        :param jar_name: A string for the jar file name
+        :param jar_base_name: A string for the jar file name
         :return: The jar as a open file.
         :raise OkapiJarNotInRepository: When the jar is not in the repository
         """
         try:
-            jar_file = open(self.OKAPI_LOCAL_REPOSITORY+"/%s" % jar_name)
+            jar_file = open(self.OKAPI_LOCAL_REPOSITORY+"/%s" % jar_base_name)
         except IOError:
-            raise OkapiJarNotInRepository("The jar %s is not in %s" % (jar_name, self.OKAPI_LOCAL_REPOSITORY))
+            raise OkapiJarNotInRepository("The jar %s is not in %s" % (jar_base_name, self.OKAPI_LOCAL_REPOSITORY))
         return jar_file
 
     @staticmethod
@@ -496,11 +504,9 @@ class ModelConnector(ModelInterface):
         :type jars: dict
         :return: A str with the full okapi command
         """
-        giraph = jars[self.GIRAPH_JAR]+"/%s" % self.GIRAPH_JAR
         okapi = jars[self.OKAPI_JAR]+"/%s" % self.OKAPI_JAR
-        command = "HADOOP_PATH=%s %s" % ("%s:%s" % (giraph, okapi), OKAPI_COMMAND % {
+        command = "HADOOP_PATH=%s %s" % ("%s" % (okapi,), OKAPI_COMMAND % {
             "model_class": self.model_class,
-            "giraph_jar": giraph,
             "okapi_jar": okapi,
             "max_item_id": len(self.data_map["item_to_id"]),
             "input": self.std_input_name,
@@ -561,7 +567,7 @@ class ModelConnector(ModelInterface):
         data_dir = "%s/%s" % (self.OKAPI_RESULTS_REPOSITORY, self.name)
         run("[ -d %s ] || mkdir %s" % (data_dir, data_dir), quiet=True)
         run("for f in `ls okapi/tmp/part-* | sort -V`; do cat $f >> %s; done;" % data_location, quiet=True)
-        run("rm -r okapi/tmp/*", quiet=True)
+        #run("rm -r okapi/tmp/*", quiet=True)
         logger.info("- Result in remote ..")
 
     def initialize(self):

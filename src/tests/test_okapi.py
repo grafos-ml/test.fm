@@ -4,7 +4,7 @@ Nosetest package for the okapi connector class. This test implies that you have 
 
 __author__ = 'joaonrb'
 
-from testfm.okapi.connector import RandomOkapi, OkapiNoResultError, PopularityOkapi, BPROkapi, ON_REMOTE_NETWORK
+from testfm.okapi.connector import RandomOkapi, OkapiNoResultError, PopularityOkapi, BPROkapi
 import testfm
 from testfm.splitter.holdout import RandomSplitter
 from testfm.models.baseline_model import Popularity
@@ -12,6 +12,8 @@ from testfm.models.bpr import BPR
 import pandas as pd
 from pkg_resources import resource_filename
 import unittest
+
+REMOTE = "joaonrb@igraph-01"
 
 
 class TestOkapi(object):
@@ -30,11 +32,10 @@ class TestOkapi(object):
         """
         self.df = pd.read_csv(resource_filename(testfm.__name__, 'data/movielenshead.dat'), sep="::", header=None,
                               names=['user', 'item', 'rating', 'date', 'title'])
-        self.random_okapi = RandomOkapi()
-        self.popularity = PopularityOkapi()
-        self.bpr = BPROkapi()
+        self.random_okapi = RandomOkapi(REMOTE)
+        self.popularity = PopularityOkapi(REMOTE)
+        self.bpr = BPROkapi(REMOTE)
 
-    @unittest.skipIf(not ON_REMOTE_NETWORK, "Not in Okapi network")
     def test_get_result(self):
         """
         Test if result exist behavior and get result.
@@ -52,7 +53,6 @@ class TestOkapi(object):
             else:
                 assert False, "RandomOkapi.result is returning %s when RandomOkapi.result_exist_for is false" % result
 
-    @unittest.skipIf(not ON_REMOTE_NETWORK, "Not in Okapi network")
     def test_map(self):
         """
         Test the mapping
@@ -68,20 +68,18 @@ class TestOkapi(object):
             assert self.random_okapi.data_map["item_to_id"][item] == item_id, "Mapping in item to id is not correct"
             assert self.random_okapi.data_map["id_to_item"][item_id] == item, "Mapping in id item is not correct"
 
-    @unittest.skipIf(not ON_REMOTE_NETWORK, "Not in Okapi network")
     def test_repeating_spliced_data(self):
         """
         Test repeating data on the same model by splitting a dataFrame
         """
         splitter = RandomSplitter()
-        for i in range(5):
+        for i in range(10):
             training, testing = splitter.split(self.df, 0.20)
             self.popularity.fit(training)
             for _, row in testing.iterrows():
                 score = self.popularity.getScore(row["user"], row["item"])
                 assert isinstance(score, float), "The result of the score is not a float"
-'''
-    @unittest.skipIf(not ON_REMOTE_NETWORK, "Not in Okapi network")
+
     def test_popularity(self):
         """
         Test the popularity okapi algorithm
@@ -99,7 +97,6 @@ class TestOkapi(object):
                 "Okapi popularity(%f) don't give the same score as his python implementation(%f)" % (okapi_score,
                                                                                                      python_score)
 
-    @unittest.skipIf(not ON_REMOTE_NETWORK, "Not in Okapi network")
     def test_bpr(self):
         """
         Test the bpr okapi algorithm
@@ -113,4 +110,4 @@ class TestOkapi(object):
             okapi_score = self.bpr.getScore(row["user"], row["item"])
             python_score = bpr.getScore(row["user"], row["item"])
             assert okapi_score == python_score, \
-                "Okapi bpr(%f) don't give the same score as his python implementation(%f)" % (okapi_score, python_score)'''
+                "Okapi bpr(%f) don't give the same score as his python implementation(%f)" % (okapi_score, python_score)
