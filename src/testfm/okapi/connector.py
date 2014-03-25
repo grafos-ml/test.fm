@@ -196,43 +196,40 @@ class ModelConnector(ModelInterface):
         :return: The data string in okapi format
         """
         data = data[:]
-
         # If data don't have ratings than the rating column is created with 1.
         if "rating" not in data:
             data["rating"] = [1. for _ in xrange(len(data))]
 
         # Make a generator with lines for okapi file format
-        okapi_rows = ("%(user)s %(item)s %(rating)s" % {  # okapi line
+        okapi_rows = list(("%(user)s %(item)s %(rating)s" % {  # okapi line
             "user": self.data_map["user_to_id"][row["user"]],
             "item": self.data_map["item_to_id"][row["item"]],
             "rating": row["rating"]
-        } for _, row in data.iterrows())
+        } for _, row in data.iterrows()))
         return "\n".join(okapi_rows)
 
-    def output_okapi_to_pandas(self, result_data):
+    @staticmethod
+    def output_okapi_to_pandas(result_data):
         """
         Return 2 pandas DataFrame. The first for the user and the second for the items.
 
         :param result_data: String with output from okapi
         :return: A tuple with 2 DataFrame. (user, item)
         """
-        data = {"0": [], "1": []}
+        data = {"0": {}, "1": {}}
         okapi_data = result_data.split("\n")
         for line in okapi_data:
             obj_id, obj_type, factors = line.replace("; ", ",").replace("\t", " ").split(" ")
-            obj = self.data_map[self.MAP_DICT[obj_type]][float(obj_id)]
-            data[obj_type].append((obj, eval(factors)))
-        return pd.DataFrame({
-            key: value for key, value in sorted(data["0"], key=lambda x: x[0])
-        }), pd.DataFrame({
-            key: value for key, value in sorted(data["1"], key=lambda x: x[0])
-        })
+            data[obj_type][obj_id] = eval(factors)
+        result = pd.DataFrame(data["0"]), pd.DataFrame(data["1"])
+        return result
 
     def map_data(self, data):
         """
         Maps the data to indexes starting in one
         :param data: Pandas DataFrame with the data
         """
+        data = data[:]
         self.data_map = {
             "user_to_id": {},
             "id_to_user": {},
@@ -338,7 +335,8 @@ class ModelConnector(ModelInterface):
         :param item: id of the item
         :return:
         """
-        return np.dot(self._users[user].transpose(), self._items[item])
+        return np.dot(self._users[str(self.data_map["user_to_id"][user])].transpose(),
+                      self._items[str(self.data_map["item_to_id"][item])])
 
     def result_exist_for(self, result_file):
         """

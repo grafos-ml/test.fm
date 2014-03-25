@@ -291,6 +291,7 @@ class TFIDTest(unittest.TestCase):
         #the closes item to 1 (in user 10 profile) is 100, so the score should be equal to the similarity
         self.assertAlmostEqual(tfidf.getScore(10, 1), tfidf._sim(100, 1), places=2)
 
+
 class SVDppTest(unittest.TestCase):
 
     def setUp(self):
