@@ -5,6 +5,7 @@ Shows how to execute remote model building.
 import testfm
 import pandas as pd
 from testfm.evaluation.evaluator import Evaluator
+from testfm.models.baseline_model import Popularity
 from testfm.okapi.connector import PopularityOkapi
 from pkg_resources import resource_filename
 
@@ -13,17 +14,19 @@ df = pd.read_csv(resource_filename(testfm.__name__,'data/movielenshead.dat'),
     sep="::", header=None, names=['user', 'item', 'rating', 'date', 'title'])
 print df.head()
 
+print df.item.value_counts()
+
 print len(df.item.unique())
 print df.item.unique()
 
 #tell me what models we want to evaluate
 models = [  PopularityOkapi(),
-        ]
+            Popularity(normalize=False)
+]
 
 #setup the environment
 from fabric.api import env
 env.host_string = 'linas@igraph-01'
-
 
 eval = Evaluator()
 
@@ -33,3 +36,8 @@ for m in models:
     print eval.evaluate_model(m, df)
 
 eval.close()#need this call to clean up the worker processes
+
+
+print models[0]._items[296]
+print "\n"
+print models[1]._counts[296]
