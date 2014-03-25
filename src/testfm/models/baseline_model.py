@@ -156,6 +156,9 @@ class Popularity(ModelInterface):
     mn = float("inf")
     mx = 0.
 
+    def __init__(self, normalize=True):
+        self.normalize = normalize
+
     def getScore(self, user, item):
         return self._counts.get(item, 0.0)
 
@@ -165,15 +168,20 @@ class Popularity(ModelInterface):
         :param training_data: DataFrame training data
         :return:
         """
-        self._counts = {
-            i: log(v+1)
-            for i, v in training_data.item.value_counts().iteritems()
-        }
-        s = sorted(self._counts.values())
-        mn, mx = s[0], s[-1]
-
-        for k in self._counts.keys():
-            self._counts[k] = (self._counts[k]-mn)/(mx-mn)
+        if self.normalize:
+            self._counts = {
+                i: log(v+1)
+                for i, v in training_data.item.value_counts().iteritems()
+            }
+            s = sorted(self._counts.values())
+            mn, mx = s[0], s[-1]
+            for k in self._counts.keys():
+                self._counts[k] = (self._counts[k]-mn)/(mx-mn)
+        else:
+            self._counts = {
+                i: v
+                for i, v in training_data.item.value_counts().iteritems()
+            }
 
     def getName(self):
         return "Popularity"
