@@ -28,14 +28,14 @@ models = [  PopularityOkapi(host='linas@igraph-01',
 ]
 
 #setup the environment
-eval = Evaluator()
+evaluator = Evaluator()
 
 for m in models:
     m.fit(df)
     print m.getName().ljust(50),
-    print eval.evaluate_model(m, df)
+    print evaluator.evaluate_model(m, df)
 
-eval.close()#need this call to clean up the worker processes
+evaluator.close()#need this call to clean up the worker processes
 
 
 print models[0]._items[296]
