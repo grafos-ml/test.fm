@@ -1,6 +1,7 @@
 """
 Nosetest package for the okapi connector class. This test implies that you have access to the okapi server or something
 """
+import unittest
 
 __author__ = 'joaonrb'
 
@@ -12,7 +13,7 @@ from testfm.models.bpr import BPR
 import pandas as pd
 from pkg_resources import resource_filename
 
-REMOTE = "joaonrb@igraph-01"
+REMOTE = "linas@igraph-01"
 
 
 class TestOkapi(object):

@@ -14,15 +14,12 @@ df = pd.read_csv(resource_filename(testfm.__name__,'data/movielenshead.dat'),
     sep="::", header=None, names=['user', 'item', 'rating', 'date', 'title'])
 print df.head()
 
-print df.item.value_counts()
-
-print len(df.item.unique())
-print df.item.unique()
-
 #tell me what models we want to evaluate
 models = [  PopularityOkapi(host='linas@igraph-01',
                             okapi_jar_dir='/Users/linas/devel/okapi/target/',
-                            okapi_jar_base_name='okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar'),
+                            okapi_jar_base_name='okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar',
+                            public_key_path='/Users/linas/.ssh/hack-okapi.pem'
+            ),
 
             Popularity(normalize=False)
 ]
@@ -36,8 +33,3 @@ for m in models:
     print evaluator.evaluate_model(m, df)
 
 evaluator.close()#need this call to clean up the worker processes
-
-
-print models[0]._items[296]
-print "\n"
-print models[1]._counts[296]
