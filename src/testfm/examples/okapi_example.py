@@ -19,16 +19,16 @@ models = [
             RandomModel(),
             PopularityOkapi(host='54.72.18.118',
                             username='hadoop',
-                            okapi_jar_dir='/Users/linas/devel/okapi/target/',
-                            okapi_jar_base_name='okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar',
-                            public_key_path='/Users/linas/.ssh/hack-okapi.pem'
+                            #okapi_jar_dir='/home/linas/devel/okapi/target/',
+                            #okapi_jar_base_name='okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar',
+                            public_key_path='/home/joaonrb/.ssh/hack-okapi.pem'
             ),
             Popularity(normalize=False),
             BPROkapi(host='54.72.18.118',
                             username='hadoop',
-                            okapi_jar_dir='/Users/linas/devel/okapi/target/',
-                            okapi_jar_base_name='okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar',
-                            public_key_path='/Users/linas/.ssh/hack-okapi.pem'
+                            #okapi_jar_dir='/home/linas/devel/okapi/target/',
+                            #okapi_jar_base_name='okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar',
+                            public_key_path='/home/joaonrb/.ssh/hack-okapi.pem'
             )
 ]
 
