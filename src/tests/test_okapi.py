@@ -89,8 +89,12 @@ class TestOkapi(object):
         pop.fit(training)
         self.popularity.fit(training)
         for _, row in testing.iterrows():
-            assert self.popularity.getScore(row["user"], row["item"]) == pop.getScore(row["user"], row["item"]), \
-                "Okapi popularity is don't give the same score as his python implementation"
+            assert row["user"] in training["user"]
+            python_score = pop.getScore(row["user"], row["item"])
+            okapi_score = self.popularity.getScore(row["user"], row["item"])
+            assert okapi_score == python_score, \
+                "Okapi popularity(%f) don't give the same score as his python implementation(%f)" % (okapi_score,
+                                                                                                     python_score)
 
     def test_bpr(self):
         """
@@ -102,5 +106,7 @@ class TestOkapi(object):
         bpr.fit(training)
         self.bpr.fit(training)
         for _, row in testing.iterrows():
-            assert self.bpr.getScore(row["user"], row["item"]) == bpr.getScore(row["user"], row["item"]), \
-                "Okapi bpr is don't give the same score as his python implementation"
+            okapi_score = self.bpr.getScore(row["user"], row["item"])
+            python_score = bpr.getScore(row["user"], row["item"])
+            assert okapi_score == python_score, \
+                "Okapi bpr(%f) don't give the same score as his python implementation(%f)" % (okapi_score, python_score)
