@@ -34,6 +34,7 @@ class RandomModel(ModelInterface):
     def getName(self):
         return "Random"
 
+
 class IdModel(ModelInterface):
     """
     Returns the score as the id of the item.
@@ -209,3 +210,8 @@ class PersonalizedPopularity(ModelInterface):
 
     def getName(self):
         return "PersonalizedPopularity"
+
+
+
+
+

@@ -4,21 +4,36 @@ Nosetest package for the okapi connector class. This test implies that you have 
 
 __author__ = 'joaonrb'
 
-from testfm.okapi.connector import RandomOkapi, OkapiNoResultError
+from testfm.okapi.connector import RandomOkapi, OkapiNoResultError, PopularityOkapi, BPROkapi
 import testfm
+from testfm.splitter.holdout import RandomSplitter
+from testfm.models.baseline_model import Popularity
+from testfm.models.bpr import BPR
 import pandas as pd
 from pkg_resources import resource_filename
 
+REMOTE = "joaonrb@igraph-01"
 
-class TestRandomOkapi(object):
+
+class TestOkapi(object):
     """
     Test for okapi connector
     """
 
+    df = None
+    random_okapi = None
+    popularity = None
+    bpr = None
+
     def setUp(self):
+        """
+        Setup the test package
+        """
         self.df = pd.read_csv(resource_filename(testfm.__name__, 'data/movielenshead.dat'), sep="::", header=None,
                               names=['user', 'item', 'rating', 'date', 'title'])
-        self.random_okapi = RandomOkapi()
+        self.random_okapi = RandomOkapi(REMOTE)
+        self.popularity = PopularityOkapi(REMOTE)
+        self.bpr = BPROkapi(REMOTE)
 
     def test_get_result(self):
         """
@@ -45,9 +60,47 @@ class TestRandomOkapi(object):
         users = enumerate(set(self.df["user"]))
         items = enumerate(set(self.df["item"]))
         for user_id, user in users:
-            assert self.random_okapi.data_map["user_to_id"] == user_id, "Mapping in user to id is not correct"
+            assert self.random_okapi.data_map["user_to_id"][user] == user_id, "Mapping in user to id is not correct"
             assert self.random_okapi.data_map["id_to_user"][user_id] == user, "Mapping in id user is not correct"
 
         for item_id, item in items:
             assert self.random_okapi.data_map["item_to_id"][item] == item_id, "Mapping in item to id is not correct"
             assert self.random_okapi.data_map["id_to_item"][item_id] == item, "Mapping in id item is not correct"
+
+    def test_repeating_spliced_data(self):
+        """
+        Test repeating data on the same model by splitting a dataFrame
+        """
+        splitter = RandomSplitter()
+        for i in range(10):
+            training, testing = splitter.split(self.df, 0.20)
+            self.popularity.fit(training)
+            for _, row in testing.iterrows():
+                score = self.popularity.getScore(row["user"], row["item"])
+                assert isinstance(score, float), "The result of the score is not a float"
+
+    def test_popularity(self):
+        """
+        Test the popularity okapi algorithm
+        """
+        splitter = RandomSplitter()
+        training, testing = splitter.split(self.df, 0.20)
+        pop = Popularity()
+        pop.fit(training)
+        self.popularity.fit(training)
+        for _, row in testing.iterrows():
+            assert self.popularity.getScore(row["user"], row["item"]) == pop.getScore(row["user"], row["item"]), \
+                "Okapi popularity is don't give the same score as his python implementation"
+
+    def test_bpr(self):
+        """
+        Test the bpr okapi algorithm
+        """
+        splitter = RandomSplitter()
+        training, testing = splitter.split(self.df, 0.20)
+        bpr = BPR()
+        bpr.fit(training)
+        self.bpr.fit(training)
+        for _, row in testing.iterrows():
+            assert self.bpr.getScore(row["user"], row["item"]) == bpr.getScore(row["user"], row["item"]), \
+                "Okapi bpr is don't give the same score as his python implementation"

@@ -20,14 +20,14 @@ print len(df.item.unique())
 print df.item.unique()
 
 #tell me what models we want to evaluate
-models = [  PopularityOkapi(),
+models = [  PopularityOkapi(host='linas@igraph-01',
+                            okapi_jar_dir='/Users/linas/devel/okapi/target/',
+                            okapi_jar_base_name='okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar'),
+
             Popularity(normalize=False)
 ]
 
 #setup the environment
-from fabric.api import env
-env.host_string = 'linas@igraph-01'
-
 eval = Evaluator()
 
 for m in models:
