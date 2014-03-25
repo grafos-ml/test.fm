@@ -7,7 +7,6 @@ Connect to the okapi to create some model.
 .. moduleauthor:: joaonrb <joaonrb@gmail.com>
 
 """
-from distutils.sysconfig import EXEC_PREFIX
 
 __author__ = "joaonrb"
 
@@ -21,9 +20,21 @@ from fabric.api import env, run, put
 from pkg_resources import resource_filename
 from testfm import okapi
 from testfm.models.interface import ModelInterface
+import getpass
+
+REMOTE_HOST = "igraph-01"
+USER_NAME = getpass.getuser()
+
+REMOTE = "%(user)s@%(host)s" % {
+    "user": USER_NAME,
+    "host": REMOTE_HOST
+}
+
+ON_REMOTE_NETWORK = os.system("ping -c 1 " + REMOTE_HOST) == 0
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+#logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 logger.addHandler(logging.StreamHandler())
 
@@ -103,8 +114,7 @@ class ModelConnector(ModelInterface):
         :param host: The host of the remote
         :return:
         """
-        if host:
-            env.host_string = host
+        env.host_string = host or REMOTE
 
     @staticmethod
     def get_jar_location(jar):
@@ -162,7 +172,9 @@ class ModelConnector(ModelInterface):
         md5 = hashlib.md5()
         for _, row in data.iterrows():
             md5.update(str(row))
-        return md5.hexdigest()
+        result = md5.hexdigest()
+        print result
+        return result
 
     @staticmethod
     def hash_file(jar):
@@ -178,9 +190,7 @@ class ModelConnector(ModelInterface):
         :param jar: Jar file to get the hash
         :return:
         """
-        md5 = hashlib.md5()
-        for line in jar:
-            md5.update(str(line))
+        md5 = hashlib.md5(jar.read())
         return md5.hexdigest()
 
     def input_pandas_to_okapi(self, data):
@@ -333,6 +343,16 @@ class ModelConnector(ModelInterface):
         :param item: id of the item
         :return:
         """
+        try:
+            self._users[str(self.data_map["user_to_id"][user])]
+        except KeyError:
+            print self._users.to_dict(), user, str(self.data_map["user_to_id"][user])
+            raise
+        try:
+            self._items[str(self.data_map["item_to_id"][item])]
+        except KeyError:
+            print self._items.to_dict(), item, str(self.data_map["item_to_id"][item])
+            raise
         return np.dot(self._users[str(self.data_map["user_to_id"][user])].transpose(),
                       self._items[str(self.data_map["item_to_id"][item])])
 

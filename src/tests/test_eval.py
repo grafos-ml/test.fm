@@ -19,3 +19,4 @@ class TestEvaluator(unittest.TestCase):
         ])
         rmse = eval.evaluate_model_rmse(model, testing)
         self.assertEqual(sqrt((0+4+1)/3.0), rmse)
+        eval.close()
