@@ -96,7 +96,7 @@ class ModelConnector(ModelInterface):
     _manager_dir = "okapi/_bsp"
     data_map = {}
 
-    def __init__(self, host=None, okapi_jar_dir=None, okapi_jar_base_name=None, public_key_path=None):
+    def __init__(self, host=None, username=None, okapi_jar_dir=None, okapi_jar_base_name=None, public_key_path=None):
         """
         Constructor
         :param host: The host of the remote
@@ -111,6 +111,9 @@ class ModelConnector(ModelInterface):
 
         if public_key_path:
             env.key_filename = public_key_path
+
+        if username:
+            env.user = username
 
     @staticmethod
     def get_jar_location(jar):
