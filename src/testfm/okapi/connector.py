@@ -30,11 +30,10 @@ REMOTE = "%(user)s@%(host)s" % {
     "host": REMOTE_HOST
 }
 
-ON_REMOTE_NETWORK = os.system("ping -c 1 " + REMOTE_HOST) == 0
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-#logger.setLevel(logging.WARNING)
+#logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 logger.addHandler(logging.StreamHandler())
 
@@ -47,10 +46,6 @@ OKAPI_COMMAND = "hadoop jar %(okapi_jar)s org.apache.giraph.GiraphRunner -Dmapre
                 "-eif ml.grafos.okapi.cf.CfLongIdFloatTextInputFormat -eip %(input)s " \
                 "-vof org.apache.giraph.io.formats.IdWithValueTextOutputFormat -op %(output)s -w 1 " \
                 "-ca giraph.numComputeThreads=1 -ca minItemId=1 -ca maxItemId=%(max_item_id)s"
-
-
-#HADOOP_SOURCE = "source /data/b.ajf/hadoop1_env.sh && %s"
-HADOOP_SOURCE = "%s"
 
 
 class OkapiConnectorError(Exception):
@@ -106,9 +101,11 @@ class ModelConnector(ModelInterface):
     _std_input = "okapi/%(name)s_input"
     _std_output = "okapi/%s_output"
     _manager_dir = "okapi/_bsp"
+    _haddop_source = "%s"
     data_map = {}
 
-    def __init__(self, host=None, username=None, okapi_jar_dir=None, okapi_jar_base_name=None, public_key_path=None):
+    def __init__(self, host=None, username=None, okapi_jar_dir=None, okapi_jar_base_name=None, public_key_path=None,
+                 hadoop_source=None):
         """
         Constructor
         :param host: The host of the remote
@@ -125,6 +122,7 @@ class ModelConnector(ModelInterface):
 
         if username:
             env.user = username
+        self._haddop_source = hadoop_source or ModelConnector._haddop_source
 
     @staticmethod
     def get_jar_location(jar):
@@ -523,29 +521,27 @@ class ModelConnector(ModelInterface):
         """
         logger.info("Pushing data to hadoop ..")
         remove_old_command = "hadoop dfs -rmr %s" % self._manager_dir
-        run(HADOOP_SOURCE % remove_old_command, quiet=True)
+        run(self._haddop_source % remove_old_command, quiet=True)
         logger.info("Check %s if exists .." % self.std_input_name)
 
         if not self.in_hadoop(self.std_input_name):
             logger.info("Create %s with new data .." % self.std_input_name)
-            put_new_data = HADOOP_SOURCE % "hadoop dfs -copyFromLocal %s %s" % (data_location, self.std_input_name)
+            put_new_data = self._haddop_source % "hadoop dfs -copyFromLocal %s %s" % (data_location, self.std_input_name)
             run(put_new_data, quiet=True)
             logger.info("- Data in hadoop ..")
         else:
             logger.info("- %s exists .." % self.std_input_name)
 
-    @staticmethod
-    def in_hadoop(file_or_dict):
+    def in_hadoop(self, file_or_dict):
         """
         Check if file or directory is in hadoop
         :param file_or_dict:
         :return:
         """
-        check_if_exists = HADOOP_SOURCE % "hadoop dfs -ls %s" % file_or_dict
+        check_if_exists = self._haddop_source % "hadoop dfs -ls %s" % file_or_dict
         return 0 == run(check_if_exists, warn_only=True, quiet=True).return_code
 
-    @staticmethod
-    def execute_okapi(command):
+    def execute_okapi(self, command):
         """
         Execute this command fetch the result and returns it.
 
@@ -555,7 +551,7 @@ class ModelConnector(ModelInterface):
         """
         logger.info("Hadoop is building the model ..")
         logger.info("Running: %s" % command)
-        run(HADOOP_SOURCE % command, quiet=True)
+        run(self._haddop_source % command, quiet=True)
         logger.info("- Hadoop finished ..")
 
     def pull_result_from_hadoop(self, data_location):
@@ -564,7 +560,7 @@ class ModelConnector(ModelInterface):
         :param data_location: The location of the data in the remote
         """
         logger.info("Pulling the result from hadoop to remote ..")
-        run(HADOOP_SOURCE % "hadoop dfs -copyToLocal %s/* okapi/tmp" % self.std_output_name, quiet=True)
+        run(self._haddop_source % "hadoop dfs -copyToLocal %s/* okapi/tmp" % self.std_output_name, quiet=True)
         data_dir = "%s/%s" % (self.OKAPI_RESULTS_REPOSITORY, self.name)
         run("[ -d %s ] || mkdir %s" % (data_dir, data_dir), quiet=True)
         run("for f in `ls okapi/tmp/part-* | sort -V`; do cat $f >> %s; done;" % data_location, quiet=True)
@@ -584,13 +580,12 @@ class ModelConnector(ModelInterface):
         self._items = None
         self._result = None
 
-    @staticmethod
-    def clean():
+    def clean(self):
         """
         Remove all the files from okapi
         """
         logger.info("Removing files from hadoop ..")
-        run(HADOOP_SOURCE % "hadoop dfs -rmr okapi", quiet=True)
+        run(self._haddop_source % "hadoop dfs -rmr okapi", quiet=True)
         logger.info("removing files from remote ..")
         run("rm -r okapi/*", quiet=True)
         logger.info("- done ..")

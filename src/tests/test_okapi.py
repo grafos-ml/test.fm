@@ -4,7 +4,8 @@ Nosetest package for the okapi connector class. This test implies that you have 
 
 __author__ = 'joaonrb'
 
-from testfm.okapi.connector import RandomOkapi, OkapiNoResultError, PopularityOkapi, BPROkapi, ON_REMOTE_NETWORK
+import os
+from testfm.okapi.connector import RandomOkapi, OkapiNoResultError, PopularityOkapi, BPROkapi, REMOTE_HOST
 import testfm
 from testfm.splitter.holdout import RandomSplitter
 from testfm.models.baseline_model import Popularity
@@ -12,6 +13,8 @@ from testfm.models.bpr import BPR
 import pandas as pd
 from pkg_resources import resource_filename
 import unittest
+
+ON_REMOTE_NETWORK = os.system("ping -c 1 " + REMOTE_HOST) == 0
 
 
 class TestOkapi(object):
