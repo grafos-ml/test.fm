@@ -33,8 +33,8 @@ REMOTE = "%(user)s@%(host)s" % {
 ON_REMOTE_NETWORK = os.system("ping -c 1 " + REMOTE_HOST) == 0
 
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.INFO)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
+#logger.setLevel(logging.WARNING)
 
 logger.addHandler(logging.StreamHandler())
 
@@ -49,7 +49,8 @@ OKAPI_COMMAND = "hadoop jar %(okapi_jar)s org.apache.giraph.GiraphRunner -Dmapre
                 "-ca giraph.numComputeThreads=1 -ca minItemId=1 -ca maxItemId=%(max_item_id)s"
 
 
-HADOOP_SOURCE = "source /data/b.ajf/hadoop1_env.sh && %s"
+#HADOOP_SOURCE = "source /data/b.ajf/hadoop1_env.sh && %s"
+HADOOP_SOURCE = "%s"
 
 
 class OkapiConnectorError(Exception):
