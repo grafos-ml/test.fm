@@ -17,9 +17,9 @@ from pkg_resources import resource_filename
 import testfm
 import os
 import numpy as np
+os.environ['CLASSPATH'] = resource_filename(testfm.__name__, 'lib/algorithm-1.0-SNAPSHOT-jar-with-dependencies.jar:') + \
+    os.environ.get('CLASSPATH', "")
 
-os.environ['CLASSPATH'] = resource_filename(testfm.__name__, 'lib/'
-    'algorithm-1.0-SNAPSHOT-jar-with-dependencies.jar')
 
 import datetime
 import subprocess

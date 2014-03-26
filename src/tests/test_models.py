@@ -57,7 +57,6 @@ class TestTensorCoFi(unittest.TestCase):
     def test_array(self):
         arr, tmap = self.tf._dataframe_to_float_matrix(self.df)
 
-
     def test_fit(self):
         self.tf.fit(self.df)
         #item and user are row vectors

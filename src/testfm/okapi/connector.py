@@ -32,8 +32,8 @@ REMOTE = "%(user)s@%(host)s" % {
 
 
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.INFO)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
+#logger.setLevel(logging.WARNING)
 
 logger.addHandler(logging.StreamHandler())
 
@@ -74,9 +74,9 @@ class OkapiJarNotInRepository(OkapiConnectorError):
     """
 
 
-class ModelConnector(ModelInterface):
+class BaseModelConnector(ModelInterface):
     """
-    Connect a model to okapi
+    A base model connector to Okapi system. It receives a file path for input and other for output.
     """
 
     OKAPI_REPOSITORY = "okapi"
@@ -84,9 +84,6 @@ class ModelConnector(ModelInterface):
     OKAPI_DATA_REPOSITORY = OKAPI_REPOSITORY + "/data"
     OKAPI_RESULTS_REPOSITORY = OKAPI_REPOSITORY + "/results"
     OKAPI_TMP_REPOSITORY = OKAPI_REPOSITORY + "/tmp"
-
-    OKAPI_LOCAL_REPOSITORY = resource_filename(okapi.__name__, "lib/")
-    OKAPI_JAR = "okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar"
 
     EXTRA_JAR = []
 
@@ -101,28 +98,190 @@ class ModelConnector(ModelInterface):
     _std_input = "okapi/%(name)s_input"
     _std_output = "okapi/%s_output"
     _manager_dir = "okapi/_bsp"
-    _haddop_source = "%s"
+    _hadoop_source = "%s"
+
+    _okapi_local_repository = resource_filename(okapi.__name__, "lib/")
+    _okapi_jar = "okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar"
+
     data_map = {}
 
     def __init__(self, host=None, username=None, okapi_jar_dir=None, okapi_jar_base_name=None, public_key_path=None,
-                 hadoop_source=None):
+                 hadoop_source=None, okapi_output=None, okapi_input=None):
         """
-        Constructor
-        :param host: The host of the remote
+
+        :param host:
+        :param username:
+        :param okapi_jar_dir:
+        :param okapi_jar_base_name:
+        :param public_key_path:
+        :param hadoop_source:
+        :param okapi_output:
+        :param okapi_input:
         :return:
         """
-        env.host_string = host or REMOTE
 
-        if okapi_jar_base_name or okapi_jar_dir:
-            self.OKAPI_LOCAL_REPOSITORY = okapi_jar_dir
-            self.OKAPI_JAR = okapi_jar_base_name
+        env.host_string = host or REMOTE_HOST
+        env.user = username or USER_NAME
+
+        self._okapi_local_repository = okapi_jar_dir or BaseModelConnector._okapi_local_repository
+        self._okapi_jar = okapi_jar_base_name or BaseModelConnector._okapi_jar
 
         if public_key_path:
             env.key_filename = public_key_path
+        self._hadoop_source = hadoop_source or BaseModelConnector._hadoop_source
 
-        if username:
-            env.user = username
-        self._haddop_source = hadoop_source or ModelConnector._haddop_source
+        self._std_input = okapi_input or BaseModelConnector._std_input
+        self._std_output = okapi_output or BaseModelConnector._std_output
+
+    @property
+    def name(self):
+        """
+        Return the name of this model. The default version returns the name of the python class
+        :return: The name of the python class
+        """
+        return self.__class__.__name__
+
+    @property
+    def result(self):
+        """
+        Get the result of this model
+
+        :return: The result
+        :raise OkapiNoResultError: Raise when the result was not fetched
+        """
+        return self._result or OkapiNoResultError.raise_this("This model has not ben calculated or is result as not "
+                                                             "been fetched.")
+
+    def getScore(self, user, item):
+        """
+        A score for a user and item that method predicts.
+        :param user: id of the user
+        :param item: id of the item
+        :return:
+        """
+        return np.dot(self._users[str(self.data_map["user_to_id"][user])].transpose(),
+                      self._items[str(self.data_map["item_to_id"][item])])
+
+    def map_data(self, data):
+        """
+        Maps the data to indexes starting in one
+        :param data: Pandas DataFrame with the data
+        """
+        data = data[:]
+        self.data_map = {
+            "user_to_id": {},
+            "id_to_user": {},
+            "item_to_id": {},
+            "id_to_item": {}
+        }
+        users = enumerate(set(data["user"]), start=1)
+        items = enumerate(set(data["item"]), start=1)
+        for user_id, user in users:
+            self.data_map["user_to_id"][user] = user_id
+            self.data_map["id_to_user"][user_id] = user
+
+        for item_id, item in items:
+            self.data_map["item_to_id"][item] = item_id
+            self.data_map["id_to_item"][item_id] = item
+
+    @staticmethod
+    def output_okapi_to_pandas(result_data):
+        """
+        Return 2 pandas DataFrame. The first for the user and the second for the items.
+
+        :param result_data: String with output from okapi
+        :return: A tuple with 2 DataFrame. (user, item)
+        """
+        data = {"0": {}, "1": {}}
+        okapi_data = result_data.split("\n")
+        for line in okapi_data:
+            obj_id, obj_type, factors = line.replace("; ", ",").replace("\t", " ").split(" ")
+            data[obj_type][obj_id] = eval(factors)
+        result = pd.DataFrame(data["0"]), pd.DataFrame(data["1"])
+        return result
+
+    def call_okapi(self, data):
+        """
+        Call the okapi framework to make a model
+
+        :param data: Data to produce the model
+        """
+        self.initialize()
+
+        # Map the data
+        self.map_data(data)
+
+        logger.info("Checking if result is computed ..")
+        result_file = self.get_result_location(data)
+        if not self.result_exist_for(result_file):
+            logger.info("- Result is not computed yet ..")
+            logger.info("Preparing environment ..")
+            command = self.get_remote_command(data)
+            self.execute_okapi(command)
+            self.pull_result_from_hadoop(result_file)
+        self.read_result(result_file)
+        logger.info("- Done ..")
+        return self.result
+
+    def fit(self, data):
+        """
+        Train the model
+        :param data: Data to train the model
+        """
+        self._users, self._items = self.call_okapi(data)
+
+    def initialize(self):
+        """
+        Check if the needed files exists and create them otherwise
+        """
+        self._users = None
+        self._items = None
+        self._result = None
+
+    def get_result_location(self, data):
+        """
+        Returns the location in the remote system of the result for this pandas data object
+
+        :param data: The pandas data object
+        :return: The location of the data
+        """
+        return self._std_output
+
+    def result_exist_for(self, result_file):
+        """
+        Check if the result of this algorithm with this data is already computed.
+
+        :param result_file: Location in the remote of the data to compute
+        :return: True if the data is already computed with this algorithm
+        """
+        return self.in_hadoop(self._std_output)
+
+    def in_hadoop(self, file_or_dict):
+        """
+        Check if file or directory is in hadoop
+        :param file_or_dict:
+        :return:
+        """
+        check_if_exists = self._hadoop_source % "hadoop dfs -ls %s" % file_or_dict
+        return 0 == run(check_if_exists, warn_only=True, quiet=True).return_code
+
+    def read_result(self, file_location):
+        """
+        Get the result in file_location to self.result
+
+        :param file_location: The location of the result in the remote location
+        """
+        logger.info("Reading result from hadoop to local ..")
+        result_data = run("for f in `ls %(/part-* | sort -V`; do cat $f; done;" % data_location, quiet=True)
+        result_data = run("cat %s" % file_location, quiet=True)dlkfm
+        self._result = self.output_okapi_to_pandas(result_data)
+        logger.info("- Result in local ..")
+
+
+class ModelConnector(BaseModelConnector):
+    """
+    Connect a model to okapi
+    """
 
     @staticmethod
     def get_jar_location(jar):
@@ -181,7 +340,6 @@ class ModelConnector(ModelInterface):
         for _, row in data.iterrows():
             md5.update(str(row))
         result = md5.hexdigest()
-        print result
         return result
 
     @staticmethod
@@ -224,52 +382,14 @@ class ModelConnector(ModelInterface):
         return "\n".join(okapi_rows)
 
     @staticmethod
-    def output_okapi_to_pandas(result_data):
+    def result_exist_for(result_file):
         """
-        Return 2 pandas DataFrame. The first for the user and the second for the items.
+        Check if the result of this algorithm with this data is already computed.
 
-        :param result_data: String with output from okapi
-        :return: A tuple with 2 DataFrame. (user, item)
-        """
-        data = {"0": {}, "1": {}}
-        okapi_data = result_data.split("\n")
-        for line in okapi_data:
-            obj_id, obj_type, factors = line.replace("; ", ",").replace("\t", " ").split(" ")
-            data[obj_type][obj_id] = eval(factors)
-        result = pd.DataFrame(data["0"]), pd.DataFrame(data["1"])
-        return result
-
-    def map_data(self, data):
-        """
-        Maps the data to indexes starting in one
-        :param data: Pandas DataFrame with the data
-        """
-        data = data[:]
-        self.data_map = {
-            "user_to_id": {},
-            "id_to_user": {},
-            "item_to_id": {},
-            "id_to_item": {}
-        }
-        users = enumerate(set(data["user"]))
-        items = enumerate(set(data["item"]))
-        for user_id, user in users:
-            self.data_map["user_to_id"][user] = user_id
-            self.data_map["id_to_user"][user_id] = user
-
-        for item_id, item in items:
-            self.data_map["item_to_id"][item] = item_id
-            self.data_map["id_to_item"][item_id] = item
-
-    @staticmethod
-    def exist_for(path):
-        """
-        Check if the path exists in the remote
-
-        :param path: Data to compute
+        :param result_file: Location in the remote of the data to compute
         :return: True if the data is already computed with this algorithm
         """
-        command = "[ -f %s ] && echo 1 || echo 0" % path
+        command = "[ -f %s ] && echo 1 || echo 0" % result_file
         do_result_exist = run(command, quiet=True)
         return bool(int(do_result_exist))
 
@@ -293,84 +413,6 @@ class ModelConnector(ModelInterface):
         extras = self.EXTRA_JAR
         for jar in set(extras):
             yield jar
-
-    @property
-    def result(self):
-        """
-        Get the result of this model
-
-        :return: The result
-        :raise OkapiNoResultError: Raise when the result was not fetched
-        """
-        return self._result or OkapiNoResultError.raise_this("This model has not ben calculated or is result as not "
-                                                             "been fetched.")
-
-    @property
-    def name(self):
-        """
-        Return the name of this model. The default version returns the name of the python class
-        :return: The name of the python class
-        """
-        return self.__class__.__name__
-
-    def call_okapi(self, data):
-        """
-        Call the okapi framework to make a model
-
-        :param data: Data to produce the model
-        """
-        self.initialize()
-
-        # Map the data
-        self.map_data(data)
-
-        logger.info("Checking if result is computed ..")
-        result_file = self.get_result_location(data)
-        if not self.result_exist_for(result_file):
-            logger.info("- Result is not computed yet ..")
-            logger.info("Preparing environment ..")
-            command = self.get_remote_command(data)
-            self.execute_okapi(command)
-            self.pull_result_from_hadoop(result_file)
-        self.read_result(result_file)
-        logger.info("- Done ..")
-        return self.result
-
-    def fit(self, data):
-        """
-        Train the model
-        :param data: Data to train the model
-        """
-        self._users, self._items = self.call_okapi(data)
-
-    def getScore(self, user, item):
-        """
-        A score for a user and item that method predicts.
-        :param user: id of the user
-        :param item: id of the item
-        :return:
-        """
-        try:
-            self._users[str(self.data_map["user_to_id"][user])]
-        except KeyError:
-            print self._users.to_dict(), user, str(self.data_map["user_to_id"][user])
-            raise
-        try:
-            self._items[str(self.data_map["item_to_id"][item])]
-        except KeyError:
-            print self._items.to_dict(), item, str(self.data_map["item_to_id"][item])
-            raise
-        return np.dot(self._users[str(self.data_map["user_to_id"][user])].transpose(),
-                      self._items[str(self.data_map["item_to_id"][item])])
-
-    def result_exist_for(self, result_file):
-        """
-        Check if the result of this algorithm with this data is already computed.
-
-        :param result_file: Location in the remote of the data to compute
-        :return: True if the data is already computed with this algorithm
-        """
-        return self.exist_for(result_file)
 
     def read_result(self, file_location):
         """
@@ -521,25 +563,16 @@ class ModelConnector(ModelInterface):
         """
         logger.info("Pushing data to hadoop ..")
         remove_old_command = "hadoop dfs -rmr %s" % self._manager_dir
-        run(self._haddop_source % remove_old_command, quiet=True)
+        run(self._hadoop_source % remove_old_command, quiet=True)
         logger.info("Check %s if exists .." % self.std_input_name)
 
         if not self.in_hadoop(self.std_input_name):
             logger.info("Create %s with new data .." % self.std_input_name)
-            put_new_data = self._haddop_source % "hadoop dfs -copyFromLocal %s %s" % (data_location, self.std_input_name)
+            put_new_data = self._hadoop_source % "hadoop dfs -copyFromLocal %s %s" % (data_location, self.std_input_name)
             run(put_new_data, quiet=True)
             logger.info("- Data in hadoop ..")
         else:
             logger.info("- %s exists .." % self.std_input_name)
-
-    def in_hadoop(self, file_or_dict):
-        """
-        Check if file or directory is in hadoop
-        :param file_or_dict:
-        :return:
-        """
-        check_if_exists = self._haddop_source % "hadoop dfs -ls %s" % file_or_dict
-        return 0 == run(check_if_exists, warn_only=True, quiet=True).return_code
 
     def execute_okapi(self, command):
         """
@@ -551,7 +584,7 @@ class ModelConnector(ModelInterface):
         """
         logger.info("Hadoop is building the model ..")
         logger.info("Running: %s" % command)
-        run(self._haddop_source % command, quiet=True)
+        run(self._hadoop_source % command, quiet=True)
         logger.info("- Hadoop finished ..")
 
     def pull_result_from_hadoop(self, data_location):
@@ -560,7 +593,7 @@ class ModelConnector(ModelInterface):
         :param data_location: The location of the data in the remote
         """
         logger.info("Pulling the result from hadoop to remote ..")
-        run(self._haddop_source % "hadoop dfs -copyToLocal %s/* okapi/tmp" % self.std_output_name, quiet=True)
+        run(self._hadoop_source % "hadoop dfs -copyToLocal %s/* okapi/tmp" % self.std_output_name, quiet=True)
         data_dir = "%s/%s" % (self.OKAPI_RESULTS_REPOSITORY, self.name)
         run("[ -d %s ] || mkdir %s" % (data_dir, data_dir), quiet=True)
         run("for f in `ls okapi/tmp/part-* | sort -V`; do cat $f >> %s; done;" % data_location, quiet=True)
@@ -576,16 +609,14 @@ class ModelConnector(ModelInterface):
         for direct in ("tmp", "results", "jar", "data"):
             logger.info("Create okapi/%s if it doesn't exist .." % direct)
             run("[ -d okapi/%s ] || mkdir okapi/%s" % (direct, direct), quiet=True)
-        self._users = None
-        self._items = None
-        self._result = None
+        super(ModelConnector, self).initialize()
 
     def clean(self):
         """
         Remove all the files from okapi
         """
         logger.info("Removing files from hadoop ..")
-        run(self._haddop_source % "hadoop dfs -rmr okapi", quiet=True)
+        run(self._hadoop_source % "hadoop dfs -rmr okapi", quiet=True)
         logger.info("removing files from remote ..")
         run("rm -r okapi/*", quiet=True)
         logger.info("- done ..")

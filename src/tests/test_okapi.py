@@ -33,8 +33,10 @@ class TestOkapi(object):
         """
         self.df = pd.read_csv(resource_filename(testfm.__name__, 'data/movielenshead.dat'), sep="::", header=None,
                               names=['user', 'item', 'rating', 'date', 'title'])
-        self.random_okapi = RandomOkapi()
-        self.popularity = PopularityOkapi()
+        self.random_okapi = RandomOkapi(host="igraph-01", username="joaonrb",
+                                        hadoop_source="source /data/b.ajf/hadoop1_env.sh && %s")
+        self.popularity = PopularityOkapi(host="igraph-01", username="joaonrb",
+                                          hadoop_source="source /data/b.ajf/hadoop1_env.sh && %s")
         self.bpr = BPROkapi()
 
     @unittest.skipIf(not ON_REMOTE_NETWORK, "Not in igraph-01 network")
@@ -61,8 +63,8 @@ class TestOkapi(object):
         Test the mapping
         """
         self.random_okapi.map_data(self.df)
-        users = enumerate(set(self.df["user"]))
-        items = enumerate(set(self.df["item"]))
+        users = enumerate(set(self.df["user"]), start=1)
+        items = enumerate(set(self.df["item"]), start=1)
         for user_id, user in users:
             assert self.random_okapi.data_map["user_to_id"][user] == user_id, "Mapping in user to id is not correct"
             assert self.random_okapi.data_map["id_to_user"][user_id] == user, "Mapping in id user is not correct"
@@ -83,7 +85,7 @@ class TestOkapi(object):
             for _, row in testing.iterrows():
                 score = self.popularity.getScore(row["user"], row["item"])
                 assert isinstance(score, float), "The result of the score is not a float"
-
+    '''
     @unittest.skipIf(not ON_REMOTE_NETWORK, "Not in igraph-01 network")
     def test_popularity(self):
         """
@@ -91,7 +93,7 @@ class TestOkapi(object):
         """
         splitter = RandomSplitter()
         training, testing = splitter.split(self.df, 0.20)
-        pop = Popularity()
+        pop = Popularity(normalize=False)
         pop.fit(training)
         self.popularity.fit(training)
         for _, row in testing.iterrows():
@@ -117,3 +119,4 @@ class TestOkapi(object):
             python_score = bpr.getScore(row["user"], row["item"])
             assert okapi_score == python_score, \
                 "Okapi bpr(%f) don't give the same score as his python implementation(%f)" % (okapi_score, python_score)
+    '''
