@@ -10,8 +10,6 @@ Connect to the okapi to create some model.
 
 __author__ = "joaonrb"
 
-
-import os
 import logging
 import hashlib
 import numpy as np
@@ -22,23 +20,16 @@ from testfm import okapi
 from testfm.models.interface import ModelInterface
 import getpass
 
-REMOTE_HOST = "igraph-01"
-USER_NAME = getpass.getuser()
-
-REMOTE = "%(user)s@%(host)s" % {
-    "user": USER_NAME,
-    "host": REMOTE_HOST
-}
-
-
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+#logger.setLevel(logging.INFO)
 #logger.setLevel(logging.WARNING)
 
 logger.addHandler(logging.StreamHandler())
 
 #OKAPI_REMOTE = "joaonrb@igraph-01"  # <-- Change to the proper remote account
 #env.host_string = OKAPI_REMOTE
+
+REMOTE_HOST = "igraph-01"
 
 OKAPI_COMMAND = "hadoop jar %(okapi_jar)s org.apache.giraph.GiraphRunner -Dmapred.job.name=OkapiTrainModelTask " \
                 "-Dmapred.reduce.tasks=0 -libjars %(okapi_jar)s -Dmapred.child.java.opts=-Xmx1g " \
@@ -74,115 +65,122 @@ class OkapiJarNotInRepository(OkapiConnectorError):
     """
 
 
-class BaseModelConnector(ModelInterface):
+class BaseOkapiModel(ModelInterface):
     """
-    A base model connector to Okapi system. It receives a file path for input and other for output.
+    New Okapi Connector abstract model
     """
 
-    OKAPI_REPOSITORY = "okapi"
-    OKAPI_JAR_REPOSITORY = OKAPI_REPOSITORY + "/jar"
-    OKAPI_DATA_REPOSITORY = OKAPI_REPOSITORY + "/data"
-    OKAPI_RESULTS_REPOSITORY = OKAPI_REPOSITORY + "/results"
-    OKAPI_TMP_REPOSITORY = OKAPI_REPOSITORY + "/tmp"
-
-    EXTRA_JAR = []
-
-    MAP_DICT = {
-        "0": "id_to_user",
-        "1": "id_to_item"
-    }
-
+    _data_hash = "data"
     _users = None
     _items = None
-    _result = None
-    _std_input = "okapi/%(name)s_input"
-    _std_output = "okapi/%s_output"
+    _max_item_id = None
+    _std_input = "okapi/input/%(hash)s"
+    _std_output = "okapi/output/%(model)s/%(hash)s"
     _manager_dir = "okapi/_bsp"
-    _hadoop_source = "%s"
-
+    _model_java_class = None
     _okapi_local_repository = resource_filename(okapi.__name__, "lib/")
     _okapi_jar = "okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar"
+    _source = ""
 
-    data_map = {}
-
-    def __init__(self, host=None, username=None, okapi_jar_dir=None, okapi_jar_base_name=None, public_key_path=None,
-                 hadoop_source=None, okapi_output=None, okapi_input=None):
+    def __init__(self, host=None, user=None, okapi_jar_dir=None, okapi_jar_base_name=None, public_key_path=None,
+                 hadoop_source=None, okapi_output=None, okapi_input=None, model_java_class=None):
         """
+        Constructor
 
-        :param host:
-        :param username:
-        :param okapi_jar_dir:
-        :param okapi_jar_base_name:
-        :param public_key_path:
-        :param hadoop_source:
-        :param okapi_output:
-        :param okapi_input:
-        :return:
+        :param host: Host of the machine to call hadoop. Default is "localhost"
+        :param user: The user that owns the session
+        :param okapi_jar_dir: The path to the jar files in the machine(remote or local in case of localhost)
+        :param okapi_jar_base_name: The name of the okapi jar file
+        :param public_key_path: Public key to connect to remote session
+        :param hadoop_source: The path to the hadoop source if a different source needed source
+        :param okapi_output: Okapi output path
+        :param okapi_input: Okapi input path
         """
-
-        env.host_string = host or REMOTE_HOST
-        env.user = username or USER_NAME
-
-        self._okapi_local_repository = okapi_jar_dir or BaseModelConnector._okapi_local_repository
-        self._okapi_jar = okapi_jar_base_name or BaseModelConnector._okapi_jar
-
+        env.host_string = host or "localhost"
+        env.user = user or getpass.getuser()
         if public_key_path:
             env.key_filename = public_key_path
-        self._hadoop_source = hadoop_source or BaseModelConnector._hadoop_source
 
-        self._std_input = okapi_input or BaseModelConnector._std_input
-        self._std_output = okapi_output or BaseModelConnector._std_output
+        self._okapi_local_repository = okapi_jar_dir or self._okapi_local_repository
+        self._okapi_jar = okapi_jar_base_name or self._okapi_jar
+        self._model_java_class = model_java_class
 
-    @property
-    def name(self):
-        """
-        Return the name of this model. The default version returns the name of the python class
-        :return: The name of the python class
-        """
-        return self.__class__.__name__
+        # Change source
+        self._source = hadoop_source or self._source
 
-    @property
-    def result(self):
-        """
-        Get the result of this model
+        self._std_input = okapi_input or self._std_input
+        self._std_output = okapi_output or self._std_output
 
-        :return: The result
-        :raise OkapiNoResultError: Raise when the result was not fetched
+    def fit(self, data=None, **kwargs):
         """
-        return self._result or OkapiNoResultError.raise_this("This model has not ben calculated or is result as not "
-                                                             "been fetched.")
+        Fits the model according to this data
 
-    def getScore(self, user, item):
+        :param data: The training data to
         """
-        A score for a user and item that method predicts.
-        :param user: id of the user
-        :param item: id of the item
+        if not self.result_exist(data):
+            if not self.data_in_machine(data):
+                self.put_data_in_machine(data)
+            self.process_result(data, **kwargs)
+        self._users, self._items = self.get_result()
+
+    def result_exist(self, data):
+        """
+        Return True if result in the hadoop machine
+
+        @:param data: The data to produce the result
+        """
+        return True
+
+    def data_in_machine(self, data):
+        """
+        Check if data in machine
+
+        :return: True if data in machine
+        """
+        return True
+
+    def process_result(self, data, **kwargs):
+        """
+        Hask okapi the model
+
+        :param kwargs: Extra parameters to pass on okapi. FORMAT TODO
+        """
+        run(self.source % "hadoop dfs -rmr %s" % self._manager_dir, quiet=True)
+        hadoop_command = OKAPI_COMMAND % {
+            "model_class": self._model_java_class,
+            "okapi_jar": "%s%s" % (self._okapi_local_repository, self._okapi_jar),
+            "max_item_id": self.get_item_len(data, **kwargs),
+            "input": self.input,
+            "output": self.output,
+            "manager_dir": self._manager_dir
+        }
+        logger.debug("... Execute okapi: %s" % self.source % hadoop_command)
+        run(self.source % hadoop_command, quiet=True)
+        logger.debug("Done!")
+
+    def get_item_len(self, data, **kwargs):
+        """
+        Get the max_item_id parameter
+        :param kwargs:
         :return:
         """
-        return np.dot(self._users[str(self.data_map["user_to_id"][user])].transpose(),
-                      self._items[str(self.data_map["item_to_id"][item])])
+        try:
+            return self._max_item_id or kwargs["max_item_id"]
+        except KeyError:
+            return len(set([row["item"] for _, row in data.iterrows()]))
 
-    def map_data(self, data):
+    def get_result(self):
         """
-        Maps the data to indexes starting in one
-        :param data: Pandas DataFrame with the data
+        Return the result from okapi
         """
-        data = data[:]
-        self.data_map = {
-            "user_to_id": {},
-            "id_to_user": {},
-            "item_to_id": {},
-            "id_to_item": {}
-        }
-        users = enumerate(set(data["user"]), start=1)
-        items = enumerate(set(data["item"]), start=1)
-        for user_id, user in users:
-            self.data_map["user_to_id"][user] = user_id
-            self.data_map["id_to_user"][user_id] = user
-
-        for item_id, item in items:
-            self.data_map["item_to_id"][item] = item_id
-            self.data_map["id_to_item"][item_id] = item
+        logger.debug("... Get result from hadoop")
+        okapi_file = run(self.source % "for f in `hadoop dfs -ls %s/part-* | "
+                         "awk '{print $8}' | "
+                         "sort -V`; "
+                         "do hadoop dfs -cat $f; done;" % self.output, quiet=True)
+        result = self.output_okapi_to_pandas(okapi_file)
+        logger.debug("Done!")
+        return result
 
     @staticmethod
     def output_okapi_to_pandas(result_data):
@@ -200,128 +198,84 @@ class BaseModelConnector(ModelInterface):
         result = pd.DataFrame(data["0"]), pd.DataFrame(data["1"])
         return result
 
-    def call_okapi(self, data):
+    def getScore(self, user, item):
         """
-        Call the okapi framework to make a model
-
-        :param data: Data to produce the model
-        """
-        self.initialize()
-
-        # Map the data
-        self.map_data(data)
-
-        logger.info("Checking if result is computed ..")
-        result_file = self.get_result_location(data)
-        if not self.result_exist_for(result_file):
-            logger.info("- Result is not computed yet ..")
-            logger.info("Preparing environment ..")
-            command = self.get_remote_command(data)
-            self.execute_okapi(command)
-            self.pull_result_from_hadoop(result_file)
-        self.read_result(result_file)
-        logger.info("- Done ..")
-        return self.result
-
-    def fit(self, data):
-        """
-        Train the model
-        :param data: Data to train the model
-        """
-        self._users, self._items = self.call_okapi(data)
-
-    def initialize(self):
-        """
-        Check if the needed files exists and create them otherwise
-        """
-        self._users = None
-        self._items = None
-        self._result = None
-
-    def get_result_location(self, data):
-        """
-        Returns the location in the remote system of the result for this pandas data object
-
-        :param data: The pandas data object
-        :return: The location of the data
-        """
-        return self._std_output
-
-    def result_exist_for(self, result_file):
-        """
-        Check if the result of this algorithm with this data is already computed.
-
-        :param result_file: Location in the remote of the data to compute
-        :return: True if the data is already computed with this algorithm
-        """
-        return self.in_hadoop(self._std_output)
-
-    def in_hadoop(self, file_or_dict):
-        """
-        Check if file or directory is in hadoop
-        :param file_or_dict:
+        A score for a user and item that method predicts.
+        :param user: id of the user
+        :param item: id of the item
         :return:
         """
-        check_if_exists = self._hadoop_source % "hadoop dfs -ls %s" % file_or_dict
-        return 0 == run(check_if_exists, warn_only=True, quiet=True).return_code
+        return np.dot(self._users[str(user)].transpose(), self._items[str(item)])
 
-    def read_result(self, file_location):
+    @property
+    def input(self):
         """
-        Get the result in file_location to self.result
-
-        :param file_location: The location of the result in the remote location
+        The input data path
         """
-        logger.info("Reading result from hadoop to local ..")
-        result_data = run("for f in `ls %(/part-* | sort -V`; do cat $f; done;" % data_location, quiet=True)
-        result_data = run("cat %s" % file_location, quiet=True)dlkfm
-        self._result = self.output_okapi_to_pandas(result_data)
-        logger.info("- Result in local ..")
+        return self._std_input % {"hash": self._data_hash}
+
+    @property
+    def output(self):
+        """
+        The input data path
+        """
+        return self._std_output % {"hash": self._data_hash, "model": self.name}
+
+    @property
+    def source(self):
+        if self._source:
+            return "source %s && %s" % (self._source, "%s")
+        return "%s"
 
 
-class ModelConnector(BaseModelConnector):
+class DynamicOkapiModel(BaseOkapiModel):
     """
-    Connect a model to okapi
+    A more dynamic approach to the connector.
+    It moves the data into remote if is not there
     """
+
+    def input_pandas_to_okapi(self, data):
+        """
+        Return a string with the data in the pandas DataFrame in okapi format
+
+        :param data: Pandas data frame with the data. The data should have column for user and for item. Ot can have \
+        also a column for rating. If it doesn't the rating is 1
+        :type data: pandas.DataFrame
+        :return: The data string in okapi format
+        """
+        data = data[:]
+        # If data don't have ratings than the rating column is created with 1.
+        if "rating" not in data:
+            data["rating"] = [1. for _ in xrange(len(data))]
+
+
+        # Make a generator with lines for okapi file format
+        okapi_rows = []
+        items = set([])
+        for _, row in data.iterrows():
+            okapi_rows.append("%(user)s %(item)s %(rating)s" % {  # okapi line
+                "user": row["user"],
+                "item": row["item"],
+                "rating": row["rating"]
+            })
+            items.add(row["item"])
+        self._max_item_id = len(items)
+        return "\n".join(okapi_rows)
 
     @staticmethod
-    def get_jar_location(jar):
+    def output_okapi_to_pandas(result_data):
         """
-        Returns the location in the remote system of this jar file
+        Return 2 pandas DataFrame. The first for the user and the second for the items.
 
-        :param jar: The jar file
-        :return: The location of the jar
+        :param result_data: String with output from okapi
+        :return: A tuple with 2 DataFrame. (user, item)
         """
-        return "%(dir)s/%(jar_place)s" % {
-            "dir": ModelConnector.OKAPI_JAR_REPOSITORY,
-            "jar_place": ModelConnector.hash_file(jar)
-        }
-
-    def get_data_location(self, data):
-        """
-        Returns the location in the remote system of this pandas data object
-
-        :param data: The pandas data object
-        :return: The location of the data
-        """
-        result = "%(dir)s/%(data_set)s" % {
-            "dir": ModelConnector.OKAPI_DATA_REPOSITORY,
-            "data_set": ModelConnector.hash_data(data)
-        }
-        self._std_input = result
-        return result
-
-    def get_result_location(self, data):
-        """
-        Returns the location in the remote system of the result for this pandas data object
-
-        :param data: The pandas data object
-        :return: The location of the data
-        """
-        result = "%(dir)s/%(model)s/%(data_set)s" % {
-            "dir": ModelConnector.OKAPI_RESULTS_REPOSITORY,
-            "model": self.name,
-            "data_set": ModelConnector.hash_data(data)
-        }
+        data = {"0": {}, "1": {}}
+        okapi_data = result_data.split("\n")
+        for line in okapi_data:
+            obj_id, obj_type, factors = line.replace("; ", ",").replace("\t", " ").split(" ")
+            data[obj_type][obj_id] = eval(factors)
+        result = pd.DataFrame(data["0"]), pd.DataFrame(data["1"])
         return result
 
     @staticmethod
@@ -342,290 +296,66 @@ class ModelConnector(BaseModelConnector):
         result = md5.hexdigest()
         return result
 
-    @staticmethod
-    def hash_file(jar):
+    def result_exist(self, data):
         """
-        Return the hash of a jar file
+        Return True if result in the hadoop machine
 
-        >>> from pkg_resources import resource_filename
-        >>> import testfm
-        >>> jar = open(resource_filename(testfm.__name__, "lib/algorithm-1.0-SNAPSHOT-jar-with-dependencies.jar"))
-        >>> ModelConnector.hash_file(jar)
-        'c728db9090bd2d3201850c7625573ea6'
-
-        :param jar: Jar file to get the hash
-        :return:
+        :param data: The data to produce the result
         """
-        md5 = hashlib.md5(jar.read())
-        return md5.hexdigest()
-
-    def input_pandas_to_okapi(self, data):
-        """
-        Return a string with the data in the pandas DataFrame in okapi format
-
-        :param data: Pandas data frame with the data. The data should have column for user and for item. Ot can have \
-        also a column for rating. If it doesn't the rating is 1
-        :type data: pandas.DataFrame
-        :return: The data string in okapi format
-        """
-        data = data[:]
-        # If data don't have ratings than the rating column is created with 1.
-        if "rating" not in data:
-            data["rating"] = [1. for _ in xrange(len(data))]
-
-        # Make a generator with lines for okapi file format
-        okapi_rows = list(("%(user)s %(item)s %(rating)s" % {  # okapi line
-            "user": self.data_map["user_to_id"][row["user"]],
-            "item": self.data_map["item_to_id"][row["item"]],
-            "rating": row["rating"]
-        } for _, row in data.iterrows()))
-        return "\n".join(okapi_rows)
-
-    @staticmethod
-    def result_exist_for(result_file):
-        """
-        Check if the result of this algorithm with this data is already computed.
-
-        :param result_file: Location in the remote of the data to compute
-        :return: True if the data is already computed with this algorithm
-        """
-        command = "[ -f %s ] && echo 1 || echo 0" % result_file
-        do_result_exist = run(command, quiet=True)
-        return bool(int(do_result_exist))
-
-    @property
-    def jar_dependencies(self):
-        """
-        Return a generator with the needed jars
-
-        :return: A generator with strings
-        """
-        yield self.OKAPI_JAR
-        for jar in self.extra_jar:
-            yield jar
-
-    @property
-    def extra_jar(self):
-        """
-        Load extra jars in to remote
-        :return:
-        """
-        extras = self.EXTRA_JAR
-        for jar in set(extras):
-            yield jar
-
-    def read_result(self, file_location):
-        """
-        Get the result in file_location to self.result
-
-        :param file_location: The location of the result in the remote location
-        """
-        logger.info("Reading result from remote to local ..")
-        result_data = run("cat %s" % file_location, quiet=True)
-        self._result = self.output_okapi_to_pandas(result_data)
-        logger.info("- Result in local ..")
-
-    def get_jar(self, jar_base_name):
-        """
-        Return a open file of the jar. This jar is expected to be in the OKAPI_LOCAL_REPOSITORY of the class.
-
-        :param jar_base_name: A string for the jar file name
-        :return: The jar as a open file.
-        :raise OkapiJarNotInRepository: When the jar is not in the repository
-        """
-        try:
-            jar_file = open(self.OKAPI_LOCAL_REPOSITORY+"/%s" % jar_base_name)
-        except IOError:
-            raise OkapiJarNotInRepository("The jar %s is not in %s" % (jar_base_name, self.OKAPI_LOCAL_REPOSITORY))
-        return jar_file
-
-    @staticmethod
-    def upload(some_file, to=None):
-        """
-        Upload "some_file" to the remote
-
-        :param some_file: The file path in the local machine to put in the remote
-        :param to: The path in the remote to put the file
-        :raise TypeError: When to is not a string
-        """
-        if not (isinstance(to, str) and isinstance(some_file, str)):
-            raise TypeError("First parameter and to keyword parameter must be a string")
-        run("[ -d %s ] || mkdir %s" % (to, to), quiet=True)
-        put(some_file, to)
-
-    def upload_jar(self, jar_file, to=None):
-        """
-        Upload jar_file to remote directory to the file "to"
-
-        :param jar_file: The file to go to the remote
-        :param to: The remote file where jar_file is going to be be copied
-        :raise TypeError: When to is not a string
-        """
-        logger.info("Uploading %s to remote:%s .." % (jar_file.name, to))
-        jar_path = os.path.abspath(jar_file.name)
-        self.upload(jar_path, to=to)
-
-    def upload_data(self, data, to=None):
-        """
-        Copy the data inside the pandas DataFrame to remote location
-        :param data: Pandas DataFrame with the data
-        :param to: The remote file where the data is going to be be copied
-        """
-        logger.info("Uploading data to remote:%s .." % to)
-        if not isinstance(to, str):
-            raise TypeError("Keyword parameter \"to\" must be a string")
-        data_in_okapi = self.input_pandas_to_okapi(data)
-        run("echo \"%(okapi_data)s\">%(to)s" % {
-            "okapi_data": data_in_okapi,
-            "to": to
-            }, quiet=True)
-
-    def get_remote_command(self, data):
-        """
-        Prepare the environment to this model.
-
-        :param data: data that also should be prepared
-        :return: The command
-        """
-        jars = {}
-
-        logger.info("Preparing jars ..")
-        # Check if jars exist and load them if they don't
-        for jar_name in self.jar_dependencies:  # jar_dependencies should give a list with all jars needed
-            jar_file = self.get_jar(jar_name)  # Get a open file of the jar
-            jar_location = self.get_jar_location(jar_file)  # Get the location where the jar should be in the remote
-
-            # Keep the locations in a mapped structure
-            jars[jar_name] = jar_location
-
-            logger.info("Check if %s is in remote .." % jar_name)
-            # If the jar don't exist in the remote than a copy should be uploaded
-            if not self.exist_for(jar_location+"/%s" % jar_name):
-                logger.info("- Jar %s is not in remote .." % jar_name)
-                self.upload_jar(jar_file, to=jar_location)
-            logger.info("- %s ready in remote .." % jar_name)
-
-        logger.info("Preparing data ..")
-        # Check if data is in the remote. If don't it upload it.
-        data_location = self.get_data_location(data)
-        logger.info("Check if data %s is in remote .." % data_location)
-        if not self.exist_for(data_location):
-            logger.info("- Data %s is not in remote .." % data_location)
-            self.upload_data(data, to=data_location)
+        self._data_hash = self.hash_data(data)
+        logger.debug("... Check if result exists")
+        check_if_exists = self.source % "hadoop dfs -ls %s" % self.output
+        if 0 == run(check_if_exists, warn_only=True, quiet=True).return_code:
+            logger.debug("Result already exist")
+            return True
         else:
-            logger.info("- Data %s already in remote .." % data_location)
+            logger.debug("Result don't exist")
+            return False
 
-        logger.info("- Data is ready in remote ..")
+    def put_data_in_machine(self, data):
+        """
+        Put the data into hadoop
+        :param data: Pandas DataFrame
+        """
+        logger.debug("... Push the data to hadoop")
+        okapi_data = self.input_pandas_to_okapi(data)
+        run(self.source % ("echo '%(data)s' > %(data_path_tmp)s && "
+            "hadoop dfs -copyFromLocal %(data_path_tmp)s %(data_path)s && "
+            "rm %(data_path_tmp)s" % {
+            "data": okapi_data,
+            "data_path": self.input,
+            "data_path_tmp": self._data_hash
+            }), quiet=True)
+        logger.debug("Done!")
 
-        self.put_data_to_hadoop(data_location)
-        return self.build_command(jars=jars)
+    def data_in_machine(self, data):
+        """
+        Check if data in machine
 
-    @property
-    def std_output_name(self):
+        :return: True if data in machine
         """
-        The standard output name in the hadoop file system
-        :return: A string
-        """
-        return self._std_output % self.name
-
-    @property
-    def std_input_name(self):
-        """
-        The standard input name in the hadoop file system
-        :return: A string
-        """
-        return self._std_input % {"name": self.name}
-
-    def build_command(self, jars=None):
-        """
-        Build the okapi model creation command
-
-        :param data: The location of the data in the remote
-        :param jars: The location of the jars by name
-        :type jars: dict
-        :return: A str with the full okapi command
-        """
-        okapi = jars[self.OKAPI_JAR]+"/%s" % self.OKAPI_JAR
-        command = "HADOOP_PATH=%s %s" % ("%s" % (okapi,), OKAPI_COMMAND % {
-            "model_class": self.model_class,
-            "okapi_jar": okapi,
-            "max_item_id": len(self.data_map["item_to_id"]),
-            "input": self.std_input_name,
-            "output": self.std_output_name,
-            "manager_dir": self._manager_dir
-        })
-        return command
-
-    def put_data_to_hadoop(self, data_location):
-        """
-        Puts the data in the hadoop file system. If there is data with the same name there it erases it
-        :param data_location: The location of the data in the remote file system
-        """
-        logger.info("Pushing data to hadoop ..")
-        remove_old_command = "hadoop dfs -rmr %s" % self._manager_dir
-        run(self._hadoop_source % remove_old_command, quiet=True)
-        logger.info("Check %s if exists .." % self.std_input_name)
-
-        if not self.in_hadoop(self.std_input_name):
-            logger.info("Create %s with new data .." % self.std_input_name)
-            put_new_data = self._hadoop_source % "hadoop dfs -copyFromLocal %s %s" % (data_location, self.std_input_name)
-            run(put_new_data, quiet=True)
-            logger.info("- Data in hadoop ..")
+        logger.debug("... Check if data in the hadoop")
+        check_if_exists = "hadoop dfs -ls %s" % self.input
+        if 0 == run(self.source % check_if_exists, warn_only=True, quiet=True).return_code:
+            logger.debug("Data already in hadoop")
+            return True
         else:
-            logger.info("- %s exists .." % self.std_input_name)
-
-    def execute_okapi(self, command):
-        """
-        Execute this command fetch the result and returns it.
-
-        :param command: Hadoop command to be executed
-        :param data: The data location
-        :return: The data in a pandas DataFrame
-        """
-        logger.info("Hadoop is building the model ..")
-        logger.info("Running: %s" % command)
-        run(self._hadoop_source % command, quiet=True)
-        logger.info("- Hadoop finished ..")
-
-    def pull_result_from_hadoop(self, data_location):
-        """
-        Pull the result from the hadoop to the remote
-        :param data_location: The location of the data in the remote
-        """
-        logger.info("Pulling the result from hadoop to remote ..")
-        run(self._hadoop_source % "hadoop dfs -copyToLocal %s/* okapi/tmp" % self.std_output_name, quiet=True)
-        data_dir = "%s/%s" % (self.OKAPI_RESULTS_REPOSITORY, self.name)
-        run("[ -d %s ] || mkdir %s" % (data_dir, data_dir), quiet=True)
-        run("for f in `ls okapi/tmp/part-* | sort -V`; do cat $f >> %s; done;" % data_location, quiet=True)
-        #run("rm -r okapi/tmp/*", quiet=True)
-        logger.info("- Result in remote ..")
-
-    def initialize(self):
-        """
-        Check if the needed files exists and create them otherwise
-        """
-        logger.info("Create okapi if it doesn't exist ..")
-        run("[ -d okapi ] || mkdir okapi", quiet=True)
-        for direct in ("tmp", "results", "jar", "data"):
-            logger.info("Create okapi/%s if it doesn't exist .." % direct)
-            run("[ -d okapi/%s ] || mkdir okapi/%s" % (direct, direct), quiet=True)
-        super(ModelConnector, self).initialize()
-
-    def clean(self):
-        """
-        Remove all the files from okapi
-        """
-        logger.info("Removing files from hadoop ..")
-        run(self._hadoop_source % "hadoop dfs -rmr okapi", quiet=True)
-        logger.info("removing files from remote ..")
-        run("rm -r okapi/*", quiet=True)
-        logger.info("- done ..")
+            logger.debug("Data not in hadoop")
+            return False
 
 
-class RandomOkapi(ModelConnector):
+class RandomOkapi(DynamicOkapiModel):
     """
     Random okapi model creator
     """
+
+    def __init__(self, **kwargs):
+        """
+        Constructor for Random
+        :param kwargs: Parameters for BaseOkapiModel
+        """
+        super(RandomOkapi, self).__init__(model_java_class="ml.grafos.okapi.cf.ranking.RandomRankingComputation",
+                                          **kwargs)
 
     @property
     def name(self):
@@ -635,19 +365,19 @@ class RandomOkapi(ModelConnector):
         """
         return "random"
 
-    @property
-    def model_class(self):
-        """
-        The java class that call upon this model
-        :return:
-        """
-        return "ml.grafos.okapi.cf.ranking.RandomRankingComputation"
 
-
-class PopularityOkapi(ModelConnector):
+class PopularityOkapi(DynamicOkapiModel):
     """
     Popularity models calculated using hadoops okapi
     """
+
+    def __init__(self, **kwargs):
+        """
+        Constructor for Popularity
+        :param kwargs: Parameters for BaseOkapiModel
+        """
+        super(PopularityOkapi,
+              self).__init__(model_java_class="ml.grafos.okapi.cf.ranking.PopularityRankingComputation", **kwargs)
 
     @property
     def name(self):
@@ -657,19 +387,19 @@ class PopularityOkapi(ModelConnector):
         """
         return "popularity"
 
-    @property
-    def model_class(self):
-        """
-        The java class that call upon this model
-        :return:
-        """
-        return "ml.grafos.okapi.cf.ranking.PopularityRankingComputation"
 
-
-class BPROkapi(ModelConnector):
+class BPROkapi(DynamicOkapiModel):
     """
     BPR models calculated using hadoops okapi
     """
+
+    def __init__(self, **kwargs):
+        """
+        Constructor for BPR
+        :param kwargs: Parameters for BaseOkapiModel
+        """
+        super(BPROkapi,
+              self).__init__(model_java_class="ml.grafos.okapi.cf.ranking.BPRRankingComputation", **kwargs)
 
     @property
     def name(self):
@@ -679,19 +409,19 @@ class BPROkapi(ModelConnector):
         """
         return "BPR"
 
-    @property
-    def model_class(self):
-        """
-        The java class that call upon this model
-        :return:
-        """
-        return "ml.grafos.okapi.cf.ranking.BPRRankingComputation"
 
-
-class TFMAPOkapi(ModelConnector):
+class TFMAPOkapi(DynamicOkapiModel):
     """
     TFMAP models calculated using hadoops okapi
     """
+
+    def __init__(self, **kwargs):
+        """
+        Constructor for TFMAP
+        :param kwargs: Parameters for BaseOkapiModel
+        """
+        super(TFMAPOkapi,
+              self).__init__(model_java_class="ml.grafos.okapi.cf.ranking.TFMAPRankingComputation", **kwargs)
 
     @property
     def name(self):
@@ -701,19 +431,19 @@ class TFMAPOkapi(ModelConnector):
         """
         return "TFMAP"
 
-    @property
-    def model_class(self):
-        """
-        The java class that call upon this model
-        :return:
-        """
-        return "ml.grafos.okapi.cf.ranking.TFMAPRankingComputation"
 
-
-class SGDAPOkapi(ModelConnector):
+class SGDOkapi(DynamicOkapiModel):
     """
     SGD models calculated using hadoops okapi
     """
+
+    def __init__(self, **kwargs):
+        """
+        Constructor for SGD
+        :param kwargs: Parameters for BaseOkapiModel
+        """
+        super(SGDOkapi,
+              self).__init__(model_java_class="ml.grafos.okapi.cf.sgd.Sgd$InitUsersComputation", **kwargs)
 
     @property
     def name(self):
@@ -723,19 +453,19 @@ class SGDAPOkapi(ModelConnector):
         """
         return "SGD"
 
-    @property
-    def model_class(self):
-        """
-        The java class that call upon this model
-        :return:
-        """
-        return "ml.grafos.okapi.cf.sgd.Sgd$InitUsersComputation"
 
-
-class ALSOkapi(ModelConnector):
+class ALSOkapi(DynamicOkapiModel):
     """
     ALS models calculated using hadoops okapi
     """
+
+    def __init__(self, **kwargs):
+        """
+        Constructor for ALS
+        :param kwargs: Parameters for BaseOkapiModel
+        """
+        super(ALSOkapi,
+              self).__init__(model_java_class="ml.grafos.okapi.cf.als.Als$InitUsersComputation", **kwargs)
 
     @property
     def name(self):
@@ -745,19 +475,19 @@ class ALSOkapi(ModelConnector):
         """
         return "ALS"
 
-    @property
-    def model_class(self):
-        """
-        The java class that call upon this model
-        :return:
-        """
-        return "ml.grafos.okapi.cf.als.Als$InitUsersComputation"
 
-
-class SVDOkapi(ModelConnector):
+class SVDOkapi(DynamicOkapiModel):
     """
     SVD models calculated using hadoops okapi
     """
+
+    def __init__(self, **kwargs):
+        """
+        Constructor for SVD
+        :param kwargs: Parameters for BaseOkapiModel
+        """
+        super(SVDOkapi,
+              self).__init__(model_java_class="ml.grafos.okapi.cf.svd.Svdpp$InitUsersComputation", **kwargs)
 
     @property
     def name(self):
@@ -767,19 +497,20 @@ class SVDOkapi(ModelConnector):
         """
         return "SVD"
 
-    @property
-    def model_class(self):
-        """
-        The java class that call upon this model
-        :return:
-        """
-        return "ml.grafos.okapi.cf.svd.Svdpp$InitUsersComputation"
 
-
-class ClimfOkapi(ModelConnector):
+class ClimfOkapi(DynamicOkapiModel):
     """
     Climf models calculated using hadoops okapi
     """
+
+    def __init__(self, **kwargs):
+        """
+        Constructor for Climf
+        :param kwargs: Parameters for BaseOkapiModel
+        """
+        super(ClimfOkapi,
+              self).__init__(model_java_class="ml.grafos.okapi.cf.ranking.ClimfRankingComputation", **kwargs)
+
 
     @property
     def name(self):
@@ -789,15 +520,7 @@ class ClimfOkapi(ModelConnector):
         """
         return "Climf"
 
-    @property
-    def model_class(self):
-        """
-        The java class that call upon this model
-        :return:
-        """
-        return "ml.grafos.okapi.cf.ranking.ClimfRankingComputation"
 
-"""
 if __name__ == "__main__":
     import testfm
     df = pd.read_csv(
@@ -808,14 +531,14 @@ if __name__ == "__main__":
                     PopularityOkapi,
                     #BPROkapi,
                     #TFMAPOkapi,
-                    SGDAPOkapi,
-                    ALSOkapi,
-                    SVDOkapi,
-                    ClimfOkapi]:
-        r = r_class("joaonrb@igraph-01")
-        user, item = r.call_okapi(df)
+                    #SGDOkapi,
+                    #ALSOkapi,
+                    #SVDOkapi,
+                    #ClimfOkapi
+                    ]:
+        r = r_class(host="igraph-01", user="joaonrb",
+                                        okapi_jar_dir="okapi/jar/efe97a00d2a1b3f30dbbaddb3f3dd4c7/",
+                                        okapi_jar_base_name="okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar",
+                                        hadoop_source="/data/b.ajf/hadoop1_env.sh")
         r.fit(df)
         print r.getScore(1, 1)
-        print(user)
-        print(item)
-"""

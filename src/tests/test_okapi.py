@@ -33,12 +33,20 @@ class TestOkapi(object):
         """
         self.df = pd.read_csv(resource_filename(testfm.__name__, 'data/movielenshead.dat'), sep="::", header=None,
                               names=['user', 'item', 'rating', 'date', 'title'])
-        self.random_okapi = RandomOkapi(host="igraph-01", username="joaonrb",
-                                        hadoop_source="source /data/b.ajf/hadoop1_env.sh && %s")
-        self.popularity = PopularityOkapi(host="igraph-01", username="joaonrb",
-                                          hadoop_source="source /data/b.ajf/hadoop1_env.sh && %s")
-        self.bpr = BPROkapi()
+        self.random_okapi = RandomOkapi(host="igraph-01", user="joaonrb",
+                                        okapi_jar_dir="okapi/jar/efe97a00d2a1b3f30dbbaddb3f3dd4c7/",
+                                        okapi_jar_base_name="okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar",
+                                        hadoop_source="/data/b.ajf/hadoop1_env.sh")
+        self.popularity = PopularityOkapi(host="igraph-01", user="joaonrb",
+                                          okapi_jar_dir="okapi/jar/efe97a00d2a1b3f30dbbaddb3f3dd4c7/",
+                                          okapi_jar_base_name="okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar",
+                                          hadoop_source="/data/b.ajf/hadoop1_env.sh")
+        self.bpr = BPROkapi(host="igraph-01", user="joaonrb",
+                            okapi_jar_dir="okapi/jar/efe97a00d2a1b3f30dbbaddb3f3dd4c7/",
+                            okapi_jar_base_name="okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar",
+                            hadoop_source="/data/b.ajf/hadoop1_env.sh")
 
+    '''
     @unittest.skipIf(not ON_REMOTE_NETWORK, "Not in igraph-01 network")
     def test_get_result(self):
         """
@@ -103,7 +111,7 @@ class TestOkapi(object):
             assert okapi_score == python_score, \
                 "Okapi popularity(%f) don't give the same score as his python implementation(%f)" % (okapi_score,
                                                                                                      python_score)
-
+    '''
     @unittest.skipIf(not ON_REMOTE_NETWORK, "Not in igraph-01 network")
     def test_bpr(self):
         """
