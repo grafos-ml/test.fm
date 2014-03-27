@@ -14,7 +14,7 @@ import logging
 import hashlib
 import numpy as np
 import pandas as pd
-from fabric.api import env, run, put
+from fabric.api import env, run
 from pkg_resources import resource_filename
 from testfm import okapi
 from testfm.models.interface import ModelInterface
@@ -511,7 +511,6 @@ class ClimfOkapi(DynamicOkapiModel):
         super(ClimfOkapi,
               self).__init__(model_java_class="ml.grafos.okapi.cf.ranking.ClimfRankingComputation", **kwargs)
 
-
     @property
     def name(self):
         """
@@ -537,8 +536,8 @@ if __name__ == "__main__":
                     #ClimfOkapi
                     ]:
         r = r_class(host="igraph-01", user="joaonrb",
-                                        okapi_jar_dir="okapi/jar/efe97a00d2a1b3f30dbbaddb3f3dd4c7/",
-                                        okapi_jar_base_name="okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar",
-                                        hadoop_source="/data/b.ajf/hadoop1_env.sh")
+                    okapi_jar_dir="okapi/jar/efe97a00d2a1b3f30dbbaddb3f3dd4c7/",
+                    okapi_jar_base_name="okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar",
+                    hadoop_source="/data/b.ajf/hadoop1_env.sh")
         r.fit(df)
         print r.getScore(1, 1)
