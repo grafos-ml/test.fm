@@ -94,8 +94,8 @@ class Fscore(Measure):
         >>> p.measure([(True, 0.00)])
         1.0
 
-        >>> p = Fscore(n=2)
-        >>> p.measure([(False, 0.01), (True, 0.00)])
+        >>> p = Fscore()
+        >>> p.measure([(False, 0.01), (True, 0.00)], n = 2)
         0.5
 
         >>> p = Fscore()
@@ -178,16 +178,16 @@ class Recall(Measure):
 
         >>> p.measure([(True, 0.00)])
         1.0
-        >>> p = Recall(n = 1)
-        >>> p.measure([(False, 0.00)])
+        >>> p = Recall()
+        >>> p.measure([(False, 0.00)], n = 0)
         0.0
-        >>> p = Recall(n = 10)
-        >>> p.measure([(True, 0.3), (True, 0.25), (True, 0.25), (True, 0.2), (False, 0.19),(False, 0.19), (True, 0.18), (False, 0.17),(False, 0.17), (False, 0.17)  ])
+        >>> 
+        >>> p.measure([(True, 0.3), (True, 0.25), (True, 0.25), (True, 0.2), (False, 0.19),(False, 0.19), (True, 0.18), (False, 0.17),(False, 0.17), (False, 0.17)  ], n = 10)
         0.5
 
         >>> p.measure([(False, 0.9), (True, 0.8), (False, 0.7), (False, 0.6), \
         (True, 0.5), (True, 0.4), (True, 0.3), (False, 0.2), (False, 0.1), \
-        (False, 0)])
+        (False, 0)], n = 10)
         0.4
         '''
         if not recs or not isinstance(recs, list) or len(recs) < 1:
