@@ -309,6 +309,7 @@ class SVDppTest(unittest.TestCase):
         svdpp.fit(self.df_big)
         self.assertTrue(hasattr(svdpp, 'U_bias'))
 
+        #did graphchi changed the output format? it used to be 40 for users...
         self.assertEqual(svdpp.U.shape, (len(self.df_big.user.unique()), 20))
         self.assertEqual(svdpp.V.shape, (len(self.df_big.item.unique()), 20))
         self.assertEqual(svdpp.U_bias.shape, (len(self.df_big.user.unique()), 1))
