@@ -20,7 +20,7 @@ class SVDpp(ModelInterface):
     def getScore(self, user, item):
         uid = self.umap[user]
         iid = self.imap[item]
-        u = np.add(self.U[uid, :20], self.U[uid, 20:])
+        u = np.add(self.U[uid, :10], self.U[uid, 10:])
         pred = self.global_mean + self.U_bias[uid] + self.V_bias[iid] + np.dot(u, self.V[iid])
         return float(pred)
 
