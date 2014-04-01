@@ -273,7 +273,7 @@ class PyTensorCoFi(object):
         :return:
         """
         dimension_range = list(range(len(self.dimensions)))
-        for i, dimension in enumerate(self.dimensions):
+        for dim_idx, dimension in enumerate(self.dimensions):
 
             # The base computation
             if len(self.dimensions) == 2:
@@ -282,35 +282,36 @@ class PyTensorCoFi(object):
             else:
                 base = np.ones((self.d, self.d))
                 for j in dimension_range:
-                    if j != i:
+                    if j != dim_idx:
                         base = np.dot(self.factors[j], self.factors[j].transpose())
 
-            if not i:  # i == 0
+            if not dim_idx:  # dim_idx == 0
                 for entry in range(dimension):
-                    count = sum((1 for j in range(data_array.shape[0]) if data_array[j, i] == entry)) or 1
-                    self.counts[i][entry, 0] = count
+                    count = sum((1 for j in range(data_array.shape[0]) if data_array[j, dim_idx] == entry)) or 1
+                    self.counts[dim_idx][entry, 0] = count
 
             for entry in range(dimension):
-                if entry in tensor[i]:
-                    data_row_list = tensor[i][entry]
+                if entry in tensor[dim_idx]:
+                    data_row_list = tensor[dim_idx][entry]
                     for data in data_row_list:
                         self.tmp = self.tmp * 0. + 1.
-                        self.tmp = self.tmp * self.factors[i][:, data_array[data, i]]
-                        score = data_array[data_array.shape[1], i]
+                        self.tmp = self.tmp * self.factors[dim_idx][:, data_array[data, dim_idx]]
+                        score = data_array[data_array.shape[1], dim_idx]
                         weight = 1. + self.alpha_value * math.log(1. + abs(score))
 
                         self.invertible += (1. - weight) * self.tmp * self.tmp.transpose()
                         self.matrix_vector_product += self.tmp * np.sign(score) * weight
 
                         self.invertible += base
-                        self.regularizer = self.regularizer * 1. / self.dimensions[i]
+                        self.regularizer = self.regularizer * 1. / self.dimensions[dim_idx]
                         self.invertible += self.regularizer
 
+                        #is this equal to rank-one update?
                         self.invertible = np.linalg.solve(self.invertible, self.one)
 
                         # Put the calculated factor back into place
 
-                        self.factors[i][:, entry] = np.dot(self.matrix_vector_product, self.invertible)
+                        self.factors[dim_idx][:, entry] = np.dot(self.matrix_vector_product, self.invertible)
 
                         # Reset invertible and matrix_vector_product
                         self.invertible *= 0.
@@ -359,7 +360,26 @@ class PyTensorCoFi(object):
         """
         return self.factors
 
+    def online_user_factors(self, Y, user_item_ids, p_param = 10, lambda_param = 0.01):
+        """
+        :param Y: application matrix Y.shape = (#apps, #factors)
+        :param user_item_ids: the rows that correspond to installed applications in Y matrix
+        :param p_param: p parameter
+        :param lambda_param: regularizer
+        """
+        y = Y[user_item_ids]
+        base1 = Y.transpose().dot(Y)
+        base2 = y.transpose().dot(np.diag([p_param - 1] * y.shape[0])).dot(y)
+        base = base1 + base2 + np.diag([lambda_param] * base1.shape[0])
+        u_factors = np.linalg.inv(base).dot(y.transpose()).dot(np.diag([p_param] * y.shape[0])).dot(np.ones(y.shape[0]).transpose())
+        return u_factors
+
+
 if __name__ == '__main__':
+
+    import doctest
+    doctest.testmod()
+
     t = TensorCoFiByFile()
     t.fit(pd.DataFrame({
         'user': [1, 1, 3, 4], 'item': [1, 2, 3, 4], 'rating': [5,3,2,1],
