@@ -239,7 +239,7 @@ class PyTensorCoFi(object):
     A creator of TensorCoFi models
     """
 
-    def __init__(self, d=20, iterations=5, lambda_value=0.05, alpha_value=40, dimensions=[0, 0]):
+    def __init__(self, d=20, iterations=5, lambda_value=0.05, alpha_value=40):
         """
 
         :param d:
@@ -250,16 +250,13 @@ class PyTensorCoFi(object):
         :return:
         """
         self.d = d
-        self.dimensions = dimensions
+        self.dimensions = None
         self.lambda_value = lambda_value
         self.alpha_value = alpha_value
         self.iterations = iterations
 
         self.factors = []
         self.counts = []
-        for dim in dimensions:
-            self.factors.append(np.random.rand(d, dim))
-            self.counts.append(np.zeros((dim, 1)))
         self.regularizer = None
         self.matrix_vector_product = None
         self.one = None
@@ -350,14 +347,33 @@ class PyTensorCoFi(object):
             self.iterate(tensor, data_array)
 
     def fit(self, data):
-        pass
+        self.user_to_id = {}
+        self.item_to_id = {}
+        for uid, user in enumerate(data["user"].unique(), start=1):
+            self.user_to_id[user] = uid
+        for iid, item in enumerate(data["item"].unique(), start=1):
+            self.item_to_id[item] = iid
 
+        np_data = \
+            np.matrix([(self.user_to_id[row["user"]], self.item_to_id[row["item"]]) for _, row in data.iterrows()])
+        self.dimensions = [len(self.user_to_id), len(self.item_to_id)]
+        for dim in self.dimensions:
+            self.factors.append(np.random.rand(self.d, dim))
+            self.counts.append(np.zeros((dim, 1)))
+        self.train(np_data)
 
     def get_model(self):
         """
         TODO
         """
         return self.factors
+
+    def getScore(self, user, item):
+        return np.dot(self.factors[0][:, self.user_to_id[user]].transpose(),
+                      self.factors[1][:, self.item_to_id[item]])
+
+    def getName(self):
+        return "Python Implementations of TensorCoFi"
 
 if __name__ == '__main__':
     t = TensorCoFiByFile()
