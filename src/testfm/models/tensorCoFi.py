@@ -17,6 +17,7 @@ from pkg_resources import resource_filename
 import testfm
 import os
 import numpy as np
+import scipy as sp
 os.environ['CLASSPATH'] = resource_filename(testfm.__name__, 'lib/algorithm-1.0-SNAPSHOT-jar-with-dependencies.jar:') + \
     os.environ.get('CLASSPATH', "")
 
@@ -25,7 +26,6 @@ import datetime
 import subprocess
 
 from jnius import autoclass
-import numpy
 import pandas as pd
 from testfm.models.interface import ModelInterface
 from testfm.config import USER, ITEM
@@ -141,10 +141,10 @@ class TensorCoFi(ModelInterface):
         Numpy reads row after row, therefore, we need a conversion.
         """
         columns_input = java_float_matrix.toArray()
-        split = lambda lst, sz: [numpy.fromiter(lst[i:i+sz],dtype=numpy.float)
+        split = lambda lst, sz: [np.fromiter(lst[i:i+sz],dtype=np.float)
                                  for i in range(0, len(lst), sz)]
         cols = split(columns_input, java_float_matrix.rows)
-        matrix = numpy.ma.column_stack(cols)
+        matrix = np.ma.column_stack(cols)
         return matrix
 
     def getScore(self, user, item):
@@ -227,9 +227,9 @@ class TensorCoFiByFile(TensorCoFi):
             raise Exception(err)
         users, items = out.split(' ')
         self.factors = {
-            'user': numpy.ma.column_stack(numpy.genfromtxt(
+            'user': np.ma.column_stack(np.genfromtxt(
                 open(users,'r'), delimiter=',')),
-            'item': numpy.ma.column_stack(numpy.genfromtxt(
+            'item': np.ma.column_stack(np.genfromtxt(
                 open(items,'r'), delimiter=','))
         }
 
@@ -257,61 +257,99 @@ class PyTensorCoFi(object):
         self.dimensions = None
         self.factors = []
         self.counts = []
+        self.base = self.tmp_calc = None
+        self.tmp = np.ones((self.number_of_factors, 1))
+        self.invertible = np.zeros((self.number_of_factors, self.number_of_factors))
+        self.matrix_vector_product = np.zeros((self.number_of_factors, 1))
+
+    def base_for_2_dimensions(self, current_dimension):
+        """
+        Calculation of base matrix for 2 dimension tensor
+        :param current_dimension: dimension to calculate
+        :return: A base matrix
+        """
+        base = self.factors[1 - current_dimension]
+        return np.dot(base, base.transpose())
+
+    def standard_base(self, current_dimension):
+        """
+        Standard base matrix calculation
+        :param current_dimension: dimension to calculate
+        :return: A base matrix
+        """
+        base = np.ones((self.number_of_factors, self.number_of_factors))
+        for matrixIndex in range(len(self.dimensions)):
+            if matrixIndex != current_dimension:
+                base = np.multiply(base, np.dot(self.factors[matrixIndex], self.factors[matrixIndex].transpose()))
+        return base
+
+    def tmp_or_2_dimensions(self, current_dimension, training_data, row):
+        """
+        Calculate the tmp matrix for 2 dimension tensor
+        :param current_dimension: dimension to calculate
+        :param training_data: Matrix with the training data
+        :param row: Working row
+        :return: A tmp matrix
+        """
+        column = training_data[row, 1-current_dimension]-1
+        return self.tmp * self.factors[1-current_dimension][:, column].reshape(self.number_of_factors, 1)
+
+    def standard_tmp(self, current_dimension, training_data, row):
+        """
+        Standard tmp calculator
+        :param current_dimension: dimension to calculate
+        :param training_data: Matrix with the training data
+        :param row: Working row
+        :return: A tmp matrix
+        """
+        self.tmp = np.add(np.multiply(self.tmp, 0.), 1.0)
+        for column in range(len(self.dimensions)):
+            if column != current_dimension:
+                self.tmp = \
+                    self.tmp * self.factors[column][:, training_data[row, column]-1].reshape(self.number_of_factors, 1)
+        return self.tmp
 
     def train(self, training_data):
-
-        tmp = np.ones((self.number_of_factors, 1))
         regularizer = np.multiply(np.eye(self.number_of_factors), self.constant_lambda)
-        matrix_vector_product = np.zeros((self.number_of_factors, 1))
         one = np.eye(self.number_of_factors)
-        invertible = np.zeros((self.number_of_factors, self.number_of_factors))
+        tensor = {}
+        for index, dimension in enumerate(self.dimensions):
+            tensor[index] = {}
+            for row in range(training_data.shape[0]):
+                try:
+                    tensor[index][training_data[row, index]].append(row)
+                except KeyError:
+                    tensor[index][training_data[row, index]] = [row]
 
-        tensor = []
+        for iteration in range(self.number_of_iterations):
+            for current_dimension in range(len(self.dimensions)):
+                base = self.base(current_dimension)
 
-        for i, dimension in enumerate(self.dimensions):
-            tensor.append({})
-
-            for j in xrange(dimension):
-                tensor[i][j+1] = []
-
-            for dataRow in range(training_data.shape[0]):
-                index = training_data[dataRow, i]
-                t = tensor[i]
-                t[index].append(dataRow)
-
-        for ite in range(self.number_of_iterations):
-            for currentDimension in range(len(self.dimensions)):
-                if len(self.dimensions) == 2:
-                    base = self.factors[1 - currentDimension]
-                    base = np.dot(base, base.transpose())
-                else:
-                    base = np.ones((self.number_of_factors, self.number_of_factors))
-                    for matrixIndex in range(len(self.dimensions)):
-                        if matrixIndex != currentDimension:
-                            base = np.multiply(base, np.dot(self.factors[matrixIndex],
-                                                            self.factors[matrixIndex].transpose()))
-
-                for dataEntry in range(1, self.dimensions[currentDimension]+1):
-                    dataRowList = tensor[currentDimension][dataEntry]
-                    for dataRow in dataRowList:
-                        tmp = np.add(np.multiply(tmp, 0.), 1.0)
-                        for dataCol in range(len(self.dimensions)):
-                            if dataCol != currentDimension:
-                                tmp = tmp * self.factors[dataCol][:, training_data[dataRow, dataCol]-1].reshape(self.number_of_factors, 1)
-                        score = training_data[dataRow, training_data.shape[1] - 1]
+                for entry in range(1, self.dimensions[current_dimension]+1):
+                    row_list = tensor[current_dimension].get(entry, [])
+                    for row in row_list:
+                        tmp = self.tmp_calc(current_dimension, training_data, row)
+                        score = training_data[row, training_data.shape[1] - 1]
                         weight = 1. + self.constant_alpha * math.log(1. + math.fabs(score))
+                        try:
+                            invertible += (weight - 1.) * (tmp * tmp.transpose())
+                        except NameError:
+                            invertible = self.invertible + (weight - 1.) * (tmp * tmp.transpose())
+                        try:
+                            matrix_vector_product = \
+                                np.add(matrix_vector_product, np.multiply(tmp, math.copysign(1, score) * weight))
+                        except NameError:
+                            matrix_vector_product = \
+                                np.add(self.matrix_vector_product, np.multiply(tmp, math.copysign(1, score) * weight))
 
-                        invertible += (weight - 1.) * (tmp * tmp.transpose())
-                        matrix_vector_product = np.add(matrix_vector_product, np.multiply(tmp, math.copysign(1, score) * weight))
                     invertible = np.add(invertible, base)
-                    regularizer = regularizer / self.dimensions[currentDimension]
-
+                    regularizer = regularizer / self.dimensions[current_dimension]
                     invertible = np.add(invertible, regularizer)
                     invertible = np.linalg.solve(invertible, one)
-
-                    self.factors[currentDimension][:, dataEntry-1] = np.dot(invertible, matrix_vector_product).reshape(self.number_of_factors)
-                    invertible = np.multiply(invertible,  0.)
-                    matrix_vector_product = np.multiply(matrix_vector_product, 0.)
+                    self.factors[current_dimension][:, entry-1] = \
+                        np.dot(invertible, matrix_vector_product).reshape(self.number_of_factors)
+                    del matrix_vector_product
+                    del invertible
 
     def fit(self, data):
         self.user_to_id = {}
@@ -324,12 +362,13 @@ class PyTensorCoFi(object):
         np_data = \
             np.matrix([(self.user_to_id[row["user"]], self.item_to_id[row["item"]]) for _, row in data.iterrows()])
         self.dimensions = [len(self.user_to_id), len(self.item_to_id)]
+        self.base = self.base_for_2_dimensions if len(self.dimensions) == 2 else self.standard_base
+        self.tmp_calc = self.tmp_or_2_dimensions if len(self.dimensions) == 2 else self.standard_tmp
+
         self.factors = [np.random.rand(self.number_of_factors, i) for i in self.dimensions]
         self.counts = [np.zeros((i, 1)) for i in self.dimensions]
-        #for dim in self.dimensions:
-        #    self.factors.append(np.random.rand(self.d, dim))
-        #    self.counts.append(np.zeros((dim, 1)))
         self.train(np_data)
+        self.base = self.tmp_calc = None
 
     def get_model(self):
         """

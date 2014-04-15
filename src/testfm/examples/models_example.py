@@ -9,6 +9,7 @@ from testfm.models.content_based import TFIDFModel, LSIModel
 from testfm.models.ensemble_models import LinearRank
 from testfm.models.bpr import BPR
 from pkg_resources import resource_filename
+import datetime
 
 #because of Global Interpreter Lock we need to initialize evaluator here (it forks processes)
 eval = Evaluator()
@@ -33,7 +34,9 @@ models = [  #RandomModel(),
 #models += [LinearRank([models[2], models[3]],  item_features_column=['rating'])]
 items = training.item.unique()
 for m in models:
+    t = datetime.datetime.now()
     m.fit(training)
+    print datetime.datetime.now()-t,
     print m.getName().ljust(50),
     print eval.evaluate_model(m, testing, all_items=items,)
 
