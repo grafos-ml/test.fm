@@ -4,7 +4,8 @@ Nosetest package for the okapi connector class. This test implies that you have 
 
 __author__ = 'joaonrb'
 
-from testfm.okapi.connector import RandomOkapi, OkapiNoResultError, PopularityOkapi, BPROkapi, ON_REMOTE_NETWORK
+import os
+from testfm.okapi.connector import RandomOkapi, OkapiNoResultError, PopularityOkapi, BPROkapi, REMOTE_HOST
 import testfm
 from testfm.splitter.holdout import RandomSplitter
 from testfm.models.baseline_model import Popularity
@@ -12,6 +13,8 @@ from testfm.models.bpr import BPR
 import pandas as pd
 from pkg_resources import resource_filename
 import unittest
+
+ON_REMOTE_NETWORK = os.system("ping -c 1 " + REMOTE_HOST) == 0
 
 
 class TestOkapi(object):
@@ -30,10 +33,20 @@ class TestOkapi(object):
         """
         self.df = pd.read_csv(resource_filename(testfm.__name__, 'data/movielenshead.dat'), sep="::", header=None,
                               names=['user', 'item', 'rating', 'date', 'title'])
-        self.random_okapi = RandomOkapi()
-        self.popularity = PopularityOkapi()
-        self.bpr = BPROkapi()
+        self.random_okapi = RandomOkapi(host="igraph-01", user="joaonrb",
+                                        okapi_jar_dir="okapi/jar/efe97a00d2a1b3f30dbbaddb3f3dd4c7/",
+                                        okapi_jar_base_name="okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar",
+                                        hadoop_source="/data/b.ajf/hadoop1_env.sh")
+        self.popularity = PopularityOkapi(host="igraph-01", user="joaonrb",
+                                          okapi_jar_dir="okapi/jar/efe97a00d2a1b3f30dbbaddb3f3dd4c7/",
+                                          okapi_jar_base_name="okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar",
+                                          hadoop_source="/data/b.ajf/hadoop1_env.sh")
+        self.bpr = BPROkapi(host="igraph-01", user="joaonrb",
+                            okapi_jar_dir="okapi/jar/efe97a00d2a1b3f30dbbaddb3f3dd4c7/",
+                            okapi_jar_base_name="okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar",
+                            hadoop_source="/data/b.ajf/hadoop1_env.sh")
 
+    '''
     @unittest.skipIf(not ON_REMOTE_NETWORK, "Not in igraph-01 network")
     def test_get_result(self):
         """
@@ -58,8 +71,8 @@ class TestOkapi(object):
         Test the mapping
         """
         self.random_okapi.map_data(self.df)
-        users = enumerate(set(self.df["user"]))
-        items = enumerate(set(self.df["item"]))
+        users = enumerate(set(self.df["user"]), start=1)
+        items = enumerate(set(self.df["item"]), start=1)
         for user_id, user in users:
             assert self.random_okapi.data_map["user_to_id"][user] == user_id, "Mapping in user to id is not correct"
             assert self.random_okapi.data_map["id_to_user"][user_id] == user, "Mapping in id user is not correct"
@@ -80,7 +93,7 @@ class TestOkapi(object):
             for _, row in testing.iterrows():
                 score = self.popularity.getScore(row["user"], row["item"])
                 assert isinstance(score, float), "The result of the score is not a float"
-
+    '''
     @unittest.skipIf(not ON_REMOTE_NETWORK, "Not in igraph-01 network")
     def test_popularity(self):
         """
@@ -88,7 +101,7 @@ class TestOkapi(object):
         """
         splitter = RandomSplitter()
         training, testing = splitter.split(self.df, 0.20)
-        pop = Popularity()
+        pop = Popularity(normalize=False)
         pop.fit(training)
         self.popularity.fit(training)
         for _, row in testing.iterrows():
@@ -98,7 +111,7 @@ class TestOkapi(object):
             assert okapi_score == python_score, \
                 "Okapi popularity(%f) don't give the same score as his python implementation(%f)" % (okapi_score,
                                                                                                      python_score)
-
+    '''
     @unittest.skipIf(not ON_REMOTE_NETWORK, "Not in igraph-01 network")
     def test_bpr(self):
         """
@@ -114,3 +127,4 @@ class TestOkapi(object):
             python_score = bpr.getScore(row["user"], row["item"])
             assert okapi_score == python_score, \
                 "Okapi bpr(%f) don't give the same score as his python implementation(%f)" % (okapi_score, python_score)
+    '''

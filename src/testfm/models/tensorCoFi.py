@@ -17,9 +17,9 @@ from pkg_resources import resource_filename
 import testfm
 import os
 import numpy as np
+os.environ['CLASSPATH'] = resource_filename(testfm.__name__, 'lib/algorithm-1.0-SNAPSHOT-jar-with-dependencies.jar:') + \
+    os.environ.get('CLASSPATH', "")
 
-os.environ['CLASSPATH'] = resource_filename(testfm.__name__, 'lib/'
-    'algorithm-1.0-SNAPSHOT-jar-with-dependencies.jar')
 
 import datetime
 import subprocess
@@ -29,6 +29,7 @@ import numpy
 import pandas as pd
 from testfm.models.interface import ModelInterface
 from testfm.config import USER, ITEM
+import math
 
 JavaTensorCoFi = autoclass('es.tid.frappe.recsys.TensorCoFi')
 FloatMatrix = autoclass('org.jblas.FloatMatrix')
@@ -37,8 +38,7 @@ Arrays = autoclass('java.util.Arrays')
 
 class TensorCoFi(ModelInterface):
 
-    def __init__(self, dim=20, nIter=5, lamb=0.05, alph=40,
-                 user_features=["user"], item_features=["item"]):
+    def __init__(self, dim=20, nIter=5, lamb=0.05, alph=40, user_features=["user"], item_features=["item"]):
         """
         Python model creator fro tensor implementation in java
 
@@ -233,7 +233,153 @@ class TensorCoFiByFile(TensorCoFi):
                 open(items,'r'), delimiter=','))
         }
 
+
+class PyTensorCoFi(object):
+    """
+    A creator of TensorCoFi models
+    """
+
+    def __init__(self, d=20, iterations=5, lambda_value=0.05, alpha_value=40, dimensions=[0, 0]):
+        """
+
+        :param d:
+        :param iterations:
+        :param lambda_value:
+        :param alpha_value:
+        :param dimensions:
+        :return:
+        """
+        self.d = d
+        self.dimensions = dimensions
+        self.lambda_value = lambda_value
+        self.alpha_value = alpha_value
+        self.iterations = iterations
+
+        self.factors = []
+        self.counts = []
+        for dim in dimensions:
+            self.factors.append(np.random.rand(d, dim))
+            self.counts.append(np.zeros((dim, 1)))
+        self.regularizer = None
+        self.matrix_vector_product = None
+        self.one = None
+        self.invertible = None
+        self.tmp = None
+
+    def iterate(self, tensor, data_array):
+        """
+        Iterate  over each Factor Matrix
+        :param tensor:
+        :return:
+        """
+        dimension_range = list(range(len(self.dimensions)))
+        for dim_idx, dimension in enumerate(self.dimensions):
+
+            # The base computation
+            if len(self.dimensions) == 2:
+                base = self.factors[1 - len(self.dimensions)]
+                base = np.dot(base, base.transpose())
+            else:
+                base = np.ones((self.d, self.d))
+                for j in dimension_range:
+                    if j != dim_idx:
+                        base = np.dot(self.factors[j], self.factors[j].transpose())
+
+            if not dim_idx:  # dim_idx == 0
+                for entry in range(dimension):
+                    count = sum((1 for j in range(data_array.shape[0]) if data_array[j, dim_idx] == entry)) or 1
+                    self.counts[dim_idx][entry, 0] = count
+
+            for entry in range(dimension):
+                if entry in tensor[dim_idx]:
+                    data_row_list = tensor[dim_idx][entry]
+                    for data in data_row_list:
+                        self.tmp = self.tmp * 0. + 1.
+                        self.tmp = self.tmp * self.factors[dim_idx][:, data_array[data, dim_idx]]
+                        score = data_array[data_array.shape[1], dim_idx]
+                        weight = 1. + self.alpha_value * math.log(1. + abs(score))
+
+                        self.invertible += (1. - weight) * self.tmp * self.tmp.transpose()
+                        self.matrix_vector_product += self.tmp * np.sign(score) * weight
+
+                        self.invertible += base
+                        self.regularizer = self.regularizer * 1. / self.dimensions[dim_idx]
+                        self.invertible += self.regularizer
+
+                        #is this equal to rank-one update?
+                        self.invertible = np.linalg.solve(self.invertible, self.one)
+
+                        # Put the calculated factor back into place
+
+                        self.factors[dim_idx][:, entry] = np.dot(self.matrix_vector_product, self.invertible)
+
+                        # Reset invertible and matrix_vector_product
+                        self.invertible *= 0.
+                        self.matrix_vector_product *= 0.
+
+    def prepare_tensor(self, data_array):
+        """
+        Prepare the data
+
+        :param data_array: Data to convert in to tensor model
+        """
+
+        self.regularizer = np.multiply(np.identity(self.d), self.lambda_value)
+        self.matrix_vector_product = np.zeros((1, self.d))
+        self.one = np.identity(self.d)
+        self.invertible = np.zeros((self.d, self.d))
+        self.tmp = np.ones((1, self.d))
+        tensor = {}
+        for i, dim in enumerate(self.dimensions):
+            tensor[i] = {}
+            for j, row in enumerate(data_array):
+                try:
+                    tensor[i][row[0, i]].append(j)
+                except KeyError:
+                    tensor[i][row[0, i]] = [j]
+        return tensor
+
+    def train(self, data_array):
+        """
+        Implementation of TensorCoFi training in Python
+
+        :param data_array: Data to convert in to tensor model
+        """
+        tensor = self.prepare_tensor(data_array)
+        # Starting loops
+        for _ in range(self.iterations):
+            self.iterate(tensor, data_array)
+
+    def fit(self, data):
+        pass
+
+
+    def get_model(self):
+        """
+        TODO
+        """
+        return self.factors
+
+    def online_user_factors(self, Y, user_item_ids, p_param = 10, lambda_param = 0.01):
+        """
+        :param Y: application matrix Y.shape = (#apps, #factors)
+        :param user_item_ids: the rows that correspond to installed applications in Y matrix
+        :param p_param: p parameter
+        :param lambda_param: regularizer
+        """
+        y = Y[user_item_ids]
+        base1 = Y.transpose().dot(Y)
+        base2 = y.transpose().dot(np.diag([p_param - 1] * y.shape[0])).dot(y)
+        base = base1 + base2 + np.diag([lambda_param] * base1.shape[0])
+        u_factors = np.linalg.inv(base).dot(y.transpose()).dot(np.diag([p_param] * y.shape[0])).dot(np.ones(y.shape[0]).transpose())
+        return u_factors
+
+
 if __name__ == '__main__':
+
+    import doctest
+    doctest.testmod()
+
     t = TensorCoFiByFile()
     t.fit(pd.DataFrame({
         'user': [1, 1, 3, 4], 'item': [1, 2, 3, 4], 'rating': [5,3,2,1],
