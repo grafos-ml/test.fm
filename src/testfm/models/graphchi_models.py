@@ -20,8 +20,9 @@ class SVDpp(ModelInterface):
     def getScore(self, user, item):
         uid = self.umap[user]
         iid = self.imap[item]
-        u = np.add(self.U[uid, :20], self.U[uid, 20:])
-        pred = self.global_mean + self.U_bias[uid] + self.V_bias[iid] + np.dot(u, self.V[iid])
+        #check, I think graphchi changed the ouput?
+        #u = np.add(self.U[uid, :10], self.U[uid, 10:])
+        pred = self.global_mean + self.U_bias[uid] + self.V_bias[iid] + np.dot(self.U[uid], self.V[iid])
         return float(pred)
 
 
@@ -47,11 +48,6 @@ class SVDpp(ModelInterface):
         }
 
     def fit(self, training_data):
-        '''
-        executes something on the lines
-        svdpp --training=smallnetflix_mm
-        '''
-
         training_filename = self.dump_data(training_data)
         logger.debug("Started training model {}".format(__name__))
         cmd = " ".join(["svdpp",
@@ -68,6 +64,7 @@ class SVDpp(ModelInterface):
         self.global_mean = self.read_matrix(training_filename+"_global_mean.mm")
         self.U = self.read_matrix(training_filename+"_U.mm")
         self.V = self.read_matrix(training_filename+"_V.mm")
+        #print training_filename
         self.U_bias = self.read_matrix(training_filename+"_U_bias.mm")
         self.V_bias = self.read_matrix(training_filename+"_V_bias.mm")
 

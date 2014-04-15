@@ -239,7 +239,7 @@ class PyTensorCoFi(object):
     A creator of TensorCoFi models
     """
 
-    def __init__(self, d=20, iterations=5, lambda_value=0.05, alpha_value=40):
+    def __init__(self, d=20, iterations=5, lambda_value=0.05, alpha_value=40, dimensions=[0, 0]):
         """
 
         :param d:
@@ -250,13 +250,16 @@ class PyTensorCoFi(object):
         :return:
         """
         self.d = d
-        self.dimensions = None
+        self.dimensions = dimensions
         self.lambda_value = lambda_value
         self.alpha_value = alpha_value
         self.iterations = iterations
 
         self.factors = []
         self.counts = []
+        for dim in dimensions:
+            self.factors.append(np.random.rand(d, dim))
+            self.counts.append(np.zeros((dim, 1)))
         self.regularizer = None
         self.matrix_vector_product = None
         self.one = None
@@ -270,7 +273,7 @@ class PyTensorCoFi(object):
         :return:
         """
         dimension_range = list(range(len(self.dimensions)))
-        for i, dimension in enumerate(self.dimensions):
+        for dim_idx, dimension in enumerate(self.dimensions):
 
             # The base computation
             if len(self.dimensions) == 2:
@@ -279,35 +282,36 @@ class PyTensorCoFi(object):
             else:
                 base = np.ones((self.d, self.d))
                 for j in dimension_range:
-                    if j != i:
+                    if j != dim_idx:
                         base = np.dot(self.factors[j], self.factors[j].transpose())
 
-            if not i:  # i == 0
+            if not dim_idx:  # dim_idx == 0
                 for entry in range(dimension):
-                    count = sum((1 for j in range(data_array.shape[0]) if data_array[j, i] == entry)) or 1
-                    self.counts[i][entry, 0] = count
+                    count = sum((1 for j in range(data_array.shape[0]) if data_array[j, dim_idx] == entry)) or 1
+                    self.counts[dim_idx][entry, 0] = count
 
             for entry in range(dimension):
-                if entry in tensor[i]:
-                    data_row_list = tensor[i][entry]
+                if entry in tensor[dim_idx]:
+                    data_row_list = tensor[dim_idx][entry]
                     for data in data_row_list:
                         self.tmp = self.tmp * 0. + 1.
-                        self.tmp = self.tmp * self.factors[i][:, data_array[data, i]]
-                        score = data_array[data_array.shape[1], i]
+                        self.tmp = self.tmp * self.factors[dim_idx][:, data_array[data, dim_idx]]
+                        score = data_array[data_array.shape[1], dim_idx]
                         weight = 1. + self.alpha_value * math.log(1. + abs(score))
 
                         self.invertible += (1. - weight) * self.tmp * self.tmp.transpose()
                         self.matrix_vector_product += self.tmp * np.sign(score) * weight
 
                         self.invertible += base
-                        self.regularizer = self.regularizer * 1. / self.dimensions[i]
+                        self.regularizer = self.regularizer * 1. / self.dimensions[dim_idx]
                         self.invertible += self.regularizer
 
+                        #is this equal to rank-one update?
                         self.invertible = np.linalg.solve(self.invertible, self.one)
 
                         # Put the calculated factor back into place
 
-                        self.factors[i][:, entry] = np.dot(self.matrix_vector_product, self.invertible)
+                        self.factors[dim_idx][:, entry] = np.dot(self.matrix_vector_product, self.invertible)
 
                         # Reset invertible and matrix_vector_product
                         self.invertible *= 0.
@@ -347,20 +351,8 @@ class PyTensorCoFi(object):
             self.iterate(tensor, data_array)
 
     def fit(self, data):
-        self.user_to_id = {}
-        self.item_to_id = {}
-        for uid, user in enumerate(data["user"].unique(), start=1):
-            self.user_to_id[user] = uid
-        for iid, item in enumerate(data["item"].unique(), start=1):
-            self.item_to_id[item] = iid
+        pass
 
-        np_data = \
-            np.matrix([(self.user_to_id[row["user"]], self.item_to_id[row["item"]]) for _, row in data.iterrows()])
-        self.dimensions = [len(self.user_to_id), len(self.item_to_id)]
-        for dim in self.dimensions:
-            self.factors.append(np.random.rand(self.d, dim))
-            self.counts.append(np.zeros((dim, 1)))
-        self.train(np_data)
 
     def get_model(self):
         """
@@ -368,14 +360,26 @@ class PyTensorCoFi(object):
         """
         return self.factors
 
-    def getScore(self, user, item):
-        return np.dot(self.factors[0][:, self.user_to_id[user]].transpose(),
-                      self.factors[1][:, self.item_to_id[item]])
+    def online_user_factors(self, Y, user_item_ids, p_param = 10, lambda_param = 0.01):
+        """
+        :param Y: application matrix Y.shape = (#apps, #factors)
+        :param user_item_ids: the rows that correspond to installed applications in Y matrix
+        :param p_param: p parameter
+        :param lambda_param: regularizer
+        """
+        y = Y[user_item_ids]
+        base1 = Y.transpose().dot(Y)
+        base2 = y.transpose().dot(np.diag([p_param - 1] * y.shape[0])).dot(y)
+        base = base1 + base2 + np.diag([lambda_param] * base1.shape[0])
+        u_factors = np.linalg.inv(base).dot(y.transpose()).dot(np.diag([p_param] * y.shape[0])).dot(np.ones(y.shape[0]).transpose())
+        return u_factors
 
-    def getName(self):
-        return "Python Implementations of TensorCoFi"
 
 if __name__ == '__main__':
+
+    import doctest
+    doctest.testmod()
+
     t = TensorCoFiByFile()
     t.fit(pd.DataFrame({
         'user': [1, 1, 3, 4], 'item': [1, 2, 3, 4], 'rating': [5,3,2,1],

@@ -201,16 +201,16 @@ class Evaluator(object):
                 5. sort according to the predicted score
                 6. evaluate according to each measure
             7.average the scores for each user
-        >>> mapm = MAPMeasure()
-        >>> model = IdModel()
-        >>> evaluation = Evaluator()
-        >>> df = DataFrame({'user' : [1, 1, 3, 4], 'item' : [1, 2, 3, 4], \
-        'rating': [5,3,2,1], 'date': [11,12,13,14]})
-        >>> a = evaluation.evaluate_model_multiprocessing(model, \
-        df, non_relevant_count=2)
-        >>> evaluation.close()
-        >>> print len(a)
-        1
+        # >>> mapm = MAPMeasure()
+        # >>> model = IdModel()
+        # >>> evaluation = Evaluator()
+        # >>> df = DataFrame({'user' : [1, 1, 3, 4], 'item' : [1, 2, 3, 4], \
+        # 'rating': [5,3,2,1], 'date': [11,12,13,14]})
+        # >>> a = evaluation.evaluate_model_multiprocessing(model, \
+        # df, non_relevant_count=2)
+        # >>> evaluation.close()
+        # >>> print len(a)
+        # 1
 
         #not the best tests, I need to put seed in order to get an expected \
             behaviour

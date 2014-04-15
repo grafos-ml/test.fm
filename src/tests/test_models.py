@@ -8,10 +8,11 @@ from pkg_resources import resource_filename
 
 import testfm
 from testfm.models.graphchi_models import SVDpp
-from testfm.models.tensorCoFi import TensorCoFi, TensorCoFiByFile
-from testfm.models.baseline_model import IdModel, Item2Item, AverageModel
+from testfm.models.tensorCoFi import TensorCoFi, TensorCoFiByFile, PyTensorCoFi
+from testfm.models.baseline_model import IdModel, Item2Item, AverageModel, RandomModel
 from testfm.models.ensemble_models import LogisticEnsemble
 from testfm.models.content_based import TFIDFModel, LSIModel
+from testfm.evaluation.evaluator import Evaluator
 
 
 def which(program):
@@ -308,7 +309,8 @@ class SVDppTest(unittest.TestCase):
         svdpp.fit(self.df_big)
         self.assertTrue(hasattr(svdpp, 'U_bias'))
 
-        self.assertEqual(svdpp.U.shape, (len(self.df_big.user.unique()), 40))
+        #did graphchi changed the output format? it used to be 40 for users...
+        self.assertEqual(svdpp.U.shape, (len(self.df_big.user.unique()), 20))
         self.assertEqual(svdpp.V.shape, (len(self.df_big.item.unique()), 20))
         self.assertEqual(svdpp.U_bias.shape, (len(self.df_big.user.unique()), 1))
         self.assertEqual(svdpp.V_bias.shape, (len(self.df_big.item.unique()), 1))
@@ -354,6 +356,57 @@ class MeanPredTest(unittest.TestCase):
         model.fit(self.df)
 
         self.assertEqual(model.getScore(10, 100), 4.5)
+
+
+class PyTensorTest(unittest.TestCase):
+
+    def test_user_model_update(self):
+        pyTF = PyTensorCoFi()
+        Y = np.array([[-1.0920831, -0.01566422], [-0.8727925, 0.22307773], [0.8753245, -0.80181429], [-0.1338534, -0.51448172], [-0.2144651, -0.96081265]])
+        user_items = [1,3,4]
+        res = pyTF.online_user_factors(Y, user_items, p_param=10, lambda_param=0.01)
+        self.assertAlmostEqual(np.array([-1.18324547, -0.95040477]).all(), res.all())
+
+
+    def test_dynami_updates(self):
+        '''
+        We will take a tensor cofi. Train the model, evaluate it. Then we remove all the user factors
+        and recompute them using the online_user_factors to check if the performance is almost the same...
+        '''
+
+        pyTF = PyTensorCoFi()
+
+        evaluator = Evaluator()
+        tf = TensorCoFiByFile(dim=2, nIter=100, lamb=0.05, alph=40)
+        df = pd.read_csv(resource_filename(testfm.__name__, 'data/movielenshead.dat'), sep="::", header=None,
+                         names=['user', 'item', 'rating', 'date', 'title'])
+        training, testing = testfm.split.holdoutByRandom(df, 0.7)
+        users = {user: list(entries)
+             for user, entries in training.groupby('user')['item']}
+
+        tf.fit(training)
+        map1 = evaluator.evaluate_simple(tf, testing)#map of the original model
+
+        #now we try to replace the original factors with on the fly computed factors
+        #lets iterate over the training data of items and the users
+        for u, items in users.items():
+            #user id in the tf
+            uid = tf._dmap['user'][u] -1 #userid
+            iids = [tf._dmap['item'][i] - 1 for i in items]#itemids that user has seen
+            #original_factors = tf.factors['user'][uid]
+            new_factors = pyTF.online_user_factors(tf.factors['item'], iids, p_param=40, lambda_param=0.05)
+            #replace original factors with the new factors
+            tf.factors['user'][uid] = new_factors
+
+        #lets evaluate the new model with real-time updated factors
+        map2 = evaluator.evaluate_simple(tf, testing)
+        #The difference should be smaller than 20%
+        self.assertTrue(abs(map1[0]-map2[0]) < 0.2*map1[0])
+
+        evaluator.close()
+
+
+
 
 if __name__ == '__main__':
     unittest.main()
