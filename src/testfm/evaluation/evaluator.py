@@ -53,6 +53,7 @@ def partial_measure(user, entries, factor_model, all_items, non_relevant_count, 
     else:
         return measure.measure(ranked_list[:k], n = n)
 
+
 class EvaluatorPool(object):
     """
     The thread / process poll for the evaluator

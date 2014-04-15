@@ -4,8 +4,7 @@ import testfm
 import pandas as pd
 from testfm.evaluation.evaluator import Evaluator
 from testfm.models.baseline_model import Popularity, RandomModel, Item2Item
-from testfm.models.tensorCoFi import TensorCoFi
-from testfm.models.tensorcofi0 import PyTensorCoFi
+from testfm.models.tensorCoFi import TensorCoFiByFile, PyTensorCoFi
 from testfm.models.content_based import TFIDFModel, LSIModel
 from testfm.models.ensemble_models import LinearRank
 from testfm.models.bpr import BPR
@@ -24,9 +23,9 @@ training, testing = testfm.split.holdoutByRandom(df, 0.9)
 models = [  #RandomModel(),
             #BPR(),
             #TFIDFModel('title'),
-            Popularity(),
-            TensorCoFi(dim=20, nIter=5, lamb=0.05, alph=40, user_features=['user'], item_features=['item', 'title']),
-            PyTensorCoFi(d=20, ite=5, Lambda=0.05, p=40),
+            #Popularity(),
+            #TensorCoFiByFile(dim=20, nIter=5, lamb=0.05, alph=40, user_features=['user'], item_features=['item', 'title']),
+            PyTensorCoFi(nfactors=20, niterations=5, clambda=0.05, calpha=40),
             #Item2Item(),
             #LSIModel('title'),
          ]

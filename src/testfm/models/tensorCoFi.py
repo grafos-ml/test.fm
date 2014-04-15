@@ -236,129 +236,114 @@ class TensorCoFiByFile(TensorCoFi):
 
 class PyTensorCoFi(object):
     """
-    A creator of TensorCoFi models
+    Python implementation of tensorCoFi algorithm based on the java version from Alexandros Karatzoglou
     """
 
-    def __init__(self, d=20, iterations=5, lambda_value=0.05, alpha_value=40, dimensions=[0, 0]):
+    def __init__(self, nfactors, niterations, clambda, calpha):
         """
+        Constructor
 
-        :param d:
-        :param iterations:
-        :param lambda_value:
-        :param alpha_value:
-        :param dimensions:
-        :return:
+        :param nfactors: Number of factors to the matrices
+        :param niterations: Number of iteration in the matrices construction
+        :param clambda: I came back when I find it out
+        :param calpha: Constant important in weight calculation
         """
-        self.d = d
-        self.dimensions = dimensions
-        self.lambda_value = lambda_value
-        self.alpha_value = alpha_value
-        self.iterations = iterations
-
+        self.number_of_factors = nfactors
+        self.constant_lambda = clambda
+        self.number_of_iterations = niterations
+        self.constant_alpha = calpha
+        self.user_to_id = {}
+        self.item_to_id = {}
+        self.dimensions = None
         self.factors = []
         self.counts = []
-        for dim in dimensions:
-            self.factors.append(np.random.rand(d, dim))
-            self.counts.append(np.zeros((dim, 1)))
-        self.regularizer = None
-        self.matrix_vector_product = None
-        self.one = None
-        self.invertible = None
-        self.tmp = None
 
-    def iterate(self, tensor, data_array):
-        """
-        Iterate  over each Factor Matrix
-        :param tensor:
-        :return:
-        """
-        dimension_range = list(range(len(self.dimensions)))
-        for dim_idx, dimension in enumerate(self.dimensions):
+    def train(self, training_data):
 
-            # The base computation
-            if len(self.dimensions) == 2:
-                base = self.factors[1 - len(self.dimensions)]
-                base = np.dot(base, base.transpose())
-            else:
-                base = np.ones((self.d, self.d))
-                for j in dimension_range:
-                    if j != dim_idx:
-                        base = np.dot(self.factors[j], self.factors[j].transpose())
+        tmp = np.ones((self.number_of_factors, 1))
+        regularizer = np.multiply(np.eye(self.number_of_factors), self.constant_lambda)
+        matrix_vector_product = np.zeros((self.number_of_factors, 1))
+        one = np.eye(self.number_of_factors)
+        invertible = np.zeros((self.number_of_factors, self.number_of_factors))
 
-            if not dim_idx:  # dim_idx == 0
-                for entry in range(dimension):
-                    count = sum((1 for j in range(data_array.shape[0]) if data_array[j, dim_idx] == entry)) or 1
-                    self.counts[dim_idx][entry, 0] = count
+        tensor = []
 
-            for entry in range(dimension):
-                if entry in tensor[dim_idx]:
-                    data_row_list = tensor[dim_idx][entry]
-                    for data in data_row_list:
-                        self.tmp = self.tmp * 0. + 1.
-                        self.tmp = self.tmp * self.factors[dim_idx][:, data_array[data, dim_idx]]
-                        score = data_array[data_array.shape[1], dim_idx]
-                        weight = 1. + self.alpha_value * math.log(1. + abs(score))
+        for i, dimension in enumerate(self.dimensions):
+            tensor.append({})
 
-                        self.invertible += (1. - weight) * self.tmp * self.tmp.transpose()
-                        self.matrix_vector_product += self.tmp * np.sign(score) * weight
+            for j in xrange(dimension):
+                tensor[i][j+1] = []
 
-                        self.invertible += base
-                        self.regularizer = self.regularizer * 1. / self.dimensions[dim_idx]
-                        self.invertible += self.regularizer
+            for dataRow in range(training_data.shape[0]):
+                index = training_data[dataRow, i]
+                t = tensor[i]
+                t[index].append(dataRow)
 
-                        #is this equal to rank-one update?
-                        self.invertible = np.linalg.solve(self.invertible, self.one)
+        for ite in range(self.number_of_iterations):
+            for currentDimension in range(len(self.dimensions)):
+                if len(self.dimensions) == 2:
+                    base = self.factors[1 - currentDimension]
+                    base = np.dot(base, base.transpose())
+                else:
+                    base = np.ones((self.number_of_factors, self.number_of_factors))
+                    for matrixIndex in range(len(self.dimensions)):
+                        if matrixIndex != currentDimension:
+                            base = np.multiply(base, np.dot(self.factors[matrixIndex],
+                                                            self.factors[matrixIndex].transpose()))
 
-                        # Put the calculated factor back into place
+                for dataEntry in range(1, self.dimensions[currentDimension]+1):
+                    dataRowList = tensor[currentDimension][dataEntry]
+                    for dataRow in dataRowList:
+                        tmp = np.add(np.multiply(tmp, 0.), 1.0)
+                        for dataCol in range(len(self.dimensions)):
+                            if dataCol != currentDimension:
+                                tmp = tmp * self.factors[dataCol][:, training_data[dataRow, dataCol]-1].reshape(self.number_of_factors, 1)
+                        score = training_data[dataRow, training_data.shape[1] - 1]
+                        weight = 1. + self.constant_alpha * math.log(1. + math.fabs(score))
 
-                        self.factors[dim_idx][:, entry] = np.dot(self.matrix_vector_product, self.invertible)
+                        invertible += (weight - 1.) * (tmp * tmp.transpose())
+                        matrix_vector_product = np.add(matrix_vector_product, np.multiply(tmp, math.copysign(1, score) * weight))
+                    invertible = np.add(invertible, base)
+                    regularizer = regularizer / self.dimensions[currentDimension]
 
-                        # Reset invertible and matrix_vector_product
-                        self.invertible *= 0.
-                        self.matrix_vector_product *= 0.
+                    invertible = np.add(invertible, regularizer)
+                    invertible = np.linalg.solve(invertible, one)
 
-    def prepare_tensor(self, data_array):
-        """
-        Prepare the data
-
-        :param data_array: Data to convert in to tensor model
-        """
-
-        self.regularizer = np.multiply(np.identity(self.d), self.lambda_value)
-        self.matrix_vector_product = np.zeros((1, self.d))
-        self.one = np.identity(self.d)
-        self.invertible = np.zeros((self.d, self.d))
-        self.tmp = np.ones((1, self.d))
-        tensor = {}
-        for i, dim in enumerate(self.dimensions):
-            tensor[i] = {}
-            for j, row in enumerate(data_array):
-                try:
-                    tensor[i][row[0, i]].append(j)
-                except KeyError:
-                    tensor[i][row[0, i]] = [j]
-        return tensor
-
-    def train(self, data_array):
-        """
-        Implementation of TensorCoFi training in Python
-
-        :param data_array: Data to convert in to tensor model
-        """
-        tensor = self.prepare_tensor(data_array)
-        # Starting loops
-        for _ in range(self.iterations):
-            self.iterate(tensor, data_array)
+                    self.factors[currentDimension][:, dataEntry-1] = np.dot(invertible, matrix_vector_product).reshape(self.number_of_factors)
+                    invertible = np.multiply(invertible,  0.)
+                    matrix_vector_product = np.multiply(matrix_vector_product, 0.)
 
     def fit(self, data):
-        pass
+        self.user_to_id = {}
+        self.item_to_id = {}
+        for uid, user in enumerate(data["user"].unique(), start=1):
+            self.user_to_id[user] = uid
+        for iid, item in enumerate(data["item"].unique(), start=1):
+            self.item_to_id[item] = iid
 
+        np_data = \
+            np.matrix([(self.user_to_id[row["user"]], self.item_to_id[row["item"]]) for _, row in data.iterrows()])
+        self.dimensions = [len(self.user_to_id), len(self.item_to_id)]
+        self.factors = [np.random.rand(self.number_of_factors, i) for i in self.dimensions]
+        self.counts = [np.zeros((i, 1)) for i in self.dimensions]
+        #for dim in self.dimensions:
+        #    self.factors.append(np.random.rand(self.d, dim))
+        #    self.counts.append(np.zeros((dim, 1)))
+        self.train(np_data)
 
     def get_model(self):
         """
         TODO
         """
         return self.factors
+
+    def getScore(self, user, item):
+        user_vec = self.factors[0][:, self.user_to_id[user]-1].transpose()
+        item_vec = self.factors[1][:, self.item_to_id[item]-1]
+        return np.dot(user_vec, item_vec)
+
+    def getName(self):
+        return "Python Implementations of TensorCoFi"
 
     def online_user_factors(self, Y, user_item_ids, p_param = 10, lambda_param = 0.01):
         """
