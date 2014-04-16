@@ -300,6 +300,13 @@ class PyTensorCoFi(IModel):
         return self.tmp
 
     def train(self, training_data):
+        self.dimensions = [len(self.data_map[self.get_user_column()]), len(self.data_map[self.get_item_column()])]
+        self.base = self.base_for_2_dimensions if len(self.dimensions) == 2 else self.standard_base
+        self.tmp_calc = self.tmp_or_2_dimensions if len(self.dimensions) == 2 else self.standard_tmp
+
+        self.factors = [np.random.rand(self.number_of_factors, i) for i in self.dimensions]
+        self.counts = [np.zeros((i, 1)) for i in self.dimensions]
+
         regularizer = np.multiply(np.eye(self.number_of_factors), self.constant_lambda)
         one = np.eye(self.number_of_factors)
         tensor = {}
@@ -321,26 +328,32 @@ class PyTensorCoFi(IModel):
                         tmp = self.tmp_calc(current_dimension, training_data, row)
                         score = training_data[row, training_data.shape[1] - 1]
                         weight = 1. + self.constant_alpha * math.log(1. + math.fabs(score))
-                        try:
-                            invertible += (weight - 1.) * (tmp * tmp.transpose())
-                        except NameError:
-                            invertible = self.invertible + (weight - 1.) * (tmp * tmp.transpose())
-                        try:
-                            matrix_vector_product = \
-                                np.add(matrix_vector_product, np.multiply(tmp, math.copysign(1, score) * weight))
-                        except NameError:
-                            matrix_vector_product = \
-                                np.add(self.matrix_vector_product, np.multiply(tmp, math.copysign(1, score) * weight))
 
-                    invertible = np.add(invertible, base)
-                    regularizer = regularizer / self.dimensions[current_dimension]
+                        invertible = \
+                            locals().get("invertible", self.invertible) + (weight - 1.) * (tmp * tmp.transpose())
+                        matrix_vector_product = \
+                            locals().get("matrix_vector_product", self.matrix_vector_product) + \
+                            np.multiply(tmp, math.copysign(1, score) * weight)
+
+                    invertible = np.add(locals().get("invertible", self.invertible), base)
+                    regularizer /= self.dimensions[current_dimension]
                     invertible = np.add(invertible, regularizer)
                     invertible = np.linalg.solve(invertible, one)
                     self.factors[current_dimension][:, entry-1] = \
-                        np.dot(invertible, matrix_vector_product).reshape(self.number_of_factors)
-                    del matrix_vector_product
-                    del invertible
+                        np.dot(invertible,
+                               locals().get("matrix_vector_product",
+                                            self.matrix_vector_product)).reshape(self.number_of_factors)
+                    try:
+                        del matrix_vector_product
+                    except UnboundLocalError:
+                        pass
+                    try:
+                        del invertible
+                    except UnboundLocalError:
+                        pass
 
+        self.base = self.tmp_calc = None
+    """
     def fit(self, data):
         self.user_to_id = {}
         self.item_to_id = {}
@@ -359,6 +372,7 @@ class PyTensorCoFi(IModel):
         self.counts = [np.zeros((i, 1)) for i in self.dimensions]
         self.train(np_data)
         self.base = self.tmp_calc = None
+    """
 
     def get_model(self):
         """
@@ -367,8 +381,8 @@ class PyTensorCoFi(IModel):
         return self.factors
 
     def get_score(self, user, item):
-        user_vec = self.factors[0][:, self.user_to_id[user]-1].transpose()
-        item_vec = self.factors[1][:, self.item_to_id[item]-1]
+        user_vec = self.factors[0][:, self.data_map[self.get_user_column()][user]-1].transpose()
+        item_vec = self.factors[1][:, self.data_map[self.get_item_column()][item]-1]
         return np.dot(user_vec, item_vec)
 
     def get_name(self):
@@ -396,7 +410,5 @@ if __name__ == "__main__":
     doctest.testmod()
 
     t = TensorCoFiByFile()
-    t.fit(pd.DataFrame({
-        "user": [1, 1, 3, 4], "item": [1, 2, 3, 4], "rating": [5,3,2,1],
-        "date": [11,12,13,14]}))
+    t.fit(pd.DataFrame({"user": [1, 1, 3, 4], "item": [1, 2, 3, 4], "rating": [5,3,2,1],"date": [11,12,13,14]}))
     t.get_score(1, 4)
