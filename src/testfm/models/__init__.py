@@ -95,8 +95,8 @@ class IModel(object):
         users_unique = training_data[self.get_user_column()].unique()
         items_unique = training_data[self.get_item_column()].unique()
         self.data_map = {
-            self.get_user_column(): pd.Series(xrange(len(users_unique)), users_unique),
-            self.get_item_column(): pd.Series(xrange(len(items_unique)), items_unique),
+            self.get_user_column(): pd.Series(xrange(1, len(users_unique)+1), users_unique),
+            self.get_item_column(): pd.Series(xrange(1, len(items_unique)+1), items_unique),
         }
         data = [
             map(lambda x: self.data_map[self.get_user_column()][x], training_data[self.get_user_column()].values),
@@ -104,3 +104,15 @@ class IModel(object):
             training_data.get(self.get_rating_column(), np.ones((1, len(training_data))))
         ]
         self.train(np.array(data).transpose())
+
+    def users_size(self):
+        """
+        Return the number of users
+        """
+        return len(self.data_map[self.get_user_column()])
+
+    def items_size(self):
+        """
+        Return the number of items
+        """
+        return len(self.data_map[self.get_item_column()])

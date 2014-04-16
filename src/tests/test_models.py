@@ -8,7 +8,7 @@ from pkg_resources import resource_filename
 
 import testfm
 from testfm.models.graphchi_models import SVDpp
-from testfm.models.tensorCoFi import TensorCoFi, TensorCoFiByFile, PyTensorCoFi
+from testfm.models.tensorcofi import TensorCoFi, TensorCoFiByFile, PyTensorCoFi
 from testfm.models.baseline_model import IdModel, Item2Item, AverageModel, RandomModel
 from testfm.models.ensemble_models import LogisticEnsemble
 from testfm.models.content_based import TFIDFModel, LSIModel

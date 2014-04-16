@@ -2,7 +2,7 @@ __author__ = 'linas'
 
 import pandas as pd
 import testfm
-from testfm.models.tensorCoFi import TensorCoFi
+from testfm.models.tensorcofi import TensorCoFi
 from testfm.evaluation.evaluator import Evaluator
 from pkg_resources import resource_filename
 
