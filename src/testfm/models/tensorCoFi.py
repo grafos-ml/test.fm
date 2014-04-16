@@ -7,19 +7,20 @@ Connector for the tensor CoFi Java implementation
 .. moduleauthor:: joaonrb <joaonrb@gmail.com>
 """
 __author__ = {
-    "name":"joaonrb",
+    "name": "joaonrb",
     "e-mail": "joaonrb@gmail.com"
 }
-__version__ = 1, 0, 0
+__version__ = 1, 1
 __since__ = 16, 1, 2014
+__change__ = 16, 4, 2014
 
 from pkg_resources import resource_filename
 import testfm
 import os
 import numpy as np
-import scipy as sp
-os.environ["CLASSPATH"] = resource_filename(testfm.__name__, "lib/algorithm-1.0-SNAPSHOT-jar-with-dependencies.jar:") + \
-    os.environ.get("CLASSPATH", "")
+
+tensor_jar = resource_filename(testfm.__name__, "lib/algorithm-1.0-SNAPSHOT-jar-with-dependencies.jar")
+os.environ["CLASSPATH"] = ":".join([tensor_jar, os.environ.get("CLASSPATH", "")])
 
 
 import datetime
@@ -38,46 +39,42 @@ Arrays = autoclass("java.util.Arrays")
 
 class TensorCoFi(IModel):
 
-    def __init__(self, dim=20, nIter=5, lamb=0.05, alph=40, user_features=["user"], item_features=["item"]):
+    number_of_factors = 20
+    number_of_iterations = 5
+    constant_lambda = .05
+    constant_alpha = 40
+
+    user_column_names = ["user"]
+    item_column_names = ["item"]
+
+    def __init__(self, n_factors=None, n_iterations=None, c_lambda=None, c_alpha=None, user_features=None,
+                 item_features=None):
         """
-        Python model creator fro tensor implementation in java
+        Constructor
 
-        **Args**
-
-            *pandas.DataFrame* trainData:
-                The data to train the tensor
-
-            *int* dim:
-                Dimension of some kind. Default = 20.
-
-            *int* nIter:
-                Nmber of iteration. Default = 5.
-
-            *float* lamb:
-                Lambda value for the algorithm. Default = 0,05.
-
-            *int* alph:
-                Alpha number for the algorithm. Default = 40.
-
+        :param n_factors: Number of factors to the matrices
+        :param n_iterations: Number of iteration in the matrices construction
+        :param c_lambda: I came back when I find it out
+        :param c_alpha: Constant important in weight calculation
         """
-        self.set_params(dim, nIter, lamb, alph)
+        self.set_params(n_factors, n_iterations, c_lambda, c_alpha)
         self.user_features = {}
         self.item_features = {}
         self.factors = {}
 
-        self.user_column_names = user_features
-        self.item_column_names = item_features
+        self.user_column_names = user_features or self.user_column_names
+        self.item_column_names = item_features or self.item_column_names
 
     @classmethod
     def param_details(cls):
         """
-        Return parameter details for dim, nIter, lamb and alph
+        Return parameter details for n_factors, n_iterations, c_lambda and c_alpha
         """
         return {
-            "dim": (10, 20, 2, 20),
-            "nIter": (1, 10, 2, 5),
-            "lamb": (.1, 1., .1, .05),
-            "alph": (30, 50, 5, 40)
+            "n_factors": (10, 20, 2, 20),
+            "n_iterations": (1, 10, 2, 5),
+            "c_lambda": (.1, 1., .1, .05),
+            "c_alpha": (30, 50, 5, 40)
         }
 
     def _dataframe_to_float_matrix(self, df):
@@ -118,7 +115,7 @@ class TensorCoFi(IModel):
         dims = [len(self._dmap[c])
                 for c in self.user_column_names + self.item_column_names]
 
-        tensor = JavaTensorCoFi(self._dim, self._nIter, self._lamb, self._alph,
+        tensor = JavaTensorCoFi(self.number_of_factors, self.number_of_iterations, self.constant_lambda, self.constant_alpha,
                                 dims)
         tensor.train(data)
 
@@ -156,17 +153,18 @@ class TensorCoFi(IModel):
                 ret = self.factors[name][indexes[i]-1]
         return sum(ret)
 
-    def set_params(self, dim=20, nIter=5, lamb=0.05, alph=40):
+    def set_params(self, n_factors, n_iterations, c_lambda, c_alpha):
         """
         Set the parameters for the TensorCoFi
         """
-        self._dim = dim
-        self._nIter = nIter
-        self._lamb = lamb
-        self._alph = alph
+        self.number_of_factors = n_factors or self.number_of_factors
+        self.number_of_iterations = n_iterations or self.number_of_iterations
+        self.constant_lambda = c_lambda or self.constant_lambda
+        self.constant_alpha = c_alpha or self.constant_alpha
 
     def get_name(self):
-        return "TensorCoFi (dim={},iter={},lambda={},alpha={})".format(self._dim, self._nIter, self._lamb, self._alph)
+        return "TensorCoFi(n_factors=%s, n_iterations=%s, c_lambda=%s, c_alpha=%s)" % \
+               (self.number_of_factors, self.number_of_iterations, self.constant_lambda, self.constant_alpha)
 
 
 class TensorCoFiByFile(TensorCoFi):
@@ -211,8 +209,8 @@ class TensorCoFiByFile(TensorCoFi):
             data.to_csv(datafile, header=False, index=False, cols=["user", "item"])
             name = os.path.dirname(datafile.name)+"/"
         java_jar = resource_filename(testfm.__name__, "lib/algorithm-1.0-SNAPSHOT-jar-with-dependencies.jar")
-        sub = subprocess.Popen(["java", "-cp", java_jar, "es.tid.frappe.python.TensorCoPy", name, str(self._dim),
-                                str(self._nIter), str(self._lamb), str(self._alph), str(len(tmap[USER])),
+        sub = subprocess.Popen(["java", "-cp", java_jar, "es.tid.frappe.python.TensorCoPy", name, str(self.number_of_factors),
+                                str(self.number_of_iterations), str(self.constant_lambda), str(self.constant_alpha), str(len(tmap[USER])),
                                 str(len(tmap[ITEM]))], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = sub.communicate()
         if err:
@@ -231,19 +229,19 @@ class PyTensorCoFi(IModel):
     Python implementation of tensorCoFi algorithm based on the java version from Alexandros Karatzoglou
     """
 
-    def __init__(self, nfactors, niterations, clambda, calpha):
+    def __init__(self, n_factors, n_iterations, c_lambda, c_alpha):
         """
         Constructor
 
-        :param nfactors: Number of factors to the matrices
-        :param niterations: Number of iteration in the matrices construction
-        :param clambda: I came back when I find it out
-        :param calpha: Constant important in weight calculation
+        :param n_factors: Number of factors to the matrices
+        :param n_iterations: Number of iteration in the matrices construction
+        :param c_lambda: I came back when I find it out
+        :param c_alpha: Constant important in weight calculation
         """
-        self.number_of_factors = nfactors
-        self.constant_lambda = clambda
-        self.number_of_iterations = niterations
-        self.constant_alpha = calpha
+        self.number_of_factors = n_factors
+        self.constant_lambda = c_lambda
+        self.number_of_iterations = n_iterations
+        self.constant_alpha = c_alpha
         self.user_to_id = {}
         self.item_to_id = {}
         self.dimensions = None
@@ -374,7 +372,8 @@ class PyTensorCoFi(IModel):
         return np.dot(user_vec, item_vec)
 
     def get_name(self):
-        return "Python TensorCoFi"
+        return "Python TensorCoFi(n_factors=%s, n_iterations=%s, c_lambda=%s, c_alpha=%s)" % \
+               (self.number_of_factors, self.number_of_iterations, self.constant_lambda, self.constant_alpha)
 
     def online_user_factors(self, Y, user_item_ids, p_param = 10, lambda_param = 0.01):
         """

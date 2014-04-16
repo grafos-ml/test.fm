@@ -85,8 +85,8 @@ class TestTensorCoFi(unittest.TestCase):
         self.assertEquals(iid, 1)
 
         self.assertEquals(len(self.tf.factors['user'][uid]), 2)
-        self.assertEquals(len(self.tf.factors['user'][uid]), self.tf._dim)
-        self.assertEquals(len(self.tf.factors['item'][iid]), self.tf._dim)
+        self.assertEquals(len(self.tf.factors['user'][uid]), self.tf.number_of_factors)
+        self.assertEquals(len(self.tf.factors['item'][iid]), self.tf.number_of_factors)
 
 
     def test_score(self):
