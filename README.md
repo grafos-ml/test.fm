@@ -16,17 +16,18 @@ Example of using the Test.fm framework
 	from testfm.models.tensorCoFi import TensorCoFi
 	from testfm.evaluation.evaluator import Evaluator
 	
-	evaluator=Evaluator()
+	evaluator = Evaluator()
 
 	#prepare the data
 	df = pd.read_csv(..., names=['user', 'item', 'rating', 'date', 'title'])
 	training, testing = testfm.split.holdoutByRandom(df, 0.9)
 
 	#tell me what models we want to evaluate
-	models = [  RandomModel(),
-				Popularity(),
-				TensorCoFi(),
-			 ]
+	models = [
+	    RandomModel(),
+		Popularity(),
+		TensorCoFi(),
+	]
 	
 	#evaluate
 	items = training.item.unique()
