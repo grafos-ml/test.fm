@@ -101,7 +101,7 @@ class IModel(object):
         data = [
             map(lambda x: self.data_map[self.get_user_column()][x], training_data[self.get_user_column()].values),
             map(lambda x: self.data_map[self.get_item_column()][x], training_data[self.get_item_column()].values),
-            training_data.get(self.get_rating_column(), np.ones((1, len(training_data))))
+            training_data.get(self.get_rating_column(), np.ones((len(training_data,))).tolist())
         ]
         self.train(np.array(data).transpose())
 

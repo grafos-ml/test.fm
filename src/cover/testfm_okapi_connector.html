@@ -626,7 +626,7 @@
 <p id='t17' class='stm run hide_run'><span class='key'>from</span> <span class='nam'>fabric</span><span class='op'>.</span><span class='nam'>api</span> <span class='key'>import</span> <span class='nam'>env</span><span class='op'>,</span> <span class='nam'>run</span><span class='strut'>&nbsp;</span></p>
 <p id='t18' class='stm run hide_run'><span class='key'>from</span> <span class='nam'>pkg_resources</span> <span class='key'>import</span> <span class='nam'>resource_filename</span><span class='strut'>&nbsp;</span></p>
 <p id='t19' class='stm run hide_run'><span class='key'>from</span> <span class='nam'>testfm</span> <span class='key'>import</span> <span class='nam'>okapi</span><span class='strut'>&nbsp;</span></p>
-<p id='t20' class='stm run hide_run'><span class='key'>from</span> <span class='nam'>testfm</span><span class='op'>.</span><span class='nam'>models</span><span class='op'>.</span><span class='nam'>interface</span> <span class='key'>import</span> <span class='nam'>ModelInterface</span><span class='strut'>&nbsp;</span></p>
+<p id='t20' class='stm run hide_run'><span class='key'>from</span> <span class='nam'>testfm</span><span class='op'>.</span><span class='nam'>models</span> <span class='key'>import</span> <span class='nam'>IModel</span><span class='strut'>&nbsp;</span></p>
 <p id='t21' class='stm run hide_run'><span class='key'>import</span> <span class='nam'>getpass</span><span class='strut'>&nbsp;</span></p>
 <p id='t22' class='pln'><span class='strut'>&nbsp;</span></p>
 <p id='t23' class='stm run hide_run'><span class='nam'>logger</span> <span class='op'>=</span> <span class='nam'>logging</span><span class='op'>.</span><span class='nam'>getLogger</span><span class='op'>(</span><span class='nam'>__name__</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
@@ -674,7 +674,7 @@
 <p id='t65' class='pln'><span class='str'>&nbsp; &nbsp; &quot;&quot;&quot;</span><span class='strut'>&nbsp;</span></p>
 <p id='t66' class='pln'><span class='strut'>&nbsp;</span></p>
 <p id='t67' class='pln'><span class='strut'>&nbsp;</span></p>
-<p id='t68' class='stm run hide_run'><span class='key'>class</span> <span class='nam'>BaseOkapiModel</span><span class='op'>(</span><span class='nam'>ModelInterface</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t68' class='stm run hide_run'><span class='key'>class</span> <span class='nam'>BaseOkapiModel</span><span class='op'>(</span><span class='nam'>IModel</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
 <p id='t69' class='pln'>&nbsp; &nbsp; <span class='str'>&quot;&quot;&quot;</span><span class='strut'>&nbsp;</span></p>
 <p id='t70' class='pln'><span class='str'>&nbsp; &nbsp; New Okapi Connector abstract model</span><span class='strut'>&nbsp;</span></p>
 <p id='t71' class='pln'><span class='str'>&nbsp; &nbsp; &quot;&quot;&quot;</span><span class='strut'>&nbsp;</span></p>
@@ -807,7 +807,7 @@
 <p id='t198' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='nam'>result</span> <span class='op'>=</span> <span class='nam'>pd</span><span class='op'>.</span><span class='nam'>DataFrame</span><span class='op'>(</span><span class='nam'>data</span><span class='op'>[</span><span class='str'>&quot;0&quot;</span><span class='op'>]</span><span class='op'>)</span><span class='op'>,</span> <span class='nam'>pd</span><span class='op'>.</span><span class='nam'>DataFrame</span><span class='op'>(</span><span class='nam'>data</span><span class='op'>[</span><span class='str'>&quot;1&quot;</span><span class='op'>]</span><span class='op'>)</span><span class='strut'>&nbsp;</span></p>
 <p id='t199' class='stm mis'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='key'>return</span> <span class='nam'>result</span><span class='strut'>&nbsp;</span></p>
 <p id='t200' class='pln'><span class='strut'>&nbsp;</span></p>
-<p id='t201' class='stm run hide_run'>&nbsp; &nbsp; <span class='key'>def</span> <span class='nam'>getScore</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>,</span> <span class='nam'>user</span><span class='op'>,</span> <span class='nam'>item</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
+<p id='t201' class='stm run hide_run'>&nbsp; &nbsp; <span class='key'>def</span> <span class='nam'>get_score</span><span class='op'>(</span><span class='nam'>self</span><span class='op'>,</span> <span class='nam'>user</span><span class='op'>,</span> <span class='nam'>item</span><span class='op'>)</span><span class='op'>:</span><span class='strut'>&nbsp;</span></p>
 <p id='t202' class='pln'>&nbsp; &nbsp; &nbsp; &nbsp; <span class='str'>&quot;&quot;&quot;</span><span class='strut'>&nbsp;</span></p>
 <p id='t203' class='pln'><span class='str'>&nbsp; &nbsp; &nbsp; &nbsp; A score for a user and item that method predicts.</span><span class='strut'>&nbsp;</span></p>
 <p id='t204' class='pln'><span class='str'>&nbsp; &nbsp; &nbsp; &nbsp; :param user: id of the user</span><span class='strut'>&nbsp;</span></p>

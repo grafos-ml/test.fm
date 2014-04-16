@@ -6,18 +6,18 @@ import subprocess
 import tempfile
 import datetime
 import numpy as np
-from interface import ModelInterface
+from testfm.models import IModel
 logger = logging.getLogger(__name__)
 from scipy.io.mmio import mminfo, mmread, mmwrite
 
-class SVDpp(ModelInterface):
+class SVDpp(IModel):
 
     def __init__(self, tmp_dir="/tmp"):
         self.tmp_dir = tmp_dir
-        params = {k: v[2] for k,v in self.paramDetails().items()}
-        self.setParams(**params)
+        params = {k: v[2] for k,v in self.param_details().items()}
+        self.set_params(**params)
 
-    def getScore(self, user, item):
+    def get_score(self, user, item):
         uid = self.umap[user]
         iid = self.imap[item]
         #check, I think graphchi changed the ouput?
@@ -25,8 +25,7 @@ class SVDpp(ModelInterface):
         pred = self.global_mean + self.U_bias[uid] + self.V_bias[iid] + np.dot(self.U[uid], self.V[iid])
         return float(pred)
 
-
-    def setParams(self, nIter=5, lamb=0.05, gamma=0.01):
+    def set_params(self, nIter=5, lamb=0.05, gamma=0.01):
         """
         Set the parameters for the TensorCoFi
         """
@@ -34,9 +33,8 @@ class SVDpp(ModelInterface):
         self._lamb = lamb
         self._gamm = gamma
 
-
     @classmethod
-    def paramDetails(cls):
+    def param_details(cls):
         """
         Return parameter details for parameters
         """
