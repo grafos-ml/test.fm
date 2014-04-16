@@ -7,8 +7,8 @@ Connector for the tensor CoFi Java implementation
 .. moduleauthor:: joaonrb <joaonrb@gmail.com>
 """
 __author__ = {
-    'name':'joaonrb',
-    'e-mail': 'joaonrb@gmail.com'
+    "name":"joaonrb",
+    "e-mail": "joaonrb@gmail.com"
 }
 __version__ = 1, 0, 0
 __since__ = 16, 1, 2014
@@ -18,8 +18,8 @@ import testfm
 import os
 import numpy as np
 import scipy as sp
-os.environ['CLASSPATH'] = resource_filename(testfm.__name__, 'lib/algorithm-1.0-SNAPSHOT-jar-with-dependencies.jar:') + \
-    os.environ.get('CLASSPATH', "")
+os.environ["CLASSPATH"] = resource_filename(testfm.__name__, "lib/algorithm-1.0-SNAPSHOT-jar-with-dependencies.jar:") + \
+    os.environ.get("CLASSPATH", "")
 
 
 import datetime
@@ -31,9 +31,9 @@ from testfm.models.interface import ModelInterface
 from testfm.config import USER, ITEM
 import math
 
-JavaTensorCoFi = autoclass('es.tid.frappe.recsys.TensorCoFi')
-FloatMatrix = autoclass('org.jblas.FloatMatrix')
-Arrays = autoclass('java.util.Arrays')
+JavaTensorCoFi = autoclass("es.tid.frappe.recsys.TensorCoFi")
+FloatMatrix = autoclass("org.jblas.FloatMatrix")
+Arrays = autoclass("java.util.Arrays")
 
 
 class TensorCoFi(ModelInterface):
@@ -74,10 +74,10 @@ class TensorCoFi(ModelInterface):
         Return parameter details for dim, nIter, lamb and alph
         """
         return {
-            'dim': (10, 20, 2, 20),
-            'nIter': (1, 10, 2, 5),
-            'lamb': (.1, 1., .1, .05),
-            'alph': (30, 50, 5, 40)
+            "dim": (10, 20, 2, 20),
+            "nIter": (1, 10, 2, 5),
+            "lamb": (.1, 1., .1, .05),
+            "alph": (30, 50, 5, 40)
         }
 
     def _dataframe_to_float_matrix(self, df):
@@ -103,8 +103,8 @@ class TensorCoFi(ModelInterface):
                 if c in self.item_column_names:
                     item_idx.append(value)
 
-            self.user_features[tuple_var['user']] = user_idx
-            self.item_features[tuple_var['item']] = item_idx
+            self.user_features[tuple_var["user"]] = user_idx
+            self.item_features[tuple_var["item"]] = item_idx
         return mc, id_map
 
     def _fit(self,data):
@@ -125,8 +125,7 @@ class TensorCoFi(ModelInterface):
         final_model = tensor.getModel()
         self.factors = {}
         for i, c in enumerate(self.user_column_names+self.item_column_names):
-            self.factors[c] = self._float_matrix2numpy(
-                final_model.get(i)).transpose()
+            self.factors[c] = self._float_matrix2numpy(final_model.get(i)).transpose()
         return tensor
 
     def fit(self,data):
@@ -175,7 +174,7 @@ class TensorCoFiByFile(TensorCoFi):
 
     _dmap = {}
 
-    def _map(self,df):
+    def _map(self, df):
         id_map = {}
 
         self.user_features = {}  #map from user to indexes
@@ -199,38 +198,32 @@ class TensorCoFiByFile(TensorCoFi):
                 if c in self.item_column_names:
                     item_idx.append(value)
             mc.append(t)
-            self.user_features[tuple_var['user']] = user_idx
-            self.item_features[tuple_var['item']] = item_idx
-        return pd.DataFrame({k:v for k,v in zip(features,zip(*mc))}), id_map
+            self.user_features[tuple_var["user"]] = user_idx
+            self.item_features[tuple_var["item"]] = item_idx
+        return pd.DataFrame({k: v for k, v in zip(features,zip(*mc))}), id_map
 
-    def fit(self,data):
+    def fit(self, data):
         data, tmap = self._map(data)
         self._dmap = tmap
-        directory = 'log/' + datetime.datetime.now().isoformat('_')
+        directory = "log/" + datetime.datetime.now().isoformat("_")
         if not os.path.exists(directory):
             os.makedirs(directory)
-        with open(directory+'/train.csv','w') as datafile:
-            data.to_csv(datafile, header=False, index=False,
-                        cols=['user','item'])
-            name = os.path.dirname(datafile.name)+'/'
-        sub = subprocess.Popen(['java', '-cp' , resource_filename(
-            testfm.__name__, 'lib/algorithm-1.0-SNAPSHOT-jar-with-dependencies'
-                             '.jar'),
-            'es.tid.frappe.python.TensorCoPy', name, str(self._dim),
-            str(self._nIter), str(self._lamb), str(self._alph),
-            str(len(tmap[USER])), str(len(tmap[ITEM]))],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        with open(directory+"/train.csv", "w") as datafile:
+            data.to_csv(datafile, header=False, index=False, cols=["user", "item"])
+            name = os.path.dirname(datafile.name)+"/"
+        java_jar = resource_filename(testfm.__name__, "lib/algorithm-1.0-SNAPSHOT-jar-with-dependencies.jar")
+        sub = subprocess.Popen(["java", "-cp", java_jar, "es.tid.frappe.python.TensorCoPy", name, str(self._dim),
+                                str(self._nIter), str(self._lamb), str(self._alph), str(len(tmap[USER])),
+                                str(len(tmap[ITEM]))], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = sub.communicate()
         if err:
             #os.remove(name)
             print out
             raise Exception(err)
-        users, items = out.split(' ')
+        users, items = out.split(" ")
         self.factors = {
-            'user': np.ma.column_stack(np.genfromtxt(
-                open(users,'r'), delimiter=',')),
-            'item': np.ma.column_stack(np.genfromtxt(
-                open(items,'r'), delimiter=','))
+            "user": np.ma.column_stack(np.genfromtxt(open(users, "r"), delimiter=",")),
+            "item": np.ma.column_stack(np.genfromtxt(open(items, "r"), delimiter=","))
         }
 
 
@@ -399,13 +392,13 @@ class PyTensorCoFi(object):
         return u_factors
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     import doctest
     doctest.testmod()
 
     t = TensorCoFiByFile()
     t.fit(pd.DataFrame({
-        'user': [1, 1, 3, 4], 'item': [1, 2, 3, 4], 'rating': [5,3,2,1],
-        'date': [11,12,13,14]}))
+        "user": [1, 1, 3, 4], "item": [1, 2, 3, 4], "rating": [5,3,2,1],
+        "date": [11,12,13,14]}))
     t.getScore(1, 4)

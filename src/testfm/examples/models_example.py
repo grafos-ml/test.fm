@@ -1,4 +1,4 @@
-__author__ = 'linas'
+__author__ = "linas"
 
 import testfm
 import pandas as pd
@@ -15,23 +15,22 @@ import datetime
 eval = Evaluator()
 
 #prepare the data
-df = pd.read_csv(resource_filename(testfm.__name__,'data/movielenshead.dat'),
-    sep="::", header=None, names=['user', 'item', 'rating', 'date', 'title'])
+df = pd.read_csv(resource_filename(testfm.__name__, "data/movielenshead.dat"), sep="::", header=None, names=["user", "item", "rating", "date", "title"])
 print df.head()
 training, testing = testfm.split.holdoutByRandom(df, 0.9)
 
 #tell me what models we want to evaluate
 models = [  #RandomModel(),
             #BPR(),
-            #TFIDFModel('title'),
+            #TFIDFModel("title"),
             #Popularity(),
-            #TensorCoFiByFile(dim=20, nIter=5, lamb=0.05, alph=40, user_features=['user'], item_features=['item', 'title']),
+            TensorCoFiByFile(dim=20, nIter=5, lamb=0.05, alph=40, user_features=["user"], item_features=["item"]),
             PyTensorCoFi(nfactors=20, niterations=5, clambda=0.05, calpha=40),
             #Item2Item(),
-            #LSIModel('title'),
+            #LSIModel("title"),
          ]
 
-#models += [LinearRank([models[2], models[3]],  item_features_column=['rating'])]
+#models += [LinearRank([models[2], models[3]],  item_features_column=["rating"])]
 items = training.item.unique()
 for m in models:
     t = datetime.datetime.now()
