@@ -36,7 +36,7 @@ for m in models:
     t = datetime.datetime.now()
     m.fit(training)
     print datetime.datetime.now()-t,
-    print m.getName().ljust(50),
+    print m.get_name().ljust(50),
     print eval.evaluate_model(m, testing, all_items=items,)
 
 eval.close()#need this call to clean up the worker processes

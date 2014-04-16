@@ -8,18 +8,14 @@ Interfaces for models
 """
 __author__ = 'joaonrb'
 
-import numpy as np
-from pandas import DataFrame
-from sklearn.gaussian_process import GaussianProcess
 
-
-class ModelInterface(object):
+class IModel(object):
     """
     
     """
 
     @classmethod
-    def paramDetails(cls):
+    def param_details(cls):
         """
         Return a dictionary with the parameters for the set parameters and
         a tuple with min, max, step and default value.
@@ -32,22 +28,22 @@ class ModelInterface(object):
         """
         raise NotImplementedError
 
-    def setParams(self, **kwargs):
+    def set_params(self, **kwargs):
         """
-        set the parameters in the model.
+        Set the parameters in the model.
 
         kwargs can have an arbitrary set of parameters
         """
         raise NotImplementedError
 
-    def getName(self):
+    def get_name(self):
         """
         Get the informative name for the model.
         :return:
         """
         return self.__class__.__name__
 
-    def getScore(self, user, item):
+    def get_score(self, user, item):
         """
         A score for a user and item that method predicts.
         :param user: id of the user

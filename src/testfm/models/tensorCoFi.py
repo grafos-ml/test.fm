@@ -27,7 +27,7 @@ import subprocess
 
 from jnius import autoclass
 import pandas as pd
-from testfm.models.interface import ModelInterface
+from testfm.models import IModel
 from testfm.config import USER, ITEM
 import math
 
@@ -36,7 +36,7 @@ FloatMatrix = autoclass("org.jblas.FloatMatrix")
 Arrays = autoclass("java.util.Arrays")
 
 
-class TensorCoFi(ModelInterface):
+class TensorCoFi(IModel):
 
     def __init__(self, dim=20, nIter=5, lamb=0.05, alph=40, user_features=["user"], item_features=["item"]):
         """
@@ -60,7 +60,7 @@ class TensorCoFi(ModelInterface):
                 Alpha number for the algorithm. Default = 40.
 
         """
-        self.setParams(dim,nIter, lamb, alph)
+        self.set_params(dim, nIter, lamb, alph)
         self.user_features = {}
         self.item_features = {}
         self.factors = {}
@@ -69,7 +69,7 @@ class TensorCoFi(ModelInterface):
         self.item_column_names = item_features
 
     @classmethod
-    def paramDetails(cls):
+    def param_details(cls):
         """
         Return parameter details for dim, nIter, lamb and alph
         """
@@ -107,7 +107,7 @@ class TensorCoFi(ModelInterface):
             self.item_features[tuple_var["item"]] = item_idx
         return mc, id_map
 
-    def _fit(self,data):
+    def _fit(self, data):
         """
         Return the model
         """
@@ -128,7 +128,7 @@ class TensorCoFi(ModelInterface):
             self.factors[c] = self._float_matrix2numpy(final_model.get(i)).transpose()
         return tensor
 
-    def fit(self,data):
+    def fit(self, data):
         """
         Prepare the model
         """
@@ -146,7 +146,7 @@ class TensorCoFi(ModelInterface):
         matrix = np.ma.column_stack(cols)
         return matrix
 
-    def getScore(self, user, item):
+    def get_score(self, user, item):
         names = self.user_column_names + self.item_column_names
         indexes = self.user_features[user] + self.item_features[item]
         for i, name in enumerate(names):
@@ -156,7 +156,7 @@ class TensorCoFi(ModelInterface):
                 ret = self.factors[name][indexes[i]-1]
         return sum(ret)
 
-    def setParams(self,dim=20, nIter=5, lamb=0.05, alph=40):
+    def set_params(self, dim=20, nIter=5, lamb=0.05, alph=40):
         """
         Set the parameters for the TensorCoFi
         """
@@ -165,9 +165,8 @@ class TensorCoFi(ModelInterface):
         self._lamb = lamb
         self._alph = alph
 
-    def getName(self):
-        return "TensorCoFi (dim={},iter={},lambda={},alpha={})".format(
-            self._dim, self._nIter, self._lamb, self._alph)
+    def get_name(self):
+        return "TensorCoFi (dim={},iter={},lambda={},alpha={})".format(self._dim, self._nIter, self._lamb, self._alph)
 
 
 class TensorCoFiByFile(TensorCoFi):
@@ -227,7 +226,7 @@ class TensorCoFiByFile(TensorCoFi):
         }
 
 
-class PyTensorCoFi(object):
+class PyTensorCoFi(IModel):
     """
     Python implementation of tensorCoFi algorithm based on the java version from Alexandros Karatzoglou
     """
@@ -369,13 +368,13 @@ class PyTensorCoFi(object):
         """
         return self.factors
 
-    def getScore(self, user, item):
+    def get_score(self, user, item):
         user_vec = self.factors[0][:, self.user_to_id[user]-1].transpose()
         item_vec = self.factors[1][:, self.item_to_id[item]-1]
         return np.dot(user_vec, item_vec)
 
-    def getName(self):
-        return "Python Implementations of TensorCoFi"
+    def get_name(self):
+        return "Python TensorCoFi"
 
     def online_user_factors(self, Y, user_item_ids, p_param = 10, lambda_param = 0.01):
         """
@@ -401,4 +400,4 @@ if __name__ == "__main__":
     t.fit(pd.DataFrame({
         "user": [1, 1, 3, 4], "item": [1, 2, 3, 4], "rating": [5,3,2,1],
         "date": [11,12,13,14]}))
-    t.getScore(1, 4)
+    t.get_score(1, 4)

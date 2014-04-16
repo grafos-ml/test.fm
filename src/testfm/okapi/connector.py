@@ -17,7 +17,7 @@ import pandas as pd
 from fabric.api import env, run
 from pkg_resources import resource_filename
 from testfm import okapi
-from testfm.models.interface import ModelInterface
+from testfm.models import IModel
 import getpass
 
 logger = logging.getLogger(__name__)
@@ -65,7 +65,7 @@ class OkapiJarNotInRepository(OkapiConnectorError):
     """
 
 
-class BaseOkapiModel(ModelInterface):
+class BaseOkapiModel(IModel):
     """
     New Okapi Connector abstract model
     """
@@ -198,7 +198,7 @@ class BaseOkapiModel(ModelInterface):
         result = pd.DataFrame(data["0"]), pd.DataFrame(data["1"])
         return result
 
-    def getScore(self, user, item):
+    def get_score(self, user, item):
         """
         A score for a user and item that method predicts.
         :param user: id of the user

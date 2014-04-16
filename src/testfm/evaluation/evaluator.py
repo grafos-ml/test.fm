@@ -8,13 +8,11 @@ Evaluator for the test.fm framework
 """
 __author__ = 'linas'
 
-
-from random import sample, shuffle
+from random import sample
 from pandas import DataFrame
 from itertools import izip, repeat
 from math import sqrt
-from testfm.evaluation.measures import Measure, MAPMeasure
-from testfm.models.interface import ModelInterface
+from testfm.evaluation.measures import MAPMeasure
 from testfm.models.baseline_model import IdModel
 
 from multiprocessing import Process, Queue, current_process, cpu_count
@@ -31,14 +29,14 @@ def worker(input, output):
 def partial_measure(user, entries, factor_model, all_items, non_relevant_count, measure, k=None):
     if non_relevant_count is None:
         # Add all items except relevant
-        ranked_list = [(False, factor_model.getScore(user, nr)) for nr in all_items if nr not in entries['item']]
+        ranked_list = [(False, factor_model.get_score(user, nr)) for nr in all_items if nr not in entries['item']]
         # Add relevant items
-        ranked_list += [(True, factor_model.getScore(user, r)) for r in entries['item']]
+        ranked_list += [(True, factor_model.get_score(user, r)) for r in entries['item']]
     else:
         #2. inject #non_relevant random items
-        ranked_list = [(False, factor_model.getScore(user, nr)) for nr in sample(all_items, non_relevant_count)]
+        ranked_list = [(False, factor_model.get_score(user, nr)) for nr in sample(all_items, non_relevant_count)]
         #2. add all relevant items from the testing_data
-        ranked_list += [(True, factor_model.getScore(user, i)) for i in entries['item']]
+        ranked_list += [(True, factor_model.get_score(user, i)) for i in entries['item']]
 
         #shuffle(ranked_list)  # Just to make sure we don't introduce any bias (AK: do we need this?)
 
@@ -139,7 +137,7 @@ class Evaluator(object):
         """
         sum = 0.0
         for idx, row in testing_data.iterrows():
-            p = model.getScore(row['user'], row['item'])
+            p = model.get_score(row['user'], row['item'])
             sum += (p - float(row['rating'])) ** 2
         return sqrt(sum/len(testing_data))
 

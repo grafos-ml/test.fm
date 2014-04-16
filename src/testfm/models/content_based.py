@@ -7,13 +7,13 @@ Content based model
 .. moduleauthor:: Linas
 """
 
-__author__ = 'linas'
+__author__ = "linas"
 
 from math import sqrt
 import numpy as np
 
 from gensim import corpora, models, similarities
-from testfm.models.interface import ModelInterface
+from testfm.models import IModel
 
 
 stopwords_str = "a,able,about,across,after,all,almost,also,am,among\
@@ -27,7 +27,7 @@ off,often,on,only,or,other,our,own,rather,said,say,says,she,should\
 ,who,whom,why,will,with,would,yet,you,your"
 
 
-class LSIModel(ModelInterface):
+class LSIModel(IModel):
     """
     LSI based Content Based Filtering using the app description.
     We build a LSI representation of applications.
@@ -37,7 +37,7 @@ class LSIModel(ModelInterface):
     """
 
     _dim = 50
-    _column_name = 'UNDEFINED'  # column name to use for content
+    _column_name = "UNDEFINED"  # column name to use for content
     _stopwords = {item: 1 for item in stopwords_str.split(",")}
     lsi = None
 
@@ -48,7 +48,7 @@ class LSIModel(ModelInterface):
     _item_representation = {}
 
     def __init__(self, description_column_name, dim=50,
-                 cold_start_strategy='return0'):
+                 cold_start_strategy="return0"):
         """
         :param description_column_name: str the name for the description column
             used for train the model
@@ -59,20 +59,20 @@ class LSIModel(ModelInterface):
         self._column_name = description_column_name
         self._cold_start = cold_start_strategy
 
-    def getName(self):
+    def get_name(self):
         return "LSI: dim={}".format(self._dim)
 
-    def getScore(self, user, item):
+    def get_score(self, user, item):
         """
         if not item in self._item_representation:
-            if self._cold_start == 'return0':
+            if self._cold_start == "return0":
                 return 0.0
             else:
                 raise ValueError(
                     "Item {} was not in the training set".format(item))
 
         if not user in self._user_representation:
-            if self._cold_start == 'return0':
+            if self._cold_start == "return0":
                 return 0.0
             else:
                 raise ValueError(
@@ -86,7 +86,7 @@ class LSIModel(ModelInterface):
             return self.cosine(self.get_vector(self._user_representation[user]),
                            self.get_vector(self._item_representation[item]))
         except KeyError:
-            if self._cold_start == 'return0':
+            if self._cold_start == "return0":
                 return 0.0
             elif not item in self._item_representation:
                 raise ValueError(
@@ -102,25 +102,24 @@ class LSIModel(ModelInterface):
         # Filter the string for non printable char and process it to an array
         # of words.
         s = simple_preprocess(
-            ''.join((e for e in item_description if e in printable)))
+            "".join((e for e in item_description if e in printable)))
         return [i for i in s if i not in self._stopwords]
-
 
     def _get_item_models(self, training_data):
         return {
             # Map item to an array of words after processing(relevant words
             # only)
             item: self._clean_text(str(entries[self._column_name].iget(0)))
-            for item, entries in training_data.groupby('item')
+            for item, entries in training_data.groupby("item")
         }
 
     def _get_user_models(self, training_data):
         return {
             # Map user to an array of words after processing(relevant words
             # only)
-            user: self._clean_text(' '.join(
+            user: self._clean_text(" ".join(
                 (str(item_desc) for item_desc in entries[self._column_name])))
-            for user, entries in training_data.groupby('user')
+            for user, entries in training_data.groupby("user")
         }
 
     def _fit_users(self, training_data):
@@ -143,12 +142,12 @@ class LSIModel(ModelInterface):
         return dictionary
 
     def _fit_items(self, dictionary, training_data):
-        '''
+        """
         Computes LSI for items
         :param dictionary: Dictionary of all the terms available.
         :param training_data:
         :return:
-        '''
+        """
         item_models = self._get_item_models(training_data)
         for item, item_model in item_models.items():
             self._item_representation[item] = \
@@ -166,6 +165,7 @@ class LSIModel(ModelInterface):
         for idx, f in factors:
             ret[idx] = f
         return ret
+
 
 class TFIDFModel(LSIModel):
 
@@ -186,7 +186,7 @@ class TFIDFModel(LSIModel):
         #store user data for further use
         self._users = {
             user: set(entries)
-            for user, entries in training_data.groupby('user')['item']
+            for user, entries in training_data.groupby("user")["item"]
         }
 
         #create a tf-idf index
@@ -200,18 +200,15 @@ class TFIDFModel(LSIModel):
             idmap[idx]: np.array(self.get_vector(tfidf)) for idx, tfidf in enumerate(tfidf_corpus)
         }
 
-
     def _sim(self, i1, i2):
         sim = self.cosine(self.tfidf[i1], self.tfidf[i2])
         return sim
 
-    def getScore(self, user, item):
+    def get_score(self, user, item):
         scores = [self._sim(i, item) for i in self._users[user] if i != item]
         scores.sort(reverse=True)
         return sum(scores[:self.k])
         # return sum(scores[:self._dim])
 
-    def getName(self):
+    def get_name(self):
         return "TF/IDF"
-
-

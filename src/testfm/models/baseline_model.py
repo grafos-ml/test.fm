@@ -6,21 +6,21 @@ Base line model
 
 .. moduleauthor:: Linas
 """
-__author__ = 'linas'
+__author__ = "linas"
 
 from random import random
-from testfm.models.interface import ModelInterface
+from testfm.models import IModel
 from math import log
 import numpy as np
 
 
-class RandomModel(ModelInterface):
+class RandomModel(IModel):
     """
     Random model
     """
     _scores = {}
 
-    def getScore(self, user, item):
+    def get_score(self, user, item):
         key = user, item
         try:
             return self._scores[key]
@@ -31,27 +31,27 @@ class RandomModel(ModelInterface):
     def fit(self, training_data):
         pass
 
-    def getName(self):
+    def get_name(self):
         return "Random"
 
 
-class IdModel(ModelInterface):
+class IdModel(IModel):
     """
     Returns the score as the id of the item.
     Used for testing purposes
     """
 
-    def getScore(self, user, item):
+    def get_score(self, user, item):
         return int(item)
 
     def fit(self, training_data):
         pass
 
-    def getName(self):
+    def get_name(self):
         return "ItemID"
 
 
-class ConstantModel(ModelInterface):
+class ConstantModel(IModel):
     """
     Returns constant for all predictions.
     Don't use this model in any comparison, because the algorithm will tell its
@@ -62,22 +62,21 @@ class ConstantModel(ModelInterface):
     def __init__(self, constant=1.0):
         self._c = constant
 
-    def getScore(self, user, item):
+    def get_score(self, user, item):
         return self._c
 
-    def getName(self):
+    def get_name(self):
         return "Constant %d" % self._c
 
 
-class Item2Item(ModelInterface):
+class Item2Item(IModel):
 
     k = 5
     _items = {}
     _users = {}
 
-
-
-    def compute_jaccard_index(self, set_1, set_2):
+    @staticmethod
+    def compute_jaccard_index(set_1, set_2):
         """
         Computes the Jaccard index for similarity measure between set 1 and set
         2.
@@ -95,36 +94,25 @@ class Item2Item(ModelInterface):
         """
         Stores set of user ids for each item
         """
-        self._items = \
-            {item: set(entries)
-             for item, entries in training_data.groupby('item')['user']}
-        self._users = \
-            {user: set(entries)
-             for user, entries in training_data.groupby('user')['item']}
+        self._items = {item: set(entries) for item, entries in training_data.groupby('item')['user']}
+        self._users = {user: set(entries) for user, entries in training_data.groupby('user')['item']}
 
-    def getScore(self,user,item):
-        # scores = [self.similarity(i, item)
-        #           for i in self._users[user] if i != item]
-        # scores.sort(reverse=True)
-        # assert scores == sorted((self.similarity(i, item)
-        #           for i in self._users[user] if i != item),
-        #                         cmp=lambda x, y: cmp(y,x))
+    def get_score(self, user, item):
+        """
+        Returns the sum of the list whit self.k elements the sorted similarity between items of the user and item(param)
+        excluding the item(param) itself.
+        """
+        scores = (self.similarity(i, item) for i in self._users[user] if i != item)
+        return sum(sorted(scores, cmp=lambda x, y: cmp(y, x))[:self.k])
 
-        # Returns the sum of the list whit self.k elements the sorted similarity
-        # between items of the user and item(param) excluding the item(param)
-        # itself.
-        return sum(sorted((self.similarity(i, item)
-                           for i in self._users[user] if i != item),
-                          cmp=lambda x, y: cmp(y, x))[:self.k])
-
-    def setParams(self, k):
+    def set_params(self, k):
         """
         :param k int how many closest items in the user profile to consider.
         """
         self.k = k
 
     @classmethod
-    def paramDetails(cls):
+    def param_details(cls):
         """
         Return parameter details for k.
         """
@@ -132,7 +120,8 @@ class Item2Item(ModelInterface):
             'k': (1, 50, 2, 5),
         }
 
-class AverageModel(ModelInterface):
+
+class AverageModel(IModel):
     _avg = {}
 
     def fit(self, training_data):
@@ -147,11 +136,11 @@ class AverageModel(ModelInterface):
             for i, m in movie_stats.iterrows()
         }
 
-    def getScore(self, user, item):
+    def get_score(self, user, item):
         return self._avg[item]
 
 
-class Popularity(ModelInterface):
+class Popularity(IModel):
 
     _counts = {}
     mn = float("inf")
@@ -160,8 +149,9 @@ class Popularity(ModelInterface):
     def __init__(self, normalize=True):
         self.normalize = normalize
 
-    def getScore(self, user, item):
-        return self._counts.get(item, 0.0)
+    def get_score(self, user, item):
+        #return self._counts.get(item, 0.0)
+        return self._counts[item]
 
     def fit(self, training_data):
         """
@@ -170,30 +160,23 @@ class Popularity(ModelInterface):
         :return:
         """
         if self.normalize:
-            self._counts = {
-                i: log(v+1)
-                for i, v in training_data.item.value_counts().iteritems()
-            }
+            self._counts = {i: log(v+1) for i, v in training_data.item.value_counts().iteritems()}
             s = sorted(self._counts.values())
             mn, mx = s[0], s[-1]
             for k in self._counts.keys():
                 self._counts[k] = (self._counts[k]-mn)/(mx-mn)
         else:
-            self._counts = {
-                i: v
-                for i, v in training_data.item.value_counts().iteritems()
-            }
+            self._counts = {i: v for i, v in training_data.item.value_counts().iteritems()}
 
-    def getName(self):
+    def get_name(self):
         return "Popularity"
 
 
-class PersonalizedPopularity(ModelInterface):
+class PersonalizedPopularity(IModel):
 
     _counts = {}
 
-    def getScore(self, user,  item):
-
+    def get_score(self, user, item):
         try:
             return float(self._counts[user][item])
         except KeyError:
@@ -203,15 +186,10 @@ class PersonalizedPopularity(ModelInterface):
         #add date dependency
         # normalize ?
         for useritem, count in training_data.groupby(['user']).item.value_counts().iteritems():
-             try:
-                self._counts[useritem[0]].update({useritem[1]:count})
-             except KeyError:
-                self._counts.update({useritem[0]:{useritem[1]:count}})
+            try:
+                self._counts[useritem[0]].update({useritem[1]: count})
+            except KeyError:
+                self._counts.update({useritem[0]:{useritem[1]: count}})
 
-    def getName(self):
+    def get_name(self):
         return "PersonalizedPopularity"
-
-
-
-
-
