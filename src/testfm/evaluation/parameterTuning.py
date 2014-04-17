@@ -1,6 +1,5 @@
-__author__ = 'linas'
-
-'''
+#! -*- encoding=utf-8 -*-
+"""
 Parameter tuning based on the Gaussian Processes.
 Idea based on http://arxiv.org/pdf/1206.2944.pdf
 Because it is more natural for me, I will use UCB method.
@@ -9,67 +8,66 @@ Because it is more natural for me, I will use UCB method.
 1. Run GP and estimate mean and variance of each parameter at many points
 2. Try the new point where mean+variance is highest. We use 99 percentile to merge these two.
 3. Iterate until the new point is the same as you already tried (this means you found maximum with high confidence)
+"""
 
-'''
+__author__ = "linas"
 
 import numpy as np
 import scipy.stats as st
 from sklearn.gaussian_process import GaussianProcess
-import testfm
 from testfm.evaluation.evaluator import Evaluator
 
 
 class ParameterTuning(object):
-    '''
+    """
     ###
         model = TensorCoFi()
         params = parameterTuening.getbestparams(model, training, testing)
         for p in params
             model.set(p)
         model.fit()
-    '''
+    """
 
     __z_score = st.norm.ppf(.9)
     __max_iterations = 100
 
     @classmethod
-    def setZvalue(cls, percentage):
-        '''
-        Set a new z value based in percentege.
+    def set_z_value(cls, percentage):
+        """
+        Set a new z value based in percentage.
 
-        ::percentege:: Float between 0 and 100
-        '''
+        :param percentage: Float between 0 and 100
+        """
         cls.__z_score = st.norm.ppf(percentage / 100.)
 
     @classmethod
-    def setMaxIterations(cls,newMax):
-        '''
+    def set_max_iterations(cls, new_max):
+        """
         Set the number of max iterations to newMax
-        '''
-        cls.__max_iterations = newMax
+        """
+        cls.__max_iterations = new_max
 
     @staticmethod
-    def tune(model,training,testing, non_relevant_count=100, **kwargs):
-        '''
+    def tune(model, training, testing, non_relevant_count=100, **kwargs):
+        """
         Return a mean for the predictive power
-        '''
+        """
         model.setParams(**kwargs)
         model.fit(training)
-        eval = Evaluator()
+        evaluator = Evaluator()
         # Return the MAPMeasure in position 0
-        measure = eval.evaluate_model(model,testing, non_relevant_count=non_relevant_count)[0]
-        print 'tried {} = {}'.format(kwargs, measure)
+        measure = evaluator.evaluate_model(model, testing, non_relevant_count=non_relevant_count)[0]
+        print "tried {} = {}".format(kwargs, measure)
         return measure
 
-
     @staticmethod
-    def getBestParams(model, training, testing, non_relevant_count=100, **kwargs):
-        '''
+    def get_best_params(model, training, testing, non_relevant_count=100, **kwargs):
+        """
         Search for the best set of parameters in the model
 
         use ParameterTuning().getBestParameters(model,parA=(0,10,0.1,3)...)
         (min,max,step,default)
-        '''
+        """
         # Create a grid of parameters
         kwargs = kwargs or model.paramDetails()
         grid = zip(*(x.flat for x in np.mgrid[[slice(*row[:3])
@@ -95,18 +93,17 @@ class ParameterTuning(object):
 
             # get upper confidence interval. 2.576 z-score corresponds to 99th
             # percentile
-            UCB_u = y_predicted + np.sqrt(mse) * ParameterTuning.__z_score
+            ucb_u = y_predicted + np.sqrt(mse) * ParameterTuning.__z_score
 
-            next_list = zip(UCB_u, grid)
+            next_list = zip(ucb_u, grid)
             next_list.sort(reverse=True)
             new_x = next_list[0][1]
 
-
             if new_x not in values:
-                values[new_x] = ParameterTuning.tune(m_instance,training,
-                    testing,**{k:v for k,v in zip(kwargs,new_x)})
+                values[new_x] = ParameterTuning.tune(m_instance, training, testing, 
+                                                     **{k: v for k, v in zip(kwargs, new_x)})
             else:
                 break
-        sv = sorted(values.items(),cmp=lambda x,y:cmp(y[1],x[1]))
-        assert sv[0][1] > sv[-1][1], 'Sorted from lowest to highest'
-        return {k: v for k, v in zip(kwargs,sv[0][0])}
+        sv = sorted(values.items(), cmp=lambda x, y: cmp(y[1], x[1]))
+        assert sv[0][1] > sv[-1][1], "Sorted from lowest to highest"
+        return {k: v for k, v in zip(kwargs, sv[0][0])}

@@ -19,7 +19,7 @@ Example of using the Test.fm framework
 	evaluator = Evaluator()
 
 	#prepare the data
-	df = pd.read_csv(..., names=['user', 'item', 'rating', 'date', 'title'])
+	df = pd.read_csv(..., names=["user", "item", "rating", "date", "title"])
 	training, testing = testfm.split.holdoutByRandom(df, 0.9)
 
 	#tell me what models we want to evaluate

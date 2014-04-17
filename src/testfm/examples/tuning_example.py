@@ -19,9 +19,9 @@ training, testing = testfm.split.holdoutByRandom(df, 0.9)
 print "Tuning the parameters."
 tr, validation = testfm.split.holdoutByRandom(training, 0.7)
 pt = ParameterTuning()
-pt.setMaxIterations(10)
-pt.setZvalue(80)
-tf_params = pt.getBestParams(TensorCoFi, tr, validation)
+pt.set_max_iterations(10)
+pt.set_z_value(80)
+tf_params = pt.get_best_params(TensorCoFi, tr, validation)
 print tf_params
 
 tf = TensorCoFi()
