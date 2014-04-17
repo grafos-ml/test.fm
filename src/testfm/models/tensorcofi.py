@@ -42,7 +42,7 @@ class TensorCoFi(IModel):
         :param c_alpha: Constant important in weight calculation
         """
         self.set_params(n_factors, n_iterations, c_lambda, c_alpha)
-        self.factors = {}
+        self.factors = []
 
     @classmethod
     def param_details(cls):
@@ -126,7 +126,7 @@ class PyTensorCoFi(TensorCoFi):
     Python implementation of tensorCoFi algorithm based on the java version from Alexandros Karatzoglou
     """
 
-    def __init__(self, n_factors, n_iterations, c_lambda, c_alpha):
+    def __init__(self, n_factors=None, n_iterations=None, c_lambda=None, c_alpha=None):
         """
         Constructor
 
@@ -135,14 +135,10 @@ class PyTensorCoFi(TensorCoFi):
         :param c_lambda: I came back when I find it out
         :param c_alpha: Constant important in weight calculation
         """
-        self.number_of_factors = n_factors
-        self.constant_lambda = c_lambda
-        self.number_of_iterations = n_iterations
-        self.constant_alpha = c_alpha
+        super(PyTensorCoFi, self).__init__(n_factors, n_iterations, c_lambda, c_alpha)
         self.user_to_id = {}
         self.item_to_id = {}
         self.dimensions = None
-        self.factors = []
         self.counts = []
         self.base = self.tmp_calc = None
         self.tmp = np.ones((self.number_of_factors, 1))

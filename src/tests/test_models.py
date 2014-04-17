@@ -55,27 +55,26 @@ class TestTensorCoFi(unittest.TestCase):
         tf = TensorCoFi(n_factors=2)
         tf.fit(self.df)
         #item and user are row vectors
-        self.assertEqual(len(self.df.user.unique()), tf.factors[0].shape[0])
-        self.assertEqual(len(self.df.item.unique()), tf.factors[1].shape[0])
+        self.assertEqual(len(self.df.user.unique()), tf.factors[0].shape[1])
+        self.assertEqual(len(self.df.item.unique()), tf.factors[1].shape[1])
 
     def test_ids_returns(self):
         tf = TensorCoFi(n_factors=2)
-        inp = [{"user": 10, "item": 100}, {"user": 10, "item": 110},
+        inp = [{"user": 10, "item": 100},
+               {"user": 10, "item": 110},
                {"user": 12, "item": 120}]
         inp = pd.DataFrame(inp)
         tf.fit(inp)
 
-        self.assertEquals(len(tf.factors[0]), 2)
-        self.assertEquals(len(tf.factors[1]), 3)
-
+        # Test the id in map
         uid = tf.data_map[tf.get_user_column()][10]
         iid = tf.data_map[tf.get_item_column()][100]
         self.assertEquals(uid, 1)
         self.assertEquals(iid, 1)
 
-        self.assertEquals(len(tf.factors[0][uid]), 2)
-        self.assertEquals(len(tf.factors[0][uid]), tf.number_of_factors)
-        self.assertEquals(len(tf.factors[1][iid]), tf.number_of_factors)
+        # Test number of factors
+        self.assertEquals(len(tf.factors[0][:, uid]), tf.number_of_factors)
+        self.assertEquals(len(tf.factors[1][:, iid]), tf.number_of_factors)
 
     def test_score(self):
         tf = TensorCoFi(n_factors=2)
@@ -84,15 +83,54 @@ class TestTensorCoFi(unittest.TestCase):
                {"user": 12, "item": 120}]
         inp = pd.DataFrame(inp)
         tf.fit(inp)
+        uid = tf.data_map[tf.get_user_column()][10]-1
+        iid = tf.data_map[tf.get_item_column()][100]-1
+
+        tf.factors[0][0, uid] = 0
+        tf.factors[0][1, uid] = 1
+        tf.factors[1][0, iid] = 1
+        tf.factors[1][1, iid] = 5
+        self.assertEqual(0*1+1*5, tf.get_score(10, 100))
+
+    def test_fit_for_python_version(self):
+        tf = PyTensorCoFi(n_factors=2)
+        tf.fit(self.df)
+        #item and user are row vectors
+        self.assertEqual(len(self.df.user.unique()), tf.factors[0].shape[1])
+        self.assertEqual(len(self.df.item.unique()), tf.factors[1].shape[1])
+
+    def test_ids_returns_for_python_version(self):
+        tf = PyTensorCoFi(n_factors=2)
+        inp = [{"user": 10, "item": 100},
+               {"user": 10, "item": 110},
+               {"user": 12, "item": 120}]
+        inp = pd.DataFrame(inp)
+        tf.fit(inp)
+
+        # Test the id in map
         uid = tf.data_map[tf.get_user_column()][10]
         iid = tf.data_map[tf.get_item_column()][100]
         self.assertEquals(uid, 1)
         self.assertEquals(iid, 1)
 
-        tf.factors[0][0][0] = 0
-        tf.factors[0][0][1] = 1
-        tf.factors[1][0][0] = 1
-        tf.factors[1][0][1] = 5
+        # Test number of factors
+        self.assertEquals(len(tf.factors[0][:, uid]), tf.number_of_factors)
+        self.assertEquals(len(tf.factors[1][:, iid]), tf.number_of_factors)
+
+    def test_score_for_python_version(self):
+        tf = PyTensorCoFi(n_factors=2)
+        inp = [{"user": 10, "item": 100},
+               {"user": 10, "item": 110},
+               {"user": 12, "item": 120}]
+        inp = pd.DataFrame(inp)
+        tf.fit(inp)
+        uid = tf.data_map[tf.get_user_column()][10]-1
+        iid = tf.data_map[tf.get_item_column()][100]-1
+
+        tf.factors[0][0, uid] = 0
+        tf.factors[0][1, uid] = 1
+        tf.factors[1][0, iid] = 1
+        tf.factors[1][1, iid] = 5
         self.assertEqual(0*1+1*5, tf.get_score(10, 100))
 
 
@@ -101,7 +139,7 @@ class LogisticTest(unittest.TestCase):
     def setUp(self):
         self.le = LogisticEnsemble(models=[IdModel()])
         inp = [{"user": 10, "item": 100}, {"user": 10,"item": 110},
-               {"user": 12,"item": 120}]
+               {"user": 12, "item": 120}]
         self.df = pd.DataFrame(inp)
 
     def test_construct_features(self):
