@@ -205,21 +205,20 @@ class PyTensorCoFi(TensorCoFi):
         tensor = {}
         for index, dimension in enumerate(self.dimensions):
             tensor[index] = {}
-            for row in range(training_data.shape[0]):
+            for row in xrange(training_data.shape[0]):
                 try:
                     tensor[index][training_data[row, index]].append(row)
                 except KeyError:
                     tensor[index][training_data[row, index]] = [row]
 
         for iteration in range(self.number_of_iterations):
-            for current_dimension in range(len(self.dimensions)):
+            for current_dimension, dimension in enumerate(self.dimensions):
                 base = self.base(current_dimension)
 
-                for entry in range(1, self.dimensions[current_dimension]+1):
-                    row_list = tensor[current_dimension].get(entry, [])
+                for entry in range(1, dimension+1):
                     matrix_vector_product = self.matrix_vector_product
                     invertible = self.invertible
-                    for row in row_list:
+                    for row in tensor[current_dimension].get(entry, ()):
                         tmp = self.tmp_calc(current_dimension, training_data, row)
                         score = training_data[row, training_data.shape[1]-1]
                         weight = 1. + self.constant_alpha * math.log(1. + math.fabs(score))
@@ -229,7 +228,7 @@ class PyTensorCoFi(TensorCoFi):
                             np.add(matrix_vector_product, np.multiply(tmp, math.copysign(1, score) * weight))
 
                     invertible += base
-                    regularizer /= self.dimensions[current_dimension]
+                    regularizer /= dimension
                     invertible += regularizer
                     invertible = np.linalg.solve(invertible, one)
                     self.factors[current_dimension][:, entry-1] = \
