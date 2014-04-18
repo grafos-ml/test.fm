@@ -2,7 +2,7 @@ __author__ = "linas"
 
 import testfm
 import pandas as pd
-from testfm.evaluation.evaluator import Evaluator
+from testfm.evaluation.evaluator0 import Evaluator
 from testfm.models.baseline_model import Popularity, RandomModel, Item2Item
 from testfm.models.tensorcofi import PyTensorCoFi, TensorCoFi
 from testfm.models.content_based import TFIDFModel, LSIModel
@@ -41,4 +41,4 @@ for m in models:
     print m.get_name().ljust(50),
     print eval.evaluate_model(m, testing, all_items=items,)
 
-eval.close()#need this call to clean up the worker processes
+#eval.close()#need this call to clean up the worker processes

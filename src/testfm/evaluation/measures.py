@@ -41,7 +41,7 @@ class MAPMeasure(Measure):
     Implementation of Mean Average Precision.
     """
 
-    def measure(self, recs,n =None):
+    def measure(self, recs, n=None):
         """
         Example of how to use map and the input format.
         >>> mapm = MAPMeasure()

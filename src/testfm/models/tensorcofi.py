@@ -23,9 +23,10 @@ import datetime
 import subprocess
 from testfm.models import IModel
 import math
+from testfm.models.cutil.interface import IMatrixFactorization
 
 
-class TensorCoFi(IModel):
+class TensorCoFi(IModel, IMatrixFactorization):
 
     number_of_factors = 20
     number_of_iterations = 5
@@ -78,18 +79,18 @@ class TensorCoFi(IModel):
             raise Exception(err)
         users, items = out.split(" ")
         self.factors = [
-            np.ma.column_stack(np.genfromtxt(open(users, "r"), delimiter=",")).transpose(),
-            np.ma.column_stack(np.genfromtxt(open(items, "r"), delimiter=",")).transpose()
+            np.genfromtxt(open(users, "r"), delimiter=",").transpose(),
+            np.genfromtxt(open(items, "r"), delimiter=",").transpose()
         ]
         shutil.rmtree("log")
 
     def get_model(self):
         return self.factors
 
-    def get_score(self, user, item):
-        user_vec = self.factors[0][:, self.data_map[self.get_user_column()][user]-1].transpose()
-        item_vec = self.factors[1][:, self.data_map[self.get_item_column()][item]-1]
-        return np.dot(user_vec, item_vec)
+    #def get_score(self, user, item):
+    #    user_vec = self.factors[0][:, self.data_map[self.get_user_column()][user]-1].transpose()
+    #    item_vec = self.factors[1][:, self.data_map[self.get_item_column()][item]-1]
+    #    return np.dot(user_vec, item_vec)
 
     @staticmethod
     def online_user_factors(matrix_y, user_item_ids, p_param=10, lambda_param=0.01):
@@ -196,7 +197,6 @@ class PyTensorCoFi(TensorCoFi):
         self.dimensions = [self.users_size(), self.items_size()]
         self.base = self.base_for_2_dimensions if len(self.dimensions) == 2 else self.standard_base
         self.tmp_calc = self.tmp_or_2_dimensions if len(self.dimensions) == 2 else self.standard_tmp
-
         self.factors = [np.random.rand(self.number_of_factors, i) for i in self.dimensions]
         self.counts = [np.zeros((i, 1)) for i in self.dimensions]
 
@@ -235,6 +235,8 @@ class PyTensorCoFi(TensorCoFi):
                         np.dot(invertible, matrix_vector_product).reshape(self.number_of_factors)
 
         self.base = self.tmp_calc = None
+        self.factors[0] = self.factors[0].transpose()
+        self.factors[1] = self.factors[1].transpose()
 
     def get_name(self):
         return "Python TensorCoFi(n_factors=%s, n_iterations=%s, c_lambda=%s, c_alpha=%s)" % \

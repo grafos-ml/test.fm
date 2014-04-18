@@ -117,7 +117,6 @@ class Evaluator(object):
         Evaluate the model using some testing data in pandas.DataFrame
 
         :param factor_model: ModelInterface  an instance of ModelInterface
-        :param testing_dataframe: DataFrame pandas dataframe of testing data
         :param measures: list of measure we want to compute (instnces of)
         :param all_items: list of items available in the data set (used for
             negative sampling).
@@ -126,9 +125,7 @@ class Evaluator(object):
             the list for performance evaluation
         :return: list of score corresponding to measures
         """
-        return self.evaluate_model_multiprocessing(factor_model, testing_data,
-                                                   measures=measures,
-                                                   all_items=all_items,
+        return self.evaluate_model_multiprocessing(factor_model, testing_data, measures=measures, all_items=all_items,
                                                    non_relevant_count=non_relevant_count, k=k)
 
     def evaluate_model_rmse(self, model, testing_data):
@@ -242,7 +239,7 @@ class Evaluator(object):
         return ret
 
     def close(self):
-        POOL.__del__()
+        del POOL
 
 if __name__ == "__main__":
     import doctest

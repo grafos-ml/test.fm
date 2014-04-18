@@ -70,15 +70,6 @@ class IModel(object):
         """
         return self.__class__.__name__
 
-    def get_score(self, user, item):
-        """
-        A score for a user and item that method predicts.
-        :param user: id of the user
-        :param item: id of the item
-        :return:
-        """
-        raise NotImplementedError
-
     def train(self, training_data):
         """
         Train the model with numpy array. The first column is for users, the second for item and the third for rating.
