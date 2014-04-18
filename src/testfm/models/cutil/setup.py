@@ -12,7 +12,7 @@ ext_modules = [
               libraries=['blas'],
               library_dirs=library_dirs,
               include_dirs=include_dirs),
-    #Extension("verify",       ["verify.pyx"],       include_dirs=include_dirs),
+    Extension("testfm.evaluation.measures", ["testfm/evaluation/cutil/measures.pyx"]),
 ]
 
 setup(
