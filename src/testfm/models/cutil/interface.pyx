@@ -11,9 +11,9 @@ cdef extern from "cblas.h":
 
 cdef class IMatrixFactorization(object):
     """
-    This Model assumes that the score is the matrix produt of the user row in the users matrix and the item row in
-    the item matrix. The user and item matrixes will be stored in a Python list self.factors. The first matrix is for
-    users and the second is for items. The both matrixes must be a numpy.array with shape (obj, factors)
+    This Model assumes that the score is the matrix product of the user row in the users matrix and the item row in
+    the item matrix. The user and item matrices will be stored in a Python list self.factors. The first matrix is for
+    users and the second is for items. The both matrices must be a numpy.array with shape (obj, factors)
     """
 
     @cython.boundscheck(False)
@@ -22,7 +22,9 @@ cdef class IMatrixFactorization(object):
         # Multiply this vectors with blas
         return cblas_ddot(self._number_of_factors, &self.users[user-1], n_users, &self.items[item-1], n_items)
 
-    def get_score(self, user, item):
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def get_score(self, user, item, **context):
         self._number_of_factors = <int>self.number_of_factors
         self.users = <double *>(<np.ndarray[double, ndim=2, mode="c"]>self.factors[0]).data
         self.items = <double *>(<np.ndarray[double, ndim=2, mode="c"]>self.factors[1]).data

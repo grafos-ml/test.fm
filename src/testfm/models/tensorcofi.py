@@ -10,7 +10,7 @@ __author__ = {
     "name": "joaonrb",
     "e-mail": "joaonrb@gmail.com"
 }
-__version__ = 1, 1
+__version__ = 1, 2
 __since__ = 16, 1, 2014
 __change__ = 16, 4, 2014
 
@@ -33,7 +33,7 @@ class TensorCoFi(IModel, IMatrixFactorization):
     constant_lambda = .05
     constant_alpha = 40
 
-    def __init__(self, n_factors=None, n_iterations=None, c_lambda=None, c_alpha=None):
+    def __init__(self, n_factors=None, n_iterations=None, c_lambda=None, c_alpha=None, other_context=None):
         """
         Constructor
 
@@ -44,6 +44,7 @@ class TensorCoFi(IModel, IMatrixFactorization):
         """
         self.set_params(n_factors, n_iterations, c_lambda, c_alpha)
         self.factors = []
+        self.context_columns = other_context
 
     @classmethod
     def param_details(cls):
@@ -56,6 +57,13 @@ class TensorCoFi(IModel, IMatrixFactorization):
             "c_lambda": (.1, 1., .1, .05),
             "c_alpha": (30, 50, 5, 40)
         }
+
+    def get_context_columns(self):
+        """
+        Get a list of names of all the context column names for this model
+        :return:
+        """
+        return self.context_columns or []
 
     def train(self, data):
         """
@@ -140,7 +148,6 @@ class PyTensorCoFi(TensorCoFi):
         self.user_to_id = {}
         self.item_to_id = {}
         self.dimensions = None
-        self.counts = []
         self.base = self.tmp_calc = None
         self.tmp = np.ones((self.number_of_factors, 1))
         self.invertible = np.zeros((self.number_of_factors, self.number_of_factors))

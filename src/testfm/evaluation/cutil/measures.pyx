@@ -18,6 +18,8 @@ from libc.stdlib cimport malloc, free
 
 cdef class MAPMeasure:
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef float _measure(self, float *ranked_list, int list_size) nogil:
         """
         Each class of the Measure has to implement this method. It basically
@@ -35,6 +37,8 @@ cdef class MAPMeasure:
                 map_measure += (relevant / ((i/2)+1.))
         return 0.0 if relevant == 0 else map_measure/relevant
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def measure(self, recs, n=None):
         """
         Example of how to use map and the input format.

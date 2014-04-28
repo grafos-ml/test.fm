@@ -63,6 +63,14 @@ class IModel(object):
         """
         return "rating"
 
+    @staticmethod
+    def get_context_columns(self):
+        """
+        Get a list of names of all the context column names for this model
+        :return:
+        """
+        raise NotImplemented
+
     def get_name(self):
         """
         Get the informative name for the model.
@@ -81,19 +89,17 @@ class IModel(object):
     def fit(self, training_data):
         """
         Train the data from a pandas.DataFrame
-        :param training_data: DataFrame a frame with columns "user", "item"
+        :param training_data: DataFrame a frame with columns 'user', 'item', 'contexts'..., 'rating'
+        If rating don't exist it will be populated with 1 for all entries
         """
-        users_unique = training_data[self.get_user_column()].unique()
-        items_unique = training_data[self.get_item_column()].unique()
-        self.data_map = {
-            self.get_user_column(): pd.Series(xrange(1, len(users_unique)+1), users_unique),
-            self.get_item_column(): pd.Series(xrange(1, len(items_unique)+1), items_unique),
-        }
-        data = [
-            map(lambda x: self.data_map[self.get_user_column()][x], training_data[self.get_user_column()].values),
-            map(lambda x: self.data_map[self.get_item_column()][x], training_data[self.get_item_column()].values),
-            training_data.get(self.get_rating_column(), np.ones((len(training_data,))).tolist())
-        ]
+        columns = [self.get_user_column(), self.get_item_column()] + self.get_context_columns()
+        data = []
+        self.data_map = {}
+        for column in columns:
+            unique_data = training_data[column].unique()
+            self.data_map[column] = pd.Series(xrange(1, len(unique_data)+1), unique_data)
+            data.append(map(lambda x: self.data_map[column][x], training_data[column].values))
+        data.append(training_data.get(self.get_rating_column(), np.ones((len(training_data,))).tolist()))
         self.train(np.array(data).transpose())
 
     def users_size(self):
