@@ -23,10 +23,10 @@ import datetime
 import subprocess
 from testfm.models import IModel
 import math
-from testfm.models.cutil.interface import IMatrixFactorization
+from testfm.models.cutil.interface import IFactorModel
 
 
-class TensorCoFi(IModel, IMatrixFactorization):
+class TensorCoFi(IFactorModel):
 
     number_of_factors = 20
     number_of_iterations = 5
