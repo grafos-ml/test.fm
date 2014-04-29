@@ -74,21 +74,31 @@ class TensorCoFi(IFactorModel):
         with open(directory+"/train.csv", "w") as datafile:
             np.savetxt(datafile, data, delimiter=", ")
             name = os.path.dirname(datafile.name)+"/"
+        parameters = [
+            "java",
+            "-Ddirectory=%s" % name,
+            "-Dn_factors=%d" % self.number_of_factors,
+            "-Dn_iterations=%d" % self.number_of_iterations,
+            "-Dlambda=%f" % self.constant_lambda,
+            "-Dalpha=%f" % self.constant_alpha,
+            "-Dn_contexts=%d" % (2 + len(self.get_context_columns())),
+            "-Dcontext0=%s" % self.get_user_column(),
+            "-Ddimension0=%d" % self.users_size(),
+            "-Dcontext1=%s" % self.get_item_column(),
+            "-Ddimension1=%d" % self.items_size(),
+        ]
+        for i, context in enumerate(self.get_context_columns(), start=2):
+            parameters.append("-Dcontext%d=%s" % (i, context))
+            parameters.append("-Ddimension%d=%d" % (i, len(self.data_map[context])))
         java_jar = resource_filename(testfm.__name__, "lib/algorithm-1.0-SNAPSHOT-jar-with-dependencies.jar")
-        sub = subprocess.Popen(["java", "-cp", java_jar, "es.tid.frappe.python.TensorCoPy", name,
-                                str(self.number_of_factors), str(self.number_of_iterations), str(self.constant_lambda),
-                                str(self.constant_alpha), str(self.users_size()),
-                                str(self.items_size())], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        sub = subprocess.Popen(parameters + ["-cp", java_jar, "es.tid.frappe.python.TensorCoPy"],
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = sub.communicate()
         if err:
             #os.remove(name)
             print out
             raise Exception(err)
-        users, items = out.split(" ")
-        self.factors = [
-            np.genfromtxt(open(users, "r"), delimiter=",").transpose(),
-            np.genfromtxt(open(items, "r"), delimiter=",").transpose()
-        ]
+        self.factors = [np.genfromtxt(open(path, "r"), delimiter=",").transpose() for path in out.split(" ")]
         shutil.rmtree("log")
 
     def get_model(self):
