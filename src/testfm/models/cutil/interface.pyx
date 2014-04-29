@@ -13,13 +13,12 @@ cdef extern from "cblas.h":
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef float get_score(int number_of_factors, int number_of_contexts, double **factor_matrices, int *context):
+cdef float get_score(int number_of_factors, int number_of_contexts, double **factor_matrices, int *context) nogil:
     cdef int i, j
     cdef float factor, total = 0.
     for i in xrange(number_of_factors):
         factor = 1.
         for j in xrange(number_of_contexts):
-            #print context[j*2], context[j*2+1], i
             factor *= factor_matrices[j][context[j*2+1]*i + context[j*2] - 1]
         total += factor
     return total
@@ -37,8 +36,9 @@ class IFactorModel(IModel):
     def get_score(self, user, item, **context):
         user = self.data_map[self.get_user_column()][user], len(self.data_map[self.get_user_column()])
         item = self.data_map[self.get_item_column()][item], len(self.data_map[self.get_item_column()])
-        cdef int number_of_contexts = len(self.get_context_columns())+2, i
+        cdef int number_of_contexts = len(self.get_context_columns())+2, i, number_of_factors = self.number_of_factors
         cdef double **factor_matrices = <double **>malloc(sizeof(double) *number_of_contexts)
+        cdef float result
         if factor_matrices is NULL:
             raise MemoryError()
         cdef int *c_context = <int *>malloc(sizeof(int) * number_of_contexts * 2)
@@ -51,7 +51,10 @@ class IFactorModel(IModel):
             for i in xrange(number_of_contexts):
                 factor_matrices[i] = <double *>(<np.ndarray[double, ndim=2, mode="c"]>self.factors[i]).data
                 c_context[i*2], c_context[i*2+1] = p_context[i]
-            return get_score(self.number_of_factors, number_of_contexts, factor_matrices, c_context)
+
+            with nogil:
+                result = get_score(number_of_factors, number_of_contexts, factor_matrices, c_context)
+            return result
         finally:
             free(c_context)
             free(factor_matrices)

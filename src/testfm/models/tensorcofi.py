@@ -21,7 +21,6 @@ import numpy as np
 import shutil
 import datetime
 import subprocess
-from testfm.models import IModel
 import math
 from testfm.models.cutil.interface import IFactorModel
 
@@ -145,8 +144,6 @@ class PyTensorCoFi(TensorCoFi):
         :param c_alpha: Constant important in weight calculation
         """
         super(PyTensorCoFi, self).__init__(n_factors, n_iterations, c_lambda, c_alpha)
-        self.user_to_id = {}
-        self.item_to_id = {}
         self.dimensions = None
         self.base = self.tmp_calc = None
         self.tmp = np.ones((self.number_of_factors, 1))
@@ -205,18 +202,13 @@ class PyTensorCoFi(TensorCoFi):
         self.base = self.base_for_2_dimensions if len(self.dimensions) == 2 else self.standard_base
         self.tmp_calc = self.tmp_or_2_dimensions if len(self.dimensions) == 2 else self.standard_tmp
         self.factors = [np.random.rand(self.number_of_factors, i) for i in self.dimensions]
-        self.counts = [np.zeros((i, 1)) for i in self.dimensions]
 
         regularizer = np.multiply(np.eye(self.number_of_factors), self.constant_lambda)
         one = np.eye(self.number_of_factors)
-        tensor = {}
+        tensor = [[[] for _ in xrange(training_data.shape[0])] for _ in xrange(len(self.dimensions))]
         for index, dimension in enumerate(self.dimensions):
-            tensor[index] = {}
             for row in xrange(training_data.shape[0]):
-                try:
-                    tensor[index][training_data[row, index]].append(row)
-                except KeyError:
-                    tensor[index][training_data[row, index]] = [row]
+                tensor[index][training_data[row, index]].append(row)
 
         for iteration in range(self.number_of_iterations):
             for current_dimension, dimension in enumerate(self.dimensions):
@@ -225,14 +217,14 @@ class PyTensorCoFi(TensorCoFi):
                 for entry in range(1, dimension+1):
                     matrix_vector_product = self.matrix_vector_product
                     invertible = self.invertible
-                    for row in tensor[current_dimension].get(entry, ()):
+                    for row in tensor[current_dimension][entry]:
                         tmp = self.tmp_calc(current_dimension, training_data, row)
                         score = training_data[row, training_data.shape[1]-1]
-                        weight = 1. + self.constant_alpha * math.log(1. + math.fabs(score))
+                        weight = self.constant_alpha * math.log(1. + math.fabs(score))
 
-                        invertible = np.add(invertible, (weight - 1.) * (tmp * tmp.transpose()))
+                        invertible = np.add(invertible, weight * (tmp * tmp.transpose()))
                         matrix_vector_product = \
-                            np.add(matrix_vector_product, np.multiply(tmp, math.copysign(1, score) * weight))
+                            np.add(matrix_vector_product, np.multiply(tmp, math.copysign(1, score) * (1. + weight)))
 
                     invertible += base
                     regularizer /= dimension
@@ -242,8 +234,8 @@ class PyTensorCoFi(TensorCoFi):
                         np.dot(invertible, matrix_vector_product).reshape(self.number_of_factors)
 
         self.base = self.tmp_calc = None
-        self.factors[0] = self.factors[0].transpose()
-        self.factors[1] = self.factors[1].transpose()
+        for i, factor in enumerate(self.factors):
+            self.factors[i] = factor.transpose()
 
     def get_name(self):
         return "Python TensorCoFi(n_factors=%s, n_iterations=%s, c_lambda=%s, c_alpha=%s)" % \
