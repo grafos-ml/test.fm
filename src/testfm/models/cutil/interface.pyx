@@ -2,7 +2,7 @@
 An interface for the model classes. It should provide automation for the score calculating
 """
 cimport cython
-from libc.stdlib cimport malloc, free, realloc, rand, RAND_MAX
+from libc.stdlib cimport malloc, free  #, realloc, rand, RAND_MAX
 import numpy as np
 cimport numpy as np
 from testfm.models import IModel
