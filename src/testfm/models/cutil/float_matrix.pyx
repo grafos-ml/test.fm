@@ -21,7 +21,7 @@ cdef extern from "cblas.h":
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef api float_matrix new__float_matrix(int rows, int columns) nogil:
+cdef api float_matrix fm_new(int rows, int columns) nogil:
     """
     C constructor
     :param rows: Number of rows
@@ -33,12 +33,30 @@ cdef api float_matrix new__float_matrix(int rows, int columns) nogil:
     self.size = rows * columns
     self.transpose = 0
     self.values = <float *>malloc(sizeof(float) * self.size)
-    multiply_scalar(self, 0.)
     return self
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef api void destroy(float_matrix self) nogil:
+cdef api float_matrix fm_new_init(int rows, int columns, float fill_value) nogil:
+    """
+    C Constructor and initialize all values to "fill_value"
+    :param rows:
+    :param columns:
+    :param fill_value:
+    :return:
+    """
+    cdef float_matrix self = fm_new(rows, columns)
+    cdef int i
+    if fill_value == 0.:
+        cblas_sscal(self.size, 0., self.values, 1)
+    else:
+        for i in xrange(self.size):
+            self.values[i] = fill_value
+    return self
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef api void fm_destroy(float_matrix self) nogil:
     """
     Dealloc the C structures
     """
@@ -49,7 +67,7 @@ cdef api void destroy(float_matrix self) nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef api float get(float_matrix self, int row, int column) nogil:
+cdef api float fm_get(float_matrix self, int row, int column) nogil:
     """
     Get a value from the matrix in the cell (row, column)
     :param row: Row index to get the item
@@ -63,7 +81,7 @@ cdef api float get(float_matrix self, int row, int column) nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef api void set(float_matrix self, int row, int column, float value) nogil:
+cdef api void fm_set(float_matrix self, int row, int column, float value) nogil:
     """
     Set the specific cell to value
     :param row: Row index to get the item
@@ -77,29 +95,43 @@ cdef api void set(float_matrix self, int row, int column, float value) nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef api void transpose(float_matrix self, float_matrix fm) nogil:
+cdef api float_matrix fm_clone(float_matrix self) nogil:
+    """
+    Clone this matrix
+    :param self:
+    :return:
+    """
+    cdef float_matrix clone_matrix = fm_new(self.rows, self.columns)
+    cblas_scopy(self.size, self.values, 1, clone_matrix.values, 1)
+    return clone_matrix
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef api float_matrix fm_transpose(float_matrix self) nogil:
     """
     Return a transpose of this float matrix
     :return:
     """
-    #cdef FloatMatrix transpose = self.clone()
+    cdef float_matrix fm = fm_clone(self)
     fm.transpose = 1 - self.transpose
     fm.rows = self.columns
     fm.columns = self.rows
+    return fm
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef api void multiply_scalar(float_matrix self, float scalar) nogil:
+cdef api float_matrix fm_multiply_scalar(float_matrix self, float scalar) nogil:
     """
     Multiply all values in the matrix by a real number
     :param scalar: Real number to multiply this matrix
     """
-    #cdef FloatMatrix clone = self.clone()
-    cblas_sscal(self.size, scalar, self.values, 1)
+    cdef float_matrix fm = fm_clone(self)
+    cblas_sscal(fm.size, scalar, fm.values, 1)
+    return fm
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef api void multiply(float_matrix self, float_matrix other, float_matrix result) nogil:
+cdef api float_matrix fm_multiply(float_matrix self, float_matrix other) nogil:
     """
     Matrix multiplication
     :param other: The other matrix to multiply
@@ -108,15 +140,16 @@ cdef api void multiply(float_matrix self, float_matrix other, float_matrix resul
     #if self.columns != other.rows:
     #    raise LookupError("Matrix shapes are not compatible for multiplication (%d, %d) // (%d, %d)." % \
     #                      (self.rows, self.columns, other.rows, other.columns))
-    #cdef FloatMatrix result = FloatMatrix(self.rows, other.columns)
+    cdef float_matrix result = fm_new(self.rows, other.columns)
     cblas_sgemm(101, 112 if self.transpose else 111, 112 if other.transpose else 111, self.rows, other.columns,
                 self.columns, 1., self.values, self.rows if self.transpose else self.columns, other.values,
                 other.rows if other.transpose else other.columns, 0., result.values,
                 result.columns)
+    return result
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef api void add(float_matrix self, float_matrix other, float_matrix result) nogil:
+cdef api float_matrix fm_add(float_matrix self, float_matrix other) nogil:
     """
     Add 2 matrices
     :param other: The other matrix to add
@@ -125,16 +158,17 @@ cdef api void add(float_matrix self, float_matrix other, float_matrix result) no
     #if self.rows != other.rows or self.columns != other.columns:
     #    raise LookupError("Matrix shapes are not compatible for multiplication (%d, %d) // (%d, %d)." % \
     #                      (self.rows, self.columns, other.rows, other.columns))
-    #cdef FloatMatrix result = FloatMatrix(self.rows, self.columns)
+    cdef float_matrix result = fm_new(self.rows, self.columns)
     cdef int row, column, i
     for i in xrange(self.size):
         row = i / self.rows
         column = i % self.rows
-        set(result, row, column, get(self, row, column) + get(other, row, column))
+        fm_set(result, row, column, fm_get(self, row, column) + fm_get(other, row, column))
+    return result
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef api void multiply_element_wise(float_matrix self, float_matrix other, float_matrix result) nogil:
+cdef api float_matrix fm_element_wise_multiply(float_matrix self, float_matrix other) nogil:
     """
     Do the element wise multiplication in matrices
     :param other:
@@ -144,27 +178,29 @@ cdef api void multiply_element_wise(float_matrix self, float_matrix other, float
     #    raise LookupError("Matrix shapes are not compatible for multiplication (%d, %d) // (%d, %d)." % \
     #                      (self.rows, self.columns, other.rows, other.columns))
     #cdef FloatMatrix result = FloatMatrix(self.rows, self.columns)
+    cdef float_matrix result = fm_new(self.rows, self.columns)
     cdef int row, column, i
     for i in xrange(self.size):
         row = i / self.rows
         column = i % self.rows
-        set(result, row, column, get(self, row, column) * get(other, row, column))
+        fm_set(result, row, column, fm_get(self, row, column) * fm_get(other, row, column))
+    return result
 
 
 cdef class FloatMatrix:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def __cinit__(FloatMatrix self, int rows, int columns):
+    def __cinit__(FloatMatrix self, rows=None, columns=None, initialize=True):
         """
         C constructor
         :param rows: Number of rows
         :param columns: Number of columns
         """
-
-        self.matrix = new__float_matrix(rows, columns)
-        if self.matrix is NULL or self.matrix.values is NULL:
-            raise MemoryError
+        if initialize:
+            self.matrix = fm_new_init(rows, columns, 0.)
+            if self.matrix is NULL or self.matrix.values is NULL:
+                raise MemoryError
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -172,7 +208,7 @@ cdef class FloatMatrix:
         """
         Dealloc the C structures
         """
-        destroy(self.matrix)
+        fm_destroy(self.matrix)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -185,7 +221,7 @@ cdef class FloatMatrix:
         cdef float_matrix matrix = self.matrix
         cdef int row, column
         row, column = place
-        return get(matrix, row, column)
+        return fm_get(matrix, row, column)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -198,18 +234,17 @@ cdef class FloatMatrix:
         cdef float_matrix matrix = self.matrix
         cdef int row, column
         row, column = place
-        with nogil:
-            set(matrix, row, column, value)
+        fm_set(matrix, row, column, value)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def clone(FloatMatrix self):
         """
-
+        Clone this Float Matrix
         :return:
         """
-        clone_matrix = FloatMatrix(self.matrix.rows, self.matrix.columns)
-        cblas_scopy(self.matrix.size, self.matrix.values, 1, clone_matrix.matrix.values, 1)
+        clone_matrix = FloatMatrix(initialize=False)
+        clone_matrix.matrix = fm_clone(self.matrix)
         return clone_matrix
 
     @cython.boundscheck(False)
@@ -219,10 +254,9 @@ cdef class FloatMatrix:
         Return a transpose of this float matrix
         :return:
         """
-        cdef FloatMatrix transpose_matrix = self.clone()
-        cdef float_matrix self_matrix = self.matrix, other_matrix = transpose_matrix.matrix
-        transpose(self_matrix, other_matrix)
-        return transpose_matrix
+        transpose_fm = FloatMatrix(initialize=False)
+        transpose_fm.matrix = fm_transpose(self.matrix)
+        return transpose_fm
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -232,20 +266,17 @@ cdef class FloatMatrix:
         :return:
         """
         cdef FloatMatrix result
-        cdef float_matrix self_matrix = self.matrix, other_matrix, result_matrix
+        cdef float_matrix self_matrix = self.matrix
         if isinstance(other, float) or isinstance(other, int):
-            result = self.clone()
-            result_matrix = result.matrix
-            multiply_scalar(result_matrix, <float>other)
+            result = FloatMatrix(initialize=False)
+            result.matrix = fm_multiply_scalar(self.matrix, <float>other)
         elif isinstance(other, FloatMatrix):
             if self.matrix.columns != (<FloatMatrix>other).matrix.rows:
                 raise LookupError("Matrix shapes are not compatible for multiplication (%d, %d) // (%d, %d)." % \
                               (self.matrix.rows, self.matrix.columns, (<FloatMatrix>other).matrix.rows,
                                (<FloatMatrix>other).matrix.columns))
-            result = FloatMatrix(self.matrix.rows, (<FloatMatrix>other).matrix.columns)
-            result_matrix = result.matrix
-            other_matrix = (<FloatMatrix>other).matrix
-            multiply(self_matrix, other_matrix, result_matrix)
+            result = FloatMatrix(initialize=False)
+            result.matrix = fm_multiply(self_matrix, (<FloatMatrix>other).matrix)
         return result
 
     @cython.boundscheck(False)
@@ -261,9 +292,8 @@ cdef class FloatMatrix:
             raise LookupError("Matrix shapes are not compatible for element-wise multiplication (%d, %d) // (%d, %d)." % \
                               (self.matrix.rows, self.matrix.columns, (<FloatMatrix>other).matrix.rows,
                                (<FloatMatrix>other).matrix.columns))
-        cdef FloatMatrix result = FloatMatrix(self.matrix.rows, self.matrix.columns)
-        cdef float_matrix self_matrix = self.matrix, other_matrix = other.matrix, result_matrix = result.matrix
-        multiply_element_wise(self_matrix, other_matrix, result_matrix)
+        cdef FloatMatrix result = FloatMatrix(initialize=False)
+        result.matrix = fm_element_wise_multiply(self.matrix, other.matrix)
         return result
 
     @cython.boundscheck(False)
@@ -277,9 +307,8 @@ cdef class FloatMatrix:
         if self.matrix.rows != other.matrix.rows or self.matrix.columns != other.matrix.columns:
             raise LookupError("Matrix shapes are not compatible for multiplication (%d, %d) // (%d, %d)." % \
                               (self.matrix.rows, self.matrix.columns, other.matrix.rows, other.matrix.columns))
-        cdef FloatMatrix result = FloatMatrix(self.matrix.rows, self.matrix.columns)
-        cdef float_matrix self_matrix = self.matrix, other_matrix = other.matrix, result_matrix = result.matrix
-        add(self_matrix, other_matrix, result_matrix)
+        cdef FloatMatrix result = FloatMatrix(initialize=False)
+        result.matrix = fm_add(self.matrix, other.matrix)
         return result
 
     @property
