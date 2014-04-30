@@ -110,7 +110,8 @@ cdef api void multiply(float_matrix self, float_matrix other, float_matrix resul
     #                      (self.rows, self.columns, other.rows, other.columns))
     #cdef FloatMatrix result = FloatMatrix(self.rows, other.columns)
     cblas_sgemm(101, 112 if self.transpose else 111, 112 if other.transpose else 111, self.rows, other.columns,
-                self.columns, 1., self.values, self.columns, other.values, other.columns, 0., result.values,
+                self.columns, 1., self.values, self.rows if self.transpose else self.columns, other.values,
+                other.rows if other.transpose else other.columns, 0., result.values,
                 result.columns)
 
 @cython.boundscheck(False)
