@@ -1,21 +1,20 @@
+
 cimport cython
-from libc.stdlib cimport malloc, free, realloc
-from testfm.models.cutil.float_matrix import *
+from libc.stdlib cimport malloc, free
 from testfm.models.cutil.float_matrix cimport *
-from testfm.models.cutil.int_array import *
 from testfm.models.cutil.int_array cimport *
 from testfm.models.cutil.interface import IFactorModel
 import numpy as np
 cimport numpy as np
 
 cdef extern from "math.h":
-    float log(float n) nogil
-    float fabs(float score) nogil
-    float copysign(float x, float y)
+    double log(double n) nogil
+    double fabs(double score) nogil
+    double copysign(double x, float y) nogil
 
 cdef extern from "cblas.h":
     void cblas_strsm(int order, int side, int uplo, int transa, int diag, int m, int n, float alpha, float *a, int ida,
-                     float *b, int idb)
+                     float *b, int idb) nogil
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -39,14 +38,14 @@ cdef api float_matrix *tensorcofi_train(float_matrix data_array, int n_factors, 
          invertible_tmp = fm_new(n_factors, n_factors) # Invertible Matrix
     cdef float_matrix base, base_transpose, base_tmp
     cdef float_matrix *factors = <float_matrix *>malloc(sizeof(float_matrix) * n_dimensions)  # Factors
-    cdef int_array **tensor = <int_array *>malloc(sizeof(int_array *) * n_dimensions)  # Tensor (array)
+    cdef int_array **tensor = <int_array **>malloc(sizeof(int_array *) * n_dimensions)  # Tensor (array)
     for i in xrange(n_dimensions):  # Fill the tensor with information
         factors[i] = fm_create_random(n_factors, dimensions[i])
-        tensor[i] = <int_array>malloc(sizeof(_int_array) * dimensions[i])
+        tensor[i] = <int_array *>malloc(sizeof(_int_array) * dimensions[i])
         for j in xrange(dimensions[i]):
             tensor[i][j] = ia_new()
         for data_row in xrange(data_array.rows):
-            ia_add(tensor[i][fm_get(data_array, data_row, i)], data_row)  # Populate tensor
+            ia_add(tensor[i][<int>fm_get(data_array, data_row, i)], data_row)  # Populate tensor
     # Tensor created
     # Factors created
     # Start Iteration ##################################################################################################
@@ -80,10 +79,10 @@ cdef api float_matrix *tensorcofi_train(float_matrix data_array, int n_factors, 
                     for data_column in xrange(n_dimensions):
                         if data_column != current_dimension:
                             fm_static_multiply_column(tmp, factors[data_column],
-                                                      fm_get(data_array, data_row, data_column),
+                                                      <int>fm_get(data_array, data_row, data_column),
                                                       tmp)  # No new memory is allocated
                         score = fm_get(data_array, data_row, data_array.columns-1)
-                        weight = c_lambda * log(1.+abs(score))
+                        weight = c_lambda * log(1.+fabs(score))
                         # Start calculation of rank one update in invertible
                         tmp_transpose = fm_transpose(tmp)  # Memory allocated
                         fm_static_multiply(tmp, tmp_transpose, invertible_tmp)  # No new memory allocated
@@ -97,10 +96,10 @@ cdef api float_matrix *tensorcofi_train(float_matrix data_array, int n_factors, 
                         fm_static_add(matrix_vector_product, tmp, matrix_vector_product)  # No new memory allocated
                         # End calculate matrix vector product
                     fm_static_add(invertible, base, invertible)  # No new memory allocated
-                    fm_static_element_wise_division(regularizer, dimensions[current_dimension],
-                                                    regularizer)  # No new memory allocated
+                    fm_static_multiply_scalar(regularizer, 1. / dimensions[current_dimension],
+                                              regularizer)  # No new memory allocated
                     fm_static_add(invertible, regularizer, invertible)  # No new memory allocated
-                    cblas_strsm(101, 141, 121, 112 if invertible.transpose else 111, 131, one.rows, one.column, 1.,
+                    cblas_strsm(101, 141, 121, 112 if invertible.transpose else 111, 131, one.rows, one.columns, 1.,
                                 invertible.values, invertible.columns if invertible.transpose else invertible.rows,
                                 one.values, one.columns if one.transpose else one.rows)  # Calculate the solution on one
                     one_tmp = fm_multiply(invertible, matrix_vector_product)  # New memory allocated
@@ -110,7 +109,7 @@ cdef api float_matrix *tensorcofi_train(float_matrix data_array, int n_factors, 
 
                     # Reset variables
                     fm_static_multiply_scalar(invertible, 0., invertible)
-                    fm_static_multiply_scalar(matrix_vector_product, 0., matrix_index)
+                    fm_static_multiply_scalar(matrix_vector_product, 0., matrix_vector_product)
                     # End reset
 
     # Stop Iteration ###################################################################################################
@@ -126,23 +125,22 @@ cdef api float_matrix *tensorcofi_train(float_matrix data_array, int n_factors, 
     fm_destroy(one)
     fm_destroy(invertible)
     fm_destroy(invertible_tmp)
-    fm_destroy()
     # Return the factors
     return factors
 
 
-cdef class CTensorCoFi(IFactorModel):
+class CTensorCoFi(IFactorModel):
 
-    cdef int number_of_factors = 20
-    cdef int number_of_iterations = 5
-    cdef float constant_lambda = .05
-    cdef float constant_alpha = 40
-    cdef list context_columns = []
+    number_of_factors = 20
+    number_of_iterations = 5
+    constant_lambda = .05
+    constant_alpha = 40
+    context_columns = []
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def __init__(CTensorCoFi self, int n_factors=None, int n_iterations=None, float c_lambda=None, float c_alpha=None,
-                 list other_context=None):
+    def __init__(self, n_factors=None, n_iterations=None, c_lambda=None, c_alpha=None,
+                 other_context=None):
         """
         Constructor
 
@@ -153,7 +151,7 @@ cdef class CTensorCoFi(IFactorModel):
         """
         self.set_params(n_factors, n_iterations, c_lambda, c_alpha)
         self.factors = []
-        self.context_columns = other_context or self.context_columns
+        self.context_columns = other_context or []
 
     @classmethod
     @cython.boundscheck(False)
@@ -171,7 +169,7 @@ cdef class CTensorCoFi(IFactorModel):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def get_context_columns(CTensorCoFi self):
+    def get_context_columns(self):
         """
         Get a list of names of all the context column names for this model
         :return:
@@ -180,7 +178,7 @@ cdef class CTensorCoFi(IFactorModel):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def train(CTensorCoFi self, data):
+    def train(self, data):
         """
         Train the model
         """
@@ -195,14 +193,15 @@ cdef class CTensorCoFi(IFactorModel):
             dimensions = <int *>malloc(sizeof(int) * <int>len(self.data_map))
             if dimensions is NULL:
                 raise MemoryError()
-            for i in xrange(fm_data):
+            for i in xrange(fm_data.size):
                 row = i / fm_data.rows
                 column = i % fm_data.rows
                 fm_set(fm_data, row, column, data[row, column])
             for i in xrange(len(self.data_map)):
                 dimensions[i] = <int>len(self.data_map)
-            tensor = tensorcofi_train(fm_data, self.number_of_factors, self.number_of_iterations, self.constant_lambda,
-                                      self.constant_alpha, <int>len(self.data_map))
+            tensor = tensorcofi_train(fm_data, <int>self.number_of_factors, <int>self.number_of_iterations,
+                                      <float>self.constant_lambda, <float>self.constant_alpha, <int>len(self.data_map),
+                                      dimensions)
             for i in xrange(len(self.data_map)):
                 tmp = [[] for _ in xrange(tensor[i].rows)]
                 for j in xrange(tensor[i].size):
@@ -245,17 +244,17 @@ cdef class CTensorCoFi(IFactorModel):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def set_params(CTensorCoFi self, int n_factors, int n_iterations, float c_lambda, float c_alpha):
+    def set_params(self, int n_factors, int n_iterations, float c_lambda, float c_alpha):
         """
         Set the parameters for the TensorCoFi
         """
-        self.number_of_factors = n_factors or self.number_of_factors
-        self.number_of_iterations = n_iterations or self.number_of_iterations
-        self.constant_lambda = c_lambda or self.constant_lambda
-        self.constant_alpha = c_alpha or self.constant_alpha
+        self.number_of_factors = n_factors or 20
+        self.number_of_iterations = n_iterations or 5
+        self.constant_lambda = c_lambda or .05
+        self.constant_alpha = c_alpha or 40.
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def get_name(CTensorCoFi self):
+    def get_name(self):
         return "TensorCoFi(n_factors=%s, n_iterations=%s, c_lambda=%s, c_alpha=%s)" % \
                (self.number_of_factors, self.number_of_iterations, self.constant_lambda, self.constant_alpha)

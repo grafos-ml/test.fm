@@ -16,12 +16,12 @@ ext_modules = [
               libraries=['blas'],
               library_dirs=library_dirs,
               include_dirs=include_dirs),
+    Extension("testfm.models.cutil.int_array", ["testfm/models/cutil/int_array.pyx"]),
+    Extension("testfm.evaluation.measures", ["testfm/evaluation/cutil/measures.pyx"]),
     Extension("testfm.models.cutil.tensorcofi", ["testfm/models/cutil/tensorcofi.pyx"],
               libraries=['blas'],
               library_dirs=library_dirs,
               include_dirs=include_dirs),
-    Extension("testfm.models.cutil.int_array", ["testfm/models/cutil/int_array.pyx"]),
-    Extension("testfm.evaluation.measures", ["testfm/evaluation/cutil/measures.pyx"]),
 ]
 
 setup(

@@ -23,6 +23,7 @@ import datetime
 import subprocess
 import math
 from testfm.models.cutil.interface import IFactorModel
+from testfm.models.cutil.tensorcofi import CTensorCoFi
 
 
 class TensorCoFi(IFactorModel):
