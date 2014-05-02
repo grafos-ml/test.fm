@@ -37,7 +37,7 @@ class IFactorModel(IModel):
         user = self.data_map[self.get_user_column()][user], len(self.data_map[self.get_user_column()])
         item = self.data_map[self.get_item_column()][item], len(self.data_map[self.get_item_column()])
         cdef int number_of_contexts = len(self.get_context_columns())+2, i, number_of_factors = self.number_of_factors
-        cdef double **factor_matrices = <double **>malloc(sizeof(double) *number_of_contexts)
+        cdef double **factor_matrices = <double **>malloc(sizeof(double) * number_of_contexts)
         cdef float result
         if factor_matrices is NULL:
             raise MemoryError()
