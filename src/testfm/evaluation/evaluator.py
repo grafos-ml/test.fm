@@ -12,7 +12,7 @@ from random import sample
 from pandas import DataFrame
 from itertools import izip, repeat
 from math import sqrt
-from testfm.evaluation.measures import MAPMeasure
+from testfm.evaluation.measures_old import MAPMeasure
 from testfm.models.baseline_model import IdModel
 
 from multiprocessing import Process, Queue, current_process, cpu_count

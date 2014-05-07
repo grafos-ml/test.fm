@@ -2,7 +2,8 @@
 FloatMatrix implementation for native no GIL matrix operations
 """
 cimport cython
-from libc.stdlib cimport malloc, free, rand, RAND_MAX
+from libc.stdlib cimport malloc, free, rand, RAND_MAX, exit as cexit
+from libc.stdio cimport printf
 
 cdef extern from "cblas.h":
     float cblas_scopy(int n, float *x, int incx, float *y, int incy) nogil  # For clone
@@ -11,6 +12,10 @@ cdef extern from "cblas.h":
                      float *b, int ldb, float beta, float *c, int ldc) nogil  # For matrix multiplication
     #void cblas_symm(char *side, char *uplo, int m, int n, float alpha, float *a, int lda, float *b, int ldb, float beta,
     #                float *c, int ldc) nogil  # For matrix multiplication
+
+cdef extern from "clapack.h":
+    int clapack_sgesv(const int order, const int n, const int nrhs, float *a, const int lda, int *ipiv, float *b,
+                      const int ldb) nogil
 
 
 @cython.boundscheck(False)
@@ -71,9 +76,11 @@ cdef api float fm_get(float_matrix self, int row, int column) nogil:
     :param column: Column item to get the item
     :return: The float element in the specific cell
     """
+    #if 0 > row or row >= self.rows or 0 > column or column >= self.columns:
+    #    raise IndexError
     if self.transpose == 1:
-        return self.values[column*self.rows + row]
-    return self.values[row*self.columns + column]
+        return <float>self.values[column*self.rows + row]
+    return <float>self.values[row*self.columns + column]
 
 
 @cython.boundscheck(False)
@@ -85,9 +92,14 @@ cdef api void fm_set(float_matrix self, int row, int column, float value) nogil:
     :param column: Column item to get the item
     :param value: The new value in the cell
     """
+    #printf("(%d/%d, %d/%d) = %f\n", row, self.rows, column, self.columns, value)
     if self.transpose == 1:
+        #if column*self.rows + row >= self.size:
+        #    cexit(155)
         self.values[column*self.rows + row] = value
     else:
+        #if row*self.columns + column >= self.size:
+        #    cexit(154)
         self.values[row*self.columns + column] = value
 
 
@@ -172,8 +184,7 @@ cdef api float_matrix fm_static_multiply(float_matrix self, float_matrix other, 
     """
     cblas_sgemm(101, 112 if self.transpose else 111, 112 if other.transpose else 111, self.rows, other.columns,
                 self.columns, 1., self.values, self.rows if self.transpose else self.columns, other.values,
-                other.rows if other.transpose else other.columns, 0., result.values,
-                result.columns)
+                other.rows if other.transpose else other.columns, 0., result.values, result.columns)
     return result
 
 
@@ -199,16 +210,10 @@ cdef api float_matrix fm_static_multiply_column(float_matrix self, float_matrix 
     :return: A new multiplied matrix
     """
     cdef int i, r, c
-    if self.transpose:
-        for i in xrange(self.size):
-            r = i % self.rows
-            c = i / self.rows
-            fm_set(result, r, c, fm_get(self, r, c) * fm_get(other, r, row))
-    else:
-        for i in xrange(self.size):
-            r = i / self.columns
-            c = i % self.columns
-            fm_set(result, r, c, fm_get(self, r, c) * fm_get(other, r, row))
+    for i in xrange(self.size):
+        r = i / self.columns
+        c = i % self.columns
+        fm_set(result, r, c, fm_get(self, r, c) * fm_get(other, r, row))
     return result
 
 
@@ -234,8 +239,8 @@ cdef api float_matrix fm_static_add(float_matrix self, float_matrix other, float
     """
     cdef int row, column, i
     for i in xrange(self.size):
-        row = i / self.rows
-        column = i % self.rows
+        row = i / self.columns
+        column = i % self.columns
         fm_set(result, row, column, fm_get(self, row, column) + fm_get(other, row, column))
     return result
 
@@ -262,8 +267,8 @@ cdef api float_matrix fm_static_element_wise_multiply(float_matrix self, float_m
     """
     cdef int row, column, i
     for i in xrange(self.size):
-        row = i / self.rows
-        column = i % self.rows
+        row = i / self.columns
+        column = i % self.columns
         fm_set(result, row, column, fm_get(self, row, column) * fm_get(other, row, column))
     return result
 
@@ -290,8 +295,8 @@ cdef api float_matrix fm_static_element_wise_division(float_matrix self, float_m
     """
     cdef int row, column, i
     for i in xrange(self.size):
-        row = i / self.rows
-        column = i % self.rows
+        row = i / self.columns
+        column = i % self.columns
         fm_set(result, row, column, fm_get(self, row, column) / fm_get(other, row, column))
     return result
 
@@ -318,7 +323,7 @@ cdef api float_matrix fm_diagonal(float_matrix self, float scalar) nogil:
     """
     self = fm_static_multiply_scalar(self, 0., self)
     cdef int i
-    for i in xrange(self.size):
+    for i in xrange(self.rows):
         fm_set(self, i, i, scalar)
     return self
 
@@ -344,8 +349,36 @@ cdef api float_matrix fm_create_random(int rows, int columns) nogil:
     cdef float_matrix fm = fm_new(rows, columns)
     cdef int i
     for i in xrange(fm.size):
-        fm.values[i] = rand() / RAND_MAX
+        fm.values[i] = rand() / <float>RAND_MAX
     return fm
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef api void fm_print(float_matrix self) nogil:
+    """
+    Print the matrix
+    """
+    cdef int row, column
+    for row in range(self.rows):
+        if row != 0:
+            printf("\n")
+        for columns in range(self.columns):
+            if columns != 0:
+                printf(", ")
+            printf("%f", fm_get(self, row, columns))
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef api float_matrix fm_solve(float_matrix self, float_matrix result, int *ipiv) nogil:
+    """
+    Solve the system SELF * X = RESULT
+    :return The solution for this system
+    """
+    cdef float_matrix solution = fm_clone(result)
+    clapack_sgesv(101, self.columns, solution.columns, self.values, self.rows, ipiv,
+                  solution.values, solution.rows)
+    return solution
 
 
 cdef class FloatMatrix:

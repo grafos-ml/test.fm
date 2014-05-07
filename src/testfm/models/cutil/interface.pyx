@@ -6,9 +6,7 @@ from libc.stdlib cimport malloc, free  #, realloc, rand, RAND_MAX
 import numpy as np
 cimport numpy as np
 from testfm.models import IModel
-
-cdef extern from "cblas.h":
-    double cblas_ddot(int N, double *X, int incX, double *Y, int incY) nogil
+from libc.stdio cimport printf
 
 
 @cython.boundscheck(False)
@@ -19,7 +17,7 @@ cdef float get_score(int number_of_factors, int number_of_contexts, double **fac
     for i in xrange(number_of_factors):
         factor = 1.
         for j in xrange(number_of_contexts):
-            factor *= factor_matrices[j][context[j*2+1]*i + context[j*2] - 1]
+            factor *= factor_matrices[j][context[j*2+1]*i + context[j*2]]
         total += factor
     return total
 
@@ -37,15 +35,16 @@ class IFactorModel(IModel):
         user = self.data_map[self.get_user_column()][user], len(self.data_map[self.get_user_column()])
         item = self.data_map[self.get_item_column()][item], len(self.data_map[self.get_item_column()])
         cdef int number_of_contexts = len(self.get_context_columns())+2, i, number_of_factors = self.number_of_factors
-        cdef double **factor_matrices = <double **>malloc(sizeof(double) * number_of_contexts)
+        cdef double **factor_matrices
         cdef float result
-        if factor_matrices is NULL:
-            raise MemoryError()
-        cdef int *c_context = <int *>malloc(sizeof(int) * number_of_contexts * 2)
-        if c_context is NULL:
-            free(factor_matrices)
-            raise MemoryError()
+        cdef int *c_context
         try:
+            factor_matrices = <double **>malloc(sizeof(double *) * number_of_contexts)
+            if factor_matrices is NULL:
+                raise MemoryError()
+            c_context = <int *>malloc(sizeof(int) * number_of_contexts * 2)
+            if c_context is NULL:
+                raise MemoryError()
             p_context = [user, item] + [
                 (self.data_map[c][context[c]], len(self.data_map[c])) for c in self.get_context_columns()]
             for i in xrange(number_of_contexts):
@@ -56,5 +55,7 @@ class IFactorModel(IModel):
                 result = get_score(number_of_factors, number_of_contexts, factor_matrices, c_context)
             return result
         finally:
-            free(c_context)
-            free(factor_matrices)
+            if factor_matrices is not NULL:
+                free(factor_matrices)
+            if c_context is not NULL:
+                free(c_context)

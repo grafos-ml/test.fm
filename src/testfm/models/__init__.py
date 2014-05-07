@@ -97,7 +97,7 @@ class IModel(object):
         self.data_map = {}
         for column in columns:
             unique_data = training_data[column].unique()
-            self.data_map[column] = pd.Series(xrange(1, len(unique_data)+1), unique_data)
+            self.data_map[column] = pd.Series(xrange(len(unique_data)), unique_data)
             data.append(map(lambda x: self.data_map[column][x], training_data[column].values))
         data.append(training_data.get(self.get_rating_column(), np.ones((len(training_data,))).tolist()))
         self.train(np.array(data).transpose())

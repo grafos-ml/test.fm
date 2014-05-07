@@ -190,7 +190,7 @@ class PyTensorCoFi(TensorCoFi):
         :param row: Working row
         :return: A tmp matrix
         """
-        column = training_data[row, 1-current_dimension]-1
+        column = training_data[row, 1-current_dimension]
         return self.tmp * self.factors[1-current_dimension][:, column].reshape(self.number_of_factors, 1)
 
     def standard_tmp(self, current_dimension, training_data, row):
@@ -225,12 +225,12 @@ class PyTensorCoFi(TensorCoFi):
             for current_dimension, dimension in enumerate(self.dimensions):
                 base = self.base(current_dimension)
 
-                for entry in range(1, dimension+1):
+                for entry in range(dimension):
                     matrix_vector_product = self.matrix_vector_product
                     invertible = self.invertible
                     for row in tensor[current_dimension][entry]:
                         tmp = self.tmp_calc(current_dimension, training_data, row)
-                        score = training_data[row, training_data.shape[1]-1]
+                        score = training_data[row, -1]
                         weight = self.constant_alpha * math.log(1. + math.fabs(score))
 
                         invertible = np.add(invertible, weight * (tmp * tmp.transpose()))
@@ -241,7 +241,7 @@ class PyTensorCoFi(TensorCoFi):
                     regularizer /= dimension
                     invertible += regularizer
                     invertible = np.linalg.solve(invertible, one)
-                    self.factors[current_dimension][:, entry-1] = \
+                    self.factors[current_dimension][:, entry] = \
                         np.dot(invertible, matrix_vector_product).reshape(self.number_of_factors)
 
         self.base = self.tmp_calc = None

@@ -4,23 +4,21 @@ from distutils.extension import Extension
 from Cython.Distutils import build_ext
 import numpy as np
 
-library_dirs = ['/usr/lib']
-include_dirs = ['/usr/include', np.get_include()]
+library_dirs = ["/usr/lib"]
+include_dirs = ["/usr/include/atlas", np.get_include()]
 
 ext_modules = [
     Extension("testfm.models.cutil.interface", ["testfm/models/cutil/interface.pyx"],
-              libraries=['blas'],
-              library_dirs=library_dirs,
               include_dirs=include_dirs),
     Extension("testfm.models.cutil.float_matrix", ["testfm/models/cutil/float_matrix.pyx"],
-              libraries=['blas'],
-              library_dirs=library_dirs,
+              libraries=["lapack", "cblas"],
+              library_dirs=["/usr/lib/atlas-base/atlas"],
               include_dirs=include_dirs),
     Extension("testfm.models.cutil.int_array", ["testfm/models/cutil/int_array.pyx"]),
     Extension("testfm.evaluation.measures", ["testfm/evaluation/cutil/measures.pyx"]),
     Extension("testfm.models.cutil.tensorcofi", ["testfm/models/cutil/tensorcofi.pyx"],
-              libraries=['blas'],
-              library_dirs=library_dirs,
+              libraries=["cblas"],
+              library_dirs=["/usr/lib/atlas-base/atlas"],
               include_dirs=include_dirs),
 ]
 

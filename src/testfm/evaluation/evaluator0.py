@@ -9,8 +9,9 @@ Evaluator for the test.fm framework version 2
 __author__ = "joaonrb"
 
 
-from testfm.evaluation.measures import MAPMeasure
+from testfm.evaluation.measures_old import MAPMeasure
 from random import sample
+import numpy as np
 
 
 def partial_measure(user, entries, factor_model, all_items, non_relevant_count, measure, k=None):
@@ -87,12 +88,13 @@ class Evaluator(object):
 
         #1. for each user:
         for m in self.measures:
-            scores = []
-            for user, entries in testing_data.groupby('user'):
+            gbu = len(testing_data.groupby('user'))
+            scores = np.empty(gbu)
+            for i, (user, entries) in enumerate(testing_data.groupby('user')):
                 pm = partial_measure(user, entries, factor_model, all_items, non_relevant_count, m)
-                scores.append(pm)
+                scores[i] = pm
             #7.average the scores for each user
-            ret.append(sum(scores)/len(scores))
+            ret.append(np.sum(scores)/gbu)
         return ret
 
 

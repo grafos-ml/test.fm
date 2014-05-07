@@ -1,7 +1,11 @@
 
 cimport cython
 from libc.stdlib cimport malloc, free
-from testfm.models.cutil.float_matrix cimport *
+from libc.stdio cimport printf
+from testfm.models.cutil.float_matrix cimport float_matrix, fm_create_diagonal, fm_new, fm_new_init, fm_create_random, \
+    fm_get, fm_set, fm_destroy, fm_transpose, fm_multiply, fm_static_element_wise_multiply, fm_static_multiply_column, \
+    fm_static_multiply, fm_static_multiply_scalar, fm_static_add, fm_solve, fm_print
+
 from testfm.models.cutil.int_array cimport *
 from testfm.models.cutil.interface import IFactorModel
 import numpy as np
@@ -12,9 +16,6 @@ cdef extern from "math.h":
     double fabs(double score) nogil
     double copysign(double x, float y) nogil
 
-cdef extern from "cblas.h":
-    void cblas_strsm(int order, int side, int uplo, int transa, int diag, int m, int n, float alpha, float *a, int ida,
-                     float *b, int idb) nogil
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -25,41 +26,48 @@ cdef api float_matrix *tensorcofi_train(float_matrix data_array, int n_factors, 
     :param data_array:
     :return:
     """
-    cdef int i, j, iteration, index, data_row, current_dimension, matrix_index, data_entry, data_column
+    cdef int i, j, k, iteration, index, data_row, current_dimension, matrix_index, data_entry, data_column
+    cdef int *ipiv = <int *>malloc(sizeof(int) * n_factors)
     cdef float weight, score
-    cdef int_array data_row_list
+    cdef int_array data_row_list = NULL
 
     # Initialize standard variables
-    cdef float_matrix tmp = fm_new_init(n_factors, 1, 1.), tmp_transpose  # Temporary matrix (for each context)
+    cdef float_matrix solution = NULL
+    cdef float_matrix tmp = fm_new_init(n_factors, 1, 1.), tmp_transpose = NULL  # Temporary matrix (for each context)
     cdef float_matrix regularizer = fm_create_diagonal(n_factors, c_lambda)  # Regularizer is a lambda diagonal
     cdef float_matrix matrix_vector_product = fm_new_init(n_factors, 1, 0.)  # Matrix vector product
-    cdef float_matrix one = fm_create_diagonal(n_factors, 1.), one_tmp  # Matrix one
+    cdef float_matrix one = fm_create_diagonal(n_factors, 1.), one_tmp = NULL # Matrix one
     cdef float_matrix invertible = fm_new_init(n_factors, n_factors, 1.), \
          invertible_tmp = fm_new(n_factors, n_factors) # Invertible Matrix
-    cdef float_matrix base, base_transpose, base_tmp
+    cdef float_matrix base = NULL, base_transpose = NULL, base_tmp = NULL
     cdef float_matrix *factors = <float_matrix *>malloc(sizeof(float_matrix) * n_dimensions)  # Factors
     cdef int_array **tensor = <int_array **>malloc(sizeof(int_array *) * n_dimensions)  # Tensor (array)
-    for i in xrange(n_dimensions):  # Fill the tensor with information
+    for i in range(n_dimensions):  # Fill the tensor with information
         factors[i] = fm_create_random(n_factors, dimensions[i])
-        tensor[i] = <int_array *>malloc(sizeof(_int_array) * dimensions[i])
-        for j in xrange(dimensions[i]):
-            tensor[i][j] = ia_new()
-        for data_row in xrange(data_array.rows):
+        tensor[i] = <int_array *>malloc(sizeof(int_array) * dimensions[i])
+
+        for j in range(dimensions[i]):
+            tensor[i][j] = NULL
+        for data_row in range(data_array.rows):
+            if tensor[i][<int>fm_get(data_array,data_row, i)] is NULL:
+                tensor[i][<int>fm_get(data_array, data_row, i)] = ia_new()
             ia_add(tensor[i][<int>fm_get(data_array, data_row, i)], data_row)  # Populate tensor
     # Tensor created
     # Factors created
     # Start Iteration ##################################################################################################
 
-    for iteration in xrange(n_iterations):
-        for current_dimension in xrange(n_dimensions):
+    for iteration in range(n_iterations):
+        for current_dimension in range(n_dimensions):
             # Initiate base
             if n_dimensions == 2:
+                fm_destroy(base)
                 base_transpose = fm_transpose(factors[1-current_dimension])  # New memory was allocated
                 base = fm_multiply(factors[1-current_dimension], base_transpose)  # New memory was allocated
                 fm_destroy(base_transpose)  # Memory from base_transpose released
             else:
+                fm_destroy(base)
                 base = fm_new_init(n_factors, n_factors, 1.)  # New memory was allocated
-                for matrix_index in xrange(n_dimensions):
+                for matrix_index in range(n_dimensions):
                     if matrix_index != current_dimension:
                         base_transpose =  fm_transpose(factors[matrix_index])  # New memory was allocated
                         base_tmp = fm_multiply(factors[matrix_index], base_transpose)  # New memory was allocated
@@ -68,19 +76,21 @@ cdef api float_matrix *tensorcofi_train(float_matrix data_array, int n_factors, 
                         fm_destroy(base_tmp)  # Memory from base_tmp released
             # Base created
 
-            for data_entry in xrange(dimensions[current_dimension]):
+            for data_entry in range(dimensions[current_dimension]):
                 data_row_list = tensor[current_dimension][data_entry]
-                for i in xrange(data_row_list.size):
-                    # Initialize temporary matrix
-                    #  No new memory is allocated
-                    for j in xrange(tmp.size):
-                        tmp.values[j] = 1.
-                    # Done
-                    for data_column in xrange(n_dimensions):
-                        if data_column != current_dimension:
-                            fm_static_multiply_column(tmp, factors[data_column],
-                                                      <int>fm_get(data_array, data_row, data_column),
-                                                      tmp)  # No new memory is allocated
+                if data_row_list is not NULL:
+                    for i in range(ia_size(data_row_list)):
+                        data_row = data_row_list.values[i]
+                        # Initialize temporary matrix
+                        #  No new memory is allocated
+                        for j in range(tmp.size):
+                            tmp.values[j] = 1.
+                        # Done
+                        for data_column in range(n_dimensions):
+                            if data_column != current_dimension:
+                                fm_static_multiply_column(tmp, factors[data_column],
+                                                          <int>fm_get(data_array, data_row, data_column),
+                                                          tmp)  # No new memory is allocated
                         score = fm_get(data_array, data_row, data_array.columns-1)
                         weight = c_lambda * log(1.+fabs(score))
                         # Start calculation of rank one update in invertible
@@ -95,36 +105,49 @@ cdef api float_matrix *tensorcofi_train(float_matrix data_array, int n_factors, 
                         fm_static_multiply_scalar(tmp, copysign(score, 1.) * (1.+weight), tmp)  # No new memory allocated
                         fm_static_add(matrix_vector_product, tmp, matrix_vector_product)  # No new memory allocated
                         # End calculate matrix vector product
-                    fm_static_add(invertible, base, invertible)  # No new memory allocated
-                    fm_static_multiply_scalar(regularizer, 1. / dimensions[current_dimension],
-                                              regularizer)  # No new memory allocated
-                    fm_static_add(invertible, regularizer, invertible)  # No new memory allocated
-                    cblas_strsm(101, 141, 121, 112 if invertible.transpose else 111, 131, one.rows, one.columns, 1.,
-                                invertible.values, invertible.columns if invertible.transpose else invertible.rows,
-                                one.values, one.columns if one.transpose else one.rows)  # Calculate the solution on one
-                    one_tmp = fm_multiply(invertible, matrix_vector_product)  # New memory allocated
-                    for i in xrange(dimensions[current_dimension]):
-                        fm_set(factors[current_dimension], i, data_entry, fm_get(one_tmp, i, 0))
-                    fm_destroy(one_tmp)
+                i = current_dimension
+                fm_static_add(invertible, base, invertible)  # No new memory allocated
+                fm_static_multiply_scalar(regularizer, 1. / dimensions[current_dimension],
+                                          regularizer)  # No new memory allocated
+                fm_static_add(invertible, regularizer, invertible)  # No new memory allocated
 
-                    # Reset variables
-                    fm_static_multiply_scalar(invertible, 0., invertible)
-                    fm_static_multiply_scalar(matrix_vector_product, 0., matrix_vector_product)
-                    # End reset
+                solution = fm_solve(invertible, one, ipiv)  # New memory allocated
+
+                one_tmp = fm_multiply(solution, matrix_vector_product)  # New memory allocated
+                for k in range(n_factors):
+                    fm_set(factors[current_dimension], k, data_entry, fm_get(one_tmp, k, 0))
+                fm_destroy(one_tmp)
+                fm_destroy(solution)
+
+                # Reset variables
+                fm_static_multiply_scalar(one, 0., one)
+                fm_static_multiply_scalar(regularizer, 0., regularizer)
+                for k in range(one.rows):
+                    fm_set(one, k, k, 1.)
+                    fm_set(regularizer, k, k, c_lambda)
+                fm_static_multiply_scalar(invertible, 0., invertible)
+                fm_static_multiply_scalar(matrix_vector_product, 0., matrix_vector_product)
+                # End reset
 
     # Stop Iteration ###################################################################################################
     # Destroy the tensor and variables
-    for i in xrange(n_dimensions):
-        for j in xrange(dimensions[i]):
-            ia_destroy(tensor[i][j])  # Destroy every int_array
+    for i in range(n_dimensions):
+        #printf(">>> %d\n", i)
+        for j in range(dimensions[i]):
+            if tensor[i][j] is not NULL:
+                #printf(">>> %d/%d\n", tensor[i][j]._size, tensor[i][j]._max_size)
+                ia_destroy(tensor[i][j])  # Destroy every int_array
+    for i in range(n_dimensions):
         free(tensor[i])  # Destroy the array of int_array
     free(tensor)  # If I continue with the explanation it will be hilarious
+    free(ipiv)  # Free ipiv
     fm_destroy(tmp)  # Free tmp
     fm_destroy(regularizer)
     fm_destroy(matrix_vector_product)
     fm_destroy(one)
     fm_destroy(invertible)
     fm_destroy(invertible_tmp)
+    fm_destroy(base)
     # Return the factors
     return factors
 
@@ -139,8 +162,7 @@ class CTensorCoFi(IFactorModel):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def __init__(self, n_factors=None, n_iterations=None, c_lambda=None, c_alpha=None,
-                 other_context=None):
+    def __init__(self, n_factors=None, n_iterations=None, c_lambda=None, c_alpha=None, other_context=None):
         """
         Constructor
 
@@ -176,45 +198,53 @@ class CTensorCoFi(IFactorModel):
         """
         return self.context_columns
 
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def train(self, data):
         """
         Train the model
         """
-        cdef float_matrix *tensor
-        cdef int i, j, row, column
-        cdef float_matrix fm_data
-        cdef int *dimensions
+        cdef float_matrix *tensor = NULL
+        cdef int i, j, row, column, number_of_factors = <int>self.number_of_factors, \
+            number_of_iterations = <int>self.number_of_iterations
+        cdef float constant_lambda = <float>self.constant_lambda, constant_alpha = <float>self.constant_alpha
+        cdef float_matrix fm_data = NULL
+        cdef int *dimensions = NULL
+        cdef int number_of_dimensions = <int>len(self.data_map)
         try:
             fm_data = fm_new(data.shape[0], data.shape[1])
+            if fm_data is NULL:
+                raise MemoryError()
+            dimensions = <int *>malloc(sizeof(int) * number_of_dimensions)
             if dimensions is NULL:
                 raise MemoryError()
-            dimensions = <int *>malloc(sizeof(int) * <int>len(self.data_map))
-            if dimensions is NULL:
-                raise MemoryError()
-            for i in xrange(fm_data.size):
-                row = i / fm_data.rows
-                column = i % fm_data.rows
-                fm_set(fm_data, row, column, data[row, column])
-            for i in xrange(len(self.data_map)):
-                dimensions[i] = <int>len(self.data_map)
-            tensor = tensorcofi_train(fm_data, <int>self.number_of_factors, <int>self.number_of_iterations,
-                                      <float>self.constant_lambda, <float>self.constant_alpha, <int>len(self.data_map),
-                                      dimensions)
-            for i in xrange(len(self.data_map)):
-                tmp = [[] for _ in xrange(tensor[i].rows)]
-                for j in xrange(tensor[i].size):
-                    row = j / tensor[i].rows
-                    column = j % tensor[i].rows
-                    tmp[row].append(fm_get(tensor[i], row, column))
-                self.factors.append(np.array(tmp))
+            for i in range(fm_data.size):
+                row = i / fm_data.columns
+                column = i % fm_data.columns
+                fm_set(fm_data, row, column, <float>data[row, column])
+            dimensions[0] = <int>self.users_size()
+            dimensions[1] = <int>self.items_size()
+
+            for i, in range(len(self.get_context_columns())):
+                dimensions[i+2] = <int>len(self.data_map[self.get_context_columns()[i]])
+            with nogil:
+                tensor = tensorcofi_train(fm_data, number_of_factors, number_of_iterations, constant_lambda,
+                                          constant_alpha, number_of_dimensions, dimensions)
+            if tensor is NULL:
+                raise RuntimeError
+            for i in range(len(self.data_map)):
+                tmp = np.empty(tensor[i].size)
+                for j in range(tensor[i].size):
+                    tmp[j] = tensor[i].values[j]
+                tmp.shape = tensor[i].rows, tensor[i].columns
+                self.factors.append(tmp.transpose())
         finally:
             if dimensions is not NULL:
                 free(dimensions)
             fm_destroy(fm_data)
             if tensor is not NULL:
-                for i in xrange(len(self.data_map)):
+                for i in range(number_of_dimensions):
                     fm_destroy(tensor[i])
                 free(tensor)
 
@@ -256,5 +286,14 @@ class CTensorCoFi(IFactorModel):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def get_name(self):
-        return "TensorCoFi(n_factors=%s, n_iterations=%s, c_lambda=%s, c_alpha=%s)" % \
-               (self.number_of_factors, self.number_of_iterations, self.constant_lambda, self.constant_alpha)
+        return "CTensorCoFi(n_factors=%s, n_iterations=%s, c_lambda=%.2f, c_alpha=%d)" % \
+               (self.number_of_factors, self.number_of_iterations, <float>self.constant_lambda, <int>self.constant_alpha)
+
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)
+    #def get_score(self, user, item, **context):
+    #    ret = self.factors[0][self.data_map[self.get_user_column()][user], :]
+    #    ret = np.multiply(ret, self.factors[1][self.data_map[self.get_item_column()][item], :])
+    #    for i, name in enumerate(self.get_context_columns(), start=2):
+    #        ret = np.multiply(ret, self.factors[i][self.data_map[name][context[name]], :])
+    #    return sum(ret)

@@ -11,9 +11,9 @@ cdef api int_array ia_new() nogil:
     :return:
     """
     cdef int_array ia = <int_array>malloc(sizeof(_int_array))
-    ia.max_size = 10
-    ia.size = 0
-    ia.values = <int *>malloc(sizeof(float)*ia.max_size)
+    ia._max_size = 10
+    ia.values = <int *>malloc(sizeof(int) * ia._max_size)
+    ia._size = 0
     return ia
 
 
@@ -25,35 +25,33 @@ cdef api void ia_destroy(int_array self) nogil:
     :param self:
     :return:
     """
-    if self.values is not NULL:
-        free(self.values)
     if self is not NULL:
+        if self.values is not NULL:
+            free(self.values)
         free(self)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef api void ia_add(int_array self, int value) nogil:
+cdef api int ia_add(int_array self, int value) nogil:
     """
     Add a new value to the array
     :param value:
     :return:
     """
-    if self.size >= self.max_size:
-        self.max_size += 10
-        self.values = <int *>realloc(self.values, sizeof(int)*self.max_size)
-    self.values[self.size] = value
-    self.size += 1
-
+    cdef int *tmp
+    if self._size >= self._max_size:
+        self._max_size += 20
+        tmp = <int *>realloc(self.values, sizeof(int)*self._max_size)
+        if tmp is NULL:
+            self._max_size -= 20
+            return 1
+        self.values = tmp
+    self.values[self._size] = value
+    self._size += 1
+    return 0
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef api int ia_get(int_array self, int index) nogil:
-    """
-    Get element in index
-    :param self:
-    :param index:
-    :return:
-    """
-    if  0 <= index <= self.size:
-        return self.values[index]
+cdef api int ia_size(int_array self) nogil:
+    return self._size
