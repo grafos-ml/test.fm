@@ -3,7 +3,7 @@ python:
   - "2.7"
 # command to install dependencies
 install:
-  - sudo apt-get -q install gfortran libblas-dev libatlas-base-dev
+  - sudo apt-get -q install gfortran libatlas-base-dev libatlas-dev liblapack-dev
   - pip install -r conf/requirements.txt
   - pip install .
 # command to run tests
