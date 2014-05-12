@@ -2,7 +2,7 @@ __author__ = "linas"
 
 import testfm
 import pandas as pd
-from testfm.evaluation.evaluator0 import Evaluator
+from testfm.evaluation.evaluator import Evaluator
 from testfm.models.baseline_model import Popularity, RandomModel, Item2Item
 from testfm.models.tensorcofi import PyTensorCoFi, TensorCoFi, CTensorCoFi
 from testfm.models.content_based import TFIDFModel, LSIModel
@@ -20,13 +20,13 @@ print df.head()
 training, testing = testfm.split.holdoutByRandom(df, 0.9)
 
 #tell me what models we want to evaluate
-models = [  #RandomModel(),
+models = [  RandomModel(),
             #BPR(),
             #TFIDFModel("title"),
-            #Popularity(),
-            TensorCoFi(n_factors=20, n_iterations=50, c_lambda=0.05, c_alpha=40),
+            Popularity(),
+            TensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
             PyTensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
-            CTensorCoFi(n_factors=20, n_iterations=50, c_lambda=0.05, c_alpha=40),
+            CTensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
             #TensorCoFiByFile(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40, user_features=["user"],
             #                 item_features=["item"]),
             #Item2Item(),

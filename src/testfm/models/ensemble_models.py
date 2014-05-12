@@ -11,7 +11,7 @@ them into a single model.
 __author__ = "linas"
 
 
-from testfm.models import IModel
+from testfm.models.cutil.interface import IModel
 
 
 class LinearEnsemble(IModel):

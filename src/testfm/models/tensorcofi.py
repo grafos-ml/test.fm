@@ -99,7 +99,7 @@ class TensorCoFi(IFactorModel):
             #os.remove(name)
             print out
             raise Exception(err)
-        self.factors = [np.genfromtxt(open(path, "r"), delimiter=",").transpose() for path in out.split(" ")]
+        self.factors = [np.genfromtxt(open(path, "r"), delimiter=",", dtype=np.float32).transpose() for path in out.split(" ")]
         shutil.rmtree("log")
 
     def get_model(self):
@@ -246,7 +246,7 @@ class PyTensorCoFi(TensorCoFi):
 
         self.base = self.tmp_calc = None
         for i, factor in enumerate(self.factors):
-            self.factors[i] = factor.transpose()
+            self.factors[i] = factor.transpose().astype(np.float32)
 
     def get_name(self):
         return "Python TensorCoFi(n_factors=%s, n_iterations=%s, c_lambda=%s, c_alpha=%s)" % \

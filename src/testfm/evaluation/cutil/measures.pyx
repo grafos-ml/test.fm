@@ -15,12 +15,22 @@ Now we can compute the ranking error measure. For example Precision@2 = 0.5.
 """
 cimport cython
 from libc.stdlib cimport malloc, free
+from libc.stdio cimport printf
 
-cdef class MAPMeasure:
+
+cdef class NOGILMeasure:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef float _measure(self, float *ranked_list, int list_size) nogil:
+    cdef float nogil_measure(self, float *ranked_list, int list_size) nogil:
+        cdef float result = 0.
+        return result
+
+cdef class MAPMeasure(NOGILMeasure):
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef float nogil_measure(self, float *ranked_list, int list_size) nogil:
         """
         Each class of the Measure has to implement this method. It basically
         knows how to compute the performance measure such as MAP, P@k, etc.
@@ -28,10 +38,12 @@ cdef class MAPMeasure:
         recs - a list of tuples of ground truth and score.
             Example: [(True, 0.92), (False, 0.55), (True, 0.41), (True, 0.2)]
         """
+        #printf("><><><%d\n", list_size)
         cdef float map_measure = 0.
         cdef float relevant = 0.
         cdef int i
         for i in range(0, list_size*2, 2):
+            #printf(">>>%f %f\n", ranked_list[i], ranked_list[i+1])
             if ranked_list[i] == 1.0:
                 relevant += 1.
                 map_measure += (relevant / ((i/2)+1.))
@@ -57,15 +69,25 @@ cdef class MAPMeasure:
         (True, 0.3), (False, 0.2), (False, 0.1), (False, 0)])
         0.4928571428571428
         """
+        cdef float result
+        cdef int l = len(recs)
         if not isinstance(recs, list) or len(recs) < 1:
             return float("nan")
         try:
-            crec = <float *>malloc(len(recs)*cython.sizeof(float)*2)
+            crec = <float *>malloc(len(recs)*sizeof(float)*2)
             if crec is NULL:
                 raise MemoryError()
-            for i in xrange(0, len(recs)*2, 2):
-                crec[i], crec[i+1] = float(recs[i/2][0]), recs[i/2][1]
-            return self._measure(crec, <int>len(recs))
+            for i in range(len(recs)):
+                crec[i*2], crec[i*2+1] = float(recs[i][0]), recs[i][1]
+            with nogil:
+                result = self.nogil_measure(crec, l)
+            return result
         finally:
             free(crec)
+
+    @property
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def name(self):
+        return u"MAPMeasure"
 

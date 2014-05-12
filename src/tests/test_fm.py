@@ -18,6 +18,7 @@ import testfm
 from testfm.config import USER, ITEM, DATE
 from pandas.util.testing import assert_frame_equal
 
+
 class TestSplitters(object):
     """
 

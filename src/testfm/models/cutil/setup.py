@@ -15,7 +15,7 @@ ext_modules = [
               library_dirs=["/usr/lib/atlas-base/atlas"],
               include_dirs=include_dirs),
     Extension("testfm.models.cutil.int_array", ["testfm/models/cutil/int_array.pyx"]),
-    Extension("testfm.evaluation.measures", ["testfm/evaluation/cutil/measures.pyx"]),
+    Extension("testfm.evaluation.cutil.measures", ["testfm/evaluation/cutil/measures.pyx"]),
     Extension("testfm.models.cutil.tensorcofi", ["testfm/models/cutil/tensorcofi.pyx"],
               libraries=["cblas"],
               library_dirs=["/usr/lib/atlas-base/atlas"],

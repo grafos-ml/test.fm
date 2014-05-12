@@ -10,7 +10,7 @@ __author__ = "alexis"
 
 import numpy as np
 import random
-from testfm.models import IModel
+from testfm.models.cutil.interface import IModel
 
 
 class BPR(IModel):

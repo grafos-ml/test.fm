@@ -13,7 +13,7 @@ from math import sqrt
 import numpy as np
 
 from gensim import corpora, models, similarities
-from testfm.models import IModel
+from testfm.models.cutil.interface import IModel
 
 
 stopwords_str = "a,able,about,across,after,all,almost,also,am,among\

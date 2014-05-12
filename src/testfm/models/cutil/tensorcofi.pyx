@@ -234,7 +234,7 @@ class CTensorCoFi(IFactorModel):
             if tensor is NULL:
                 raise RuntimeError
             for i in range(len(self.data_map)):
-                tmp = np.empty(tensor[i].size)
+                tmp = np.empty(tensor[i].size, dtype=np.float32)
                 for j in range(tensor[i].size):
                     tmp[j] = tensor[i].values[j]
                 tmp.shape = tensor[i].rows, tensor[i].columns

@@ -9,7 +9,7 @@ from pkg_resources import resource_filename
 import testfm
 from testfm.models.graphchi_models import SVDpp
 from testfm.models.tensorcofi import TensorCoFi, PyTensorCoFi
-from testfm.models.baseline_model import IdModel, Item2Item, AverageModel, RandomModel
+from testfm.models.baseline_model import IdModel, Item2Item, AverageModel
 from testfm.models.ensemble_models import LogisticEnsemble
 from testfm.models.content_based import TFIDFModel, LSIModel
 from testfm.evaluation.evaluator import Evaluator
@@ -219,18 +219,17 @@ class TestLSI(unittest.TestCase):
 class TFIDTest(unittest.TestCase):
 
     def setUp(self):
-        self.df = pd.DataFrame([{"user":10,"item":100, "desc": "car is very nice"},
-                           {"user":11,"item":100, "desc": "car is very nice"},
-                           {"user":11,"item":1, "desc": "oh my god"},
-                           {"user":12,"item":110, "desc": "the sky sky is blue and nice"}])
+        self.df = pd.DataFrame([{"user": 10, "item": 100, "desc": "car is very nice"},
+                           {"user": 11, "item": 100, "desc": "car is very nice"},
+                           {"user": 11, "item": 1, "desc": "oh my god"},
+                           {"user": 12, "item": 110, "desc": "the sky sky is blue and nice"}])
 
     def test_item_user_model(self):
         tfidf = TFIDFModel("desc")
         tfidf.fit(self.df)
 
-        self.assertEqual(tfidf._get_item_models(self.df), {1: ["oh", "god"],
-                                                      100: ["car", "very", "nice"],
-                                                      110: ["sky", "sky", "blue", "nice"]})
+        self.assertEqual(tfidf._get_item_models(self.df), {1: ["oh", "god"], 100: ["car", "very", "nice"],
+                                                           110: ["sky", "sky", "blue", "nice"]})
         self.assertEqual(tfidf._users, {10: set([100]), 11: set([100, 1]), 12: set([110])})
         self.assertEqual(sorted(tfidf.tfidf.keys()), sorted([100, 1, 110]))
 
@@ -254,12 +253,12 @@ class TFIDTest(unittest.TestCase):
 class SVDppTest(unittest.TestCase):
 
     def setUp(self):
-        self.df = pd.DataFrame([{"user":10,"item":100, "rating": 5},
-                           {"user":11,"item":100, "rating": 4},
-                           {"user":11,"item":1, "rating": 3},
-                           {"user":12,"item":110, "rating": 2}])
-        self.df_big = df = pd.read_csv(resource_filename(testfm.__name__,"data/movielenshead.dat"),
-                         sep="::", header=None, names=["user", "item", "rating", "date", "title"])
+        self.df = pd.DataFrame([{"user": 10, "item": 100, "rating": 5},
+                                {"user": 11, "item": 100, "rating": 4},
+                                {"user": 11, "item": 1, "rating": 3},
+                                {"user": 12, "item": 110, "rating": 2}])
+        self.df_big = df = pd.read_csv(resource_filename(testfm.__name__, "data/movielenshead.dat"),
+                                       sep="::", header=None, names=["user", "item", "rating", "date", "title"])
 
     @unittest.skipIf(not which("svdpp"), "svdpp is not on the path")
     def test_train(self):
@@ -305,10 +304,10 @@ class SVDppTest(unittest.TestCase):
 
 class MeanPredTest(unittest.TestCase):
 
-    df = pd.DataFrame([{"user":10,"item":100, "rating": 5},
-                           {"user":11,"item":100, "rating": 4},
-                           {"user":11,"item":1, "rating": 3},
-                           {"user":12,"item":110, "rating": 2}])
+    df = pd.DataFrame([{"user": 10, "item": 100, "rating": 5},
+                       {"user": 11, "item": 100, "rating": 4},
+                       {"user": 11, "item": 1, "rating": 3},
+                       {"user": 12, "item": 110, "rating": 2}])
 
     def test_fit(self):
         model = AverageModel()
@@ -321,13 +320,13 @@ class PyTensorTest(unittest.TestCase):
 
     def test_user_model_update(self):
         pyTF = PyTensorCoFi()
-        Y = np.array([[-1.0920831, -0.01566422], [-0.8727925, 0.22307773], [0.8753245, -0.80181429], [-0.1338534, -0.51448172], [-0.2144651, -0.96081265]])
-        user_items = [1,3,4]
+        Y = np.array([[-1.0920831, -0.01566422], [-0.8727925, 0.22307773], [0.8753245, -0.80181429],
+                      [-0.1338534, -0.51448172], [-0.2144651, -0.96081265]])
+        user_items = [1, 3, 4]
         res = pyTF.online_user_factors(Y, user_items, p_param=10, lambda_param=0.01)
         self.assertAlmostEqual(np.array([-1.18324547, -0.95040477]).all(), res.all())
 
-
-    def test_dynami_updates(self):
+    def test_dynamic_updates(self):
         """
         We will take a tensor cofi. Train the model, evaluate it. Then we remove all the user factors
         and recompute them using the online_user_factors to check if the performance is almost the same...
@@ -336,36 +335,32 @@ class PyTensorTest(unittest.TestCase):
         pyTF = PyTensorCoFi()
 
         evaluator = Evaluator()
-        tf = TensorCoFiByFile(dim=2, nIter=100, lamb=0.05, alph=40)
+        tf = TensorCoFi(n_factors=2, n_iterations=100, c_lambda=0.05, c_alpha=40)
         df = pd.read_csv(resource_filename(testfm.__name__, "data/movielenshead.dat"), sep="::", header=None,
                          names=["user", "item", "rating", "date", "title"])
         training, testing = testfm.split.holdoutByRandom(df, 0.7)
-        users = {user: list(entries)
-             for user, entries in training.groupby("user")["item"]}
+        users = {user: list(entries) for user, entries in training.groupby("user")["item"]}
 
         tf.fit(training)
-        map1 = evaluator.evaluate_simple(tf, testing)#map of the original model
+        map1 = evaluator.evaluate_model(tf, testing)  # map of the original model
 
         #now we try to replace the original factors with on the fly computed factors
         #lets iterate over the training data of items and the users
         for u, items in users.items():
             #user id in the tf
-            uid = tf._dmap["user"][u] -1 #userid
-            iids = [tf._dmap["item"][i] - 1 for i in items]#itemids that user has seen
+            uid = tf._dmap["user"][u] - 1  # user id
+            iids = [tf._dmap["item"][i] - 1 for i in items]  # item ids that user has seen
             #original_factors = tf.factors["user"][uid]
             new_factors = pyTF.online_user_factors(tf.factors["item"], iids, p_param=40, lambda_param=0.05)
             #replace original factors with the new factors
             tf.factors["user"][uid] = new_factors
 
         #lets evaluate the new model with real-time updated factors
-        map2 = evaluator.evaluate_simple(tf, testing)
+        map2 = evaluator.evaluate_model(tf, testing)
         #The difference should be smaller than 20%
         self.assertTrue(abs(map1[0]-map2[0]) < 0.2*map1[0])
 
         evaluator.close()
-
-
-
 
 if __name__ == "__main__":
     unittest.main()

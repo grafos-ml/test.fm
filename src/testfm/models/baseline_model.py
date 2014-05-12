@@ -9,7 +9,7 @@ Base line model
 __author__ = "linas"
 
 from random import random
-from testfm.models import IModel
+from testfm.models.cutil.interface import IModel
 from math import log
 import numpy as np
 
