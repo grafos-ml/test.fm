@@ -4,7 +4,7 @@ from libc.stdlib cimport malloc, free
 from libc.stdio cimport printf
 from testfm.models.cutil.float_matrix cimport float_matrix, fm_create_diagonal, fm_new, fm_new_init, fm_create_random, \
     fm_get, fm_set, fm_destroy, fm_transpose, fm_multiply, fm_static_element_wise_multiply, fm_static_multiply_column, \
-    fm_static_multiply, fm_static_multiply_scalar, fm_static_add, fm_solve, fm_print
+    fm_static_multiply, fm_static_multiply_scalar, fm_static_add, fm_solve
 
 from testfm.models.cutil.int_array cimport *
 from testfm.models.cutil.interface import IFactorModel

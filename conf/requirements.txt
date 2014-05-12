@@ -1,5 +1,7 @@
 setuptools
 cython
+numpy
+scipy
 gensim
 pandas
 nose

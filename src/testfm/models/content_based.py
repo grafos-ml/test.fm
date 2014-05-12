@@ -47,8 +47,7 @@ class LSIModel(IModel):
     # Item representation in LSI space (_dim dimensions vector)
     _item_representation = {}
 
-    def __init__(self, description_column_name, dim=50,
-                 cold_start_strategy="return0"):
+    def __init__(self, description_column_name, dim=50, cold_start_strategy="return0"):
         """
         :param description_column_name: str the name for the description column
             used for train the model
@@ -84,7 +83,7 @@ class LSIModel(IModel):
         # This also for Linas analyse
         try:
             return self.cosine(self.get_vector(self._user_representation[user]),
-                           self.get_vector(self._item_representation[item]))
+                               self.get_vector(self._item_representation[item]))
         except KeyError:
             if self._cold_start == "return0":
                 return 0.0
@@ -101,16 +100,14 @@ class LSIModel(IModel):
 
         # Filter the string for non printable char and process it to an array
         # of words.
-        s = simple_preprocess(
-            "".join((e for e in item_description if e in printable)))
+        s = simple_preprocess("".join((e for e in item_description if e in printable)))
         return [i for i in s if i not in self._stopwords]
 
     def _get_item_models(self, training_data):
         return {
             # Map item to an array of words after processing(relevant words
             # only)
-            item: self._clean_text(str(entries[self._column_name].iget(0)))
-            for item, entries in training_data.groupby("item")
+            item: self._clean_text(str(entries[self._column_name].iget(0))) for item, entries in training_data.groupby("item")
         }
 
     def _get_user_models(self, training_data):
@@ -132,12 +129,10 @@ class LSIModel(IModel):
         user_models = self._get_user_models(training_data)
         dictionary = corpora.Dictionary(user_models.values())
         corpus = (dictionary.doc2bow(e) for e in user_models.values())
-        self.lsi = models.LsiModel(corpus, id2word=dictionary,
-                                   num_topics=self._dim)
+        self.lsi = models.LsiModel(corpus, id2word=dictionary, num_topics=self._dim)
         #corpus_lsi = self.lsi[corpus]
         for user, user_model in user_models.items():
-            self._user_representation[user] = \
-                self.lsi[dictionary.doc2bow(user_model)]
+            self._user_representation[user] = self.lsi[dictionary.doc2bow(user_model)]
 
         return dictionary
 
@@ -150,10 +145,9 @@ class LSIModel(IModel):
         """
         item_models = self._get_item_models(training_data)
         for item, item_model in item_models.items():
-            self._item_representation[item] = \
-                self.lsi[dictionary.doc2bow(item_model)]
+            self._item_representation[item] = self.lsi[dictionary.doc2bow(item_model)]
 
-    def fit(self,training_data):
+    def fit(self, training_data):
         dictionary = self._fit_users(training_data)
         self._fit_items(dictionary, training_data)
 

@@ -36,5 +36,5 @@ cdef api float_matrix fm_element_wise_division(float_matrix self, float_matrix o
 cdef api float_matrix fm_diagonal(float_matrix self, float scalar) nogil
 cdef api float_matrix fm_create_diagonal(int dim, float scalar) nogil
 cdef api float_matrix fm_create_random(int rows, int columns) nogil
-cdef api void fm_print(float_matrix self) nogil
+#cdef api void fm_print(float_matrix self) nogil
 cdef api float_matrix fm_solve(float_matrix self, float_matrix result, int *ipiv) nogil

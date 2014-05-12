@@ -13,7 +13,7 @@ Example of using the Test.fm framework
 	import pandas as pd
 	import testfm
 	from testfm.models.baseline_model import Popularity, RandomModel
-	from testfm.models.tensorCoFi import TensorCoFi
+	from testfm.models.tensorcofi import TensorCoFi
 	from testfm.evaluation.evaluator import Evaluator
 	
 	evaluator = Evaluator()
@@ -23,11 +23,9 @@ Example of using the Test.fm framework
 	training, testing = testfm.split.holdoutByRandom(df, 0.9)
 
 	#tell me what models we want to evaluate
-	models = [
-	    RandomModel(),
-		Popularity(),
-		TensorCoFi(),
-	]
+	models = [RandomModel(),
+	          Popularity(),
+	          TensorCoFi()]
 	
 	#evaluate
 	items = training.item.unique()
@@ -42,7 +40,7 @@ See other examples [here...](https://github.com/grafos-ml/test.fm/tree/master/sr
 Installation
 ============
 1. download and extract the sources.
-2. check the dependencies in conf/requirements.txt (the pyjnius could fail if you use pip)
+2. check the dependencies in conf/requirements.txt
 3. run #sudo python setup.py install
 4. if you are a developer of test.fm better do python setup.py develop
 5. enjoy and contribute

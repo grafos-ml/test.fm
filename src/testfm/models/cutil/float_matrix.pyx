@@ -352,20 +352,20 @@ cdef api float_matrix fm_create_random(int rows, int columns) nogil:
         fm.values[i] = rand() / <float>RAND_MAX
     return fm
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef api void fm_print(float_matrix self) nogil:
-    """
-    Print the matrix
-    """
-    cdef int row, column
-    for row in range(self.rows):
-        if row != 0:
-            printf("\n")
-        for columns in range(self.columns):
-            if columns != 0:
-                printf(", ")
-            printf("%f", fm_get(self, row, columns))
+#@cython.boundscheck(False)
+#@cython.wraparound(False)
+#cdef api void fm_print(float_matrix self) nogil:
+#    """
+#    Print the matrix
+#    """
+#    cdef int row, column
+#    for row in range(self.rows):
+#        if row != 0:
+#            printf("\n")
+#        for columns in range(self.columns):
+#            if columns != 0:
+#                printf(", ")
+#            printf("%f", fm_get(self, row, columns))
 
 
 @cython.boundscheck(False)

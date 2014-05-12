@@ -57,14 +57,14 @@ class BPR(IModel):
     def _additiveupdate(self, row, items):
 
         #take the factors for user, item and negative item
-        u = self.U.get(row["user"], self._initVector())
-        m = self.M.get(row["item"], self._initVector())
+        u = self.U.get(row["user"], self._init_vector())
+        m = self.M.get(row["item"], self._init_vector())
         rand = random.choice(items)
-        m_neg = self.M.get(rand, self._initVector())
+        m_neg = self.M.get(rand, self._init_vector())
 
         #do updates
-        hscore = np.dot(u,m) - np.dot(u, m_neg)
-        ploss = self.computePartialLoss(0, hscore)
+        hscore = np.dot(u, m) - np.dot(u, m_neg)
+        ploss = self.compute_partial_loss(0, hscore)
         # update user
         u += self._eta * ((ploss * (m - m_neg)) + self._reg * u)
 

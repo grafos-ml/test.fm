@@ -6,7 +6,7 @@ from libc.stdlib cimport malloc, free  #, realloc, rand, RAND_MAX
 from libc.stdio cimport printf
 import numpy as np
 cimport numpy as np
-from testfm.models.cutil.float_matrix cimport float_matrix, _float_matrix, fm_get, fm_print
+from testfm.models.cutil.float_matrix cimport float_matrix, _float_matrix, fm_get
 import pandas as pd
 from testfm.evaluation.cutil.measures cimport NOGILMeasure
 from random import sample
