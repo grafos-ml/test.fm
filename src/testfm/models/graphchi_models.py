@@ -42,7 +42,7 @@ class SVDpp(IModel):
         return {
             #sorry but authors of svdpp do not provide a way to set dimensionality 'dim': (2, 100, 2, 5),
             'n_iterations': (1, 20, 2, 5),
-            'c_lamba': (.1, 1., .1, .05),
+            'c_lambda': (.1, 1., .1, .05),
             'c_gamma': (0.001, 1.0, 0.1, 0.01)
         }
 
@@ -102,7 +102,8 @@ class SVDpp(IModel):
         out, err = sub.communicate()
 
     def read_matrix(self, filename):
-        '''reads grapchi format in the numpy array. The order is wrong in grapchi, therefore, we play tricks.
+        """
+        reads grapchi format in the numpy array. The order is wrong in grapchi, therefore, we play tricks.
 
         About the second (order of rows vs. columns), we have a problem that in distributed graphlab we
         output the matrix by rows, since each node is a row, and nodes are on different machines.
@@ -111,7 +112,7 @@ class SVDpp(IModel):
         I am not sure if it is easy to fix it in python or not. [...]
         You are definitely right the the standard describes column
         order and not row order.
-        '''
+        """
 
         logger.debug("Loading matrix market matrix ")
         f = open(filename, "rb")

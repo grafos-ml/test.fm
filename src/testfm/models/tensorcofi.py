@@ -190,7 +190,7 @@ class PyTensorCoFi(TensorCoFi):
         :param row: Working row
         :return: A tmp matrix
         """
-        column = training_data[row, 1-current_dimension]
+        column = int(training_data[row, 1-current_dimension])
         return self.tmp * self.factors[1-current_dimension][:, column].reshape(self.number_of_factors, 1)
 
     def standard_tmp(self, current_dimension, training_data, row):
@@ -219,7 +219,7 @@ class PyTensorCoFi(TensorCoFi):
         tensor = [[[] for _ in xrange(training_data.shape[0])] for _ in xrange(len(self.dimensions))]
         for index, dimension in enumerate(self.dimensions):
             for row in xrange(training_data.shape[0]):
-                tensor[index][training_data[row, index]].append(row)
+                tensor[index][int(training_data[row, index])].append(row)
 
         for iteration in range(self.number_of_iterations):
             for current_dimension, dimension in enumerate(self.dimensions):

@@ -17,7 +17,7 @@ import pandas as pd
 from fabric.api import env, run
 from pkg_resources import resource_filename
 from testfm import okapi
-from testfm.models import IModel
+from testfm.models.cutil.interface import IModel
 import getpass
 
 logger = logging.getLogger(__name__)

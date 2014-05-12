@@ -55,8 +55,8 @@ class TestTensorCoFi(unittest.TestCase):
         tf = TensorCoFi(n_factors=2)
         tf.fit(self.df)
         #item and user are row vectors
-        self.assertEqual(len(self.df.user.unique()), tf.factors[0].shape[1])
-        self.assertEqual(len(self.df.item.unique()), tf.factors[1].shape[1])
+        self.assertEqual(len(self.df.user.unique()), tf.factors[0].shape[0])
+        self.assertEqual(len(self.df.item.unique()), tf.factors[1].shape[0])
 
     def test_ids_returns(self):
         tf = TensorCoFi(n_factors=2)
@@ -69,12 +69,12 @@ class TestTensorCoFi(unittest.TestCase):
         # Test the id in map
         uid = tf.data_map[tf.get_user_column()][10]
         iid = tf.data_map[tf.get_item_column()][100]
-        self.assertEquals(uid, 1)
-        self.assertEquals(iid, 1)
+        self.assertEquals(uid, 0)
+        self.assertEquals(iid, 0)
 
         # Test number of factors
-        self.assertEquals(len(tf.factors[0][:, uid]), tf.number_of_factors)
-        self.assertEquals(len(tf.factors[1][:, iid]), tf.number_of_factors)
+        self.assertEquals(len(tf.factors[0][uid, :]), tf.number_of_factors)
+        self.assertEquals(len(tf.factors[1][iid, :]), tf.number_of_factors)
 
     def test_score(self):
         tf = TensorCoFi(n_factors=2)
@@ -95,8 +95,8 @@ class TestTensorCoFi(unittest.TestCase):
         tf = PyTensorCoFi(n_factors=2)
         tf.fit(self.df)
         #item and user are row vectors
-        self.assertEqual(len(self.df.user.unique()), tf.factors[0].shape[1])
-        self.assertEqual(len(self.df.item.unique()), tf.factors[1].shape[1])
+        self.assertEqual(len(self.df.user.unique()), tf.factors[0].shape[0])
+        self.assertEqual(len(self.df.item.unique()), tf.factors[1].shape[0])
 
     def test_ids_returns_for_python_version(self):
         tf = PyTensorCoFi(n_factors=2)
@@ -109,12 +109,12 @@ class TestTensorCoFi(unittest.TestCase):
         # Test the id in map
         uid = tf.data_map[tf.get_user_column()][10]
         iid = tf.data_map[tf.get_item_column()][100]
-        self.assertEquals(uid, 1)
-        self.assertEquals(iid, 1)
+        self.assertEquals(uid, 0)
+        self.assertEquals(iid, 0)
 
         # Test number of factors
-        self.assertEquals(len(tf.factors[0][:, uid]), tf.number_of_factors)
-        self.assertEquals(len(tf.factors[1][:, iid]), tf.number_of_factors)
+        self.assertEquals(len(tf.factors[0][uid, :]), tf.number_of_factors)
+        self.assertEquals(len(tf.factors[1][iid, :]), tf.number_of_factors)
 
     def test_score_for_python_version(self):
         tf = PyTensorCoFi(n_factors=2)
@@ -123,13 +123,13 @@ class TestTensorCoFi(unittest.TestCase):
                {"user": 12, "item": 120}]
         inp = pd.DataFrame(inp)
         tf.fit(inp)
-        uid = tf.data_map[tf.get_user_column()][10]-1
-        iid = tf.data_map[tf.get_item_column()][100]-1
+        uid = tf.data_map[tf.get_user_column()][10]
+        iid = tf.data_map[tf.get_item_column()][100]
 
-        tf.factors[0][0, uid] = 0
-        tf.factors[0][1, uid] = 1
-        tf.factors[1][0, iid] = 1
-        tf.factors[1][1, iid] = 5
+        tf.factors[0][uid, 0] = 0
+        tf.factors[0][uid, 1] = 1
+        tf.factors[1][iid, 0] = 1
+        tf.factors[1][iid, 1] = 5
         self.assertEqual(0*1+1*5, tf.get_score(10, 100))
 
 
@@ -302,6 +302,7 @@ class SVDppTest(unittest.TestCase):
         self.assertEqual(svdpp.imap[100], 1)
         self.assertEqual(svdpp.imap[110], 2)
 
+
 class MeanPredTest(unittest.TestCase):
 
     df = pd.DataFrame([{"user": 10, "item": 100, "rating": 5},
@@ -328,6 +329,7 @@ class PyTensorTest(unittest.TestCase):
 
     def test_dynamic_updates(self):
         """
+        TensorCoFi dynamic update
         We will take a tensor cofi. Train the model, evaluate it. Then we remove all the user factors
         and recompute them using the online_user_factors to check if the performance is almost the same...
         """
@@ -348,19 +350,17 @@ class PyTensorTest(unittest.TestCase):
         #lets iterate over the training data of items and the users
         for u, items in users.items():
             #user id in the tf
-            uid = tf._dmap["user"][u] - 1  # user id
-            iids = [tf._dmap["item"][i] - 1 for i in items]  # item ids that user has seen
+            uid = tf.data_map[tf.get_user_column()][u]  # user id
+            iids = [tf.data_map[tf.get_item_column()][i] for i in items]  # item ids that user has seen
             #original_factors = tf.factors["user"][uid]
-            new_factors = pyTF.online_user_factors(tf.factors["item"], iids, p_param=40, lambda_param=0.05)
+            new_factors = pyTF.online_user_factors(tf.factors[1], iids, p_param=40, lambda_param=0.05)
             #replace original factors with the new factors
-            tf.factors["user"][uid] = new_factors
+            tf.factors[0][uid] = new_factors
 
         #lets evaluate the new model with real-time updated factors
         map2 = evaluator.evaluate_model(tf, testing)
         #The difference should be smaller than 20%
         self.assertTrue(abs(map1[0]-map2[0]) < 0.2*map1[0])
-
-        evaluator.close()
 
 if __name__ == "__main__":
     unittest.main()
