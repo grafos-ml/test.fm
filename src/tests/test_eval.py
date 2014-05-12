@@ -2,7 +2,6 @@ __author__ = 'mumas'
 
 import unittest
 import pandas as pd
-import numpy as np
 from math import sqrt
 
 from testfm.evaluation.evaluator import Evaluator
@@ -20,4 +19,3 @@ class TestEvaluator(unittest.TestCase):
                                 {'user': 12, 'item': 100, 'rating': 4}])
         rmse = eval.evaluate_model_rmse(model, testing)
         self.assertEqual(sqrt((0+4+1)/3.0), rmse)
-        eval.close()

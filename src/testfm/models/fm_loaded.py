@@ -9,8 +9,9 @@ Factor Model
 
 __author__ = 'linas'
 
-from testfm.models import IModel
+from testfm.models.cutil.interface import IModel
 from numpy import vdot
+
 
 class FactorModel(IModel):
     _users = {}

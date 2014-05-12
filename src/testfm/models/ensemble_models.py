@@ -54,7 +54,7 @@ class LinearEnsemble(IModel):
         factor)*0.5
 
         """
-        predictions = (m.getScore(user, item) for m in self._models)
+        predictions = (m.get_score(user, item) for m in self._models)
         return sum((w*p for w, p in zip(self._weights, predictions)))
 
     def get_name(self):
@@ -72,7 +72,7 @@ class LogisticEnsemble(IModel):
     _item_features = None
     model = None
 
-    def getScore(self, user, item):
+    def get_score(self, user, item):
         x, y = self._extract_features(user, item)
         return float(self.model.predict(x))
 
@@ -104,7 +104,7 @@ class LogisticEnsemble(IModel):
         features = [self._user_count.get(user, 0)]
         if self._item_features:
             features += [f for f in self._item_features[item]]
-        features += [m.getScore(user, item) for m in self._models]
+        features += [m.get_score(user, item) for m in self._models]
         return features, 1 if relevant else 0
 
     def prepare_data(self, df):
@@ -150,7 +150,7 @@ class LinearFit(LogisticEnsemble):
         """
 
         features = [1, self._user_count.get(user, 0)] + \
-                   [m.getScore(user, item) for m in self._models]
+                   [m.get_score(user, item) for m in self._models]
 
         return features, 1 if relevant else 0
 

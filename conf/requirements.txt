@@ -5,3 +5,4 @@ pandas
 nose
 futures
 fabric
+scikit-learn

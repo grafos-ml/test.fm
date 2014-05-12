@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 __author__ = "linas"
 
+import os
 import unittest
 import pandas as pd
 import numpy as np
 from pkg_resources import resource_filename
-
 import testfm
 from testfm.models.graphchi_models import SVDpp
 from testfm.models.tensorcofi import TensorCoFi, PyTensorCoFi
@@ -19,7 +19,7 @@ def which(program):
     """
     Returns True if program is on the path to be executed in unix
     """
-    import os
+
     def is_exe(fpath):
         if os.path.isfile(fpath) and os.access(fpath, os.X_OK):
             return True
@@ -83,13 +83,12 @@ class TestTensorCoFi(unittest.TestCase):
                {"user": 12, "item": 120}]
         inp = pd.DataFrame(inp)
         tf.fit(inp)
-        uid = tf.data_map[tf.get_user_column()][10]-1
-        iid = tf.data_map[tf.get_item_column()][100]-1
-
-        tf.factors[0][0, uid] = 0
-        tf.factors[0][1, uid] = 1
-        tf.factors[1][0, iid] = 1
-        tf.factors[1][1, iid] = 5
+        uid = tf.data_map[tf.get_user_column()][10]
+        iid = tf.data_map[tf.get_item_column()][100]
+        tf.factors[0][uid, 0] = 0
+        tf.factors[0][uid, 1] = 1
+        tf.factors[1][iid, 0] = 1
+        tf.factors[1][iid, 1] = 5
         self.assertEqual(0*1+1*5, tf.get_score(10, 100))
 
     def test_fit_for_python_version(self):
@@ -163,13 +162,13 @@ class LogisticTest(unittest.TestCase):
 
     def test_predict(self):
         self.le.fit(self.df)
-        self.assertIsInstance(self.le.getScore(10, 110), float)
+        self.assertIsInstance(self.le.get_score(10, 110), float)
 
 
 class Item2ItemTest(unittest.TestCase):
 
     def test_fit(self):
-        df = pd.DataFrame([{"user":10, "item":100}, {"user":10,"item":110}, {"user":12,"item":100}])
+        df = pd.DataFrame([{"user": 10, "item": 100}, {"user": 10, "item": 110}, {"user": 12, "item": 100}])
         i2i = Item2Item()
         i2i.fit(df)
 
@@ -183,18 +182,19 @@ class Item2ItemTest(unittest.TestCase):
         self.assertEqual(i2i.similarity(100, 110), 1.0/2.0)
 
     def test_score(self):
-        df = pd.DataFrame([{"user":10, "item":100}, {"user":10,"item":110}, {"user":12,"item":100}])
+        df = pd.DataFrame([{"user": 10, "item": 100}, {"user": 10, "item": 110}, {"user": 12, "item": 100}])
         i2i = Item2Item()
         i2i.fit(df)
 
-        self.assertEqual(i2i.getScore(12, 110), 0.5)
+        self.assertEqual(i2i.get_score(12, 110), 0.5)
 
 
 class TestLSI(unittest.TestCase):
 
     def setUp(self):
         self.lsi = LSIModel("title")
-        self.df = pd.read_csv(resource_filename(testfm.__name__,"data/movielenshead.dat"), sep="::", header=None, names=["user", "item", "rating", "date", "title"])
+        self.df = pd.read_csv(resource_filename(testfm.__name__,"data/movielenshead.dat"), sep="::", header=None,
+                              names=["user", "item", "rating", "date", "title"])
 
     def test_fit(self):
         self.lsi.fit(self.df)
@@ -204,7 +204,7 @@ class TestLSI(unittest.TestCase):
     def test_score(self):
         self.lsi.fit(self.df)
         #item in the user profile (Booberang) should have higher prediction than movie not in the profile Rob Roy
-        self.assertTrue(self.lsi.getScore(1, 122) > self.lsi.getScore(1, 151))
+        self.assertTrue(self.lsi.get_score(1, 122) > self.lsi.get_score(1, 151))
 
     def test_user_model(self):
         um = self.lsi._get_user_models(self.df)
@@ -220,9 +220,9 @@ class TFIDTest(unittest.TestCase):
 
     def setUp(self):
         self.df = pd.DataFrame([{"user": 10, "item": 100, "desc": "car is very nice"},
-                           {"user": 11, "item": 100, "desc": "car is very nice"},
-                           {"user": 11, "item": 1, "desc": "oh my god"},
-                           {"user": 12, "item": 110, "desc": "the sky sky is blue and nice"}])
+                                {"user": 11, "item": 100, "desc": "car is very nice"},
+                                {"user": 11, "item": 1, "desc": "oh my god"},
+                                {"user": 12, "item": 110, "desc": "the sky sky is blue and nice"}])
 
     def test_item_user_model(self):
         tfidf = TFIDFModel("desc")
@@ -247,7 +247,7 @@ class TFIDTest(unittest.TestCase):
         tfidf.k = 1
 
         #the closes item to 1 (in user 10 profile) is 100, so the score should be equal to the similarity
-        self.assertAlmostEqual(tfidf.getScore(10, 1), tfidf._sim(100, 1), places=2)
+        self.assertAlmostEqual(tfidf.get_score(10, 1), tfidf._sim(100, 1), places=2)
 
 
 class SVDppTest(unittest.TestCase):
@@ -257,8 +257,8 @@ class SVDppTest(unittest.TestCase):
                                 {"user": 11, "item": 100, "rating": 4},
                                 {"user": 11, "item": 1, "rating": 3},
                                 {"user": 12, "item": 110, "rating": 2}])
-        self.df_big = df = pd.read_csv(resource_filename(testfm.__name__, "data/movielenshead.dat"),
-                                       sep="::", header=None, names=["user", "item", "rating", "date", "title"])
+        self.df_big = pd.read_csv(resource_filename(testfm.__name__, "data/movielenshead.dat"),
+                                  sep="::", header=None, names=["user", "item", "rating", "date", "title"])
 
     @unittest.skipIf(not which("svdpp"), "svdpp is not on the path")
     def test_train(self):
@@ -280,8 +280,8 @@ class SVDppTest(unittest.TestCase):
 
         svdpp = SVDpp()
         svdpp.fit(self.df)
-        self.assertTrue(isinstance(svdpp.getScore(10, 100), types.FloatType))
-        self.assertTrue(isinstance(svdpp.getScore(12, 110), types.FloatType))
+        self.assertTrue(isinstance(svdpp.get_score(10, 100), types.FloatType))
+        self.assertTrue(isinstance(svdpp.get_score(12, 110), types.FloatType))
 
     def test_dump(self):
         svdpp = SVDpp()
@@ -313,7 +313,7 @@ class MeanPredTest(unittest.TestCase):
         model = AverageModel()
         model.fit(self.df)
 
-        self.assertEqual(model.getScore(10, 100), 4.5)
+        self.assertEqual(model.get_score(10, 100), 4.5)
 
 
 class PyTensorTest(unittest.TestCase):

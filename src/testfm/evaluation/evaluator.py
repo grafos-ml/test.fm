@@ -59,7 +59,7 @@ class Evaluator(object):
         Evaluate the model using some testing data in pandas.DataFrame
 
         :param factor_model: ModelInterface  an instance of ModelInterface
-        :param measures: list of measure we want to compute (instnces of)
+        :param measures: list of measure we want to compute (instances of)
         :param all_items: list of items available in the data set (used for
             negative sampling).
          If set to None, then testing items are used for this
