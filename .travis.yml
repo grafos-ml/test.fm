@@ -4,6 +4,8 @@ python:
 # command to install dependencies
 install:
   - sudo apt-get -q install gfortran libatlas-base-dev libatlas-dev liblapack-dev
+  - sudo ls /usr/include/atlas
+  - sudo la /usr/include
   - pip install -r conf/requirements.txt
   - pip install .
 # command to run tests
