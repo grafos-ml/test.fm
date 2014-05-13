@@ -14,13 +14,13 @@ ext_modules = [
               include_dirs=include_dirs),
     Extension("testfm.models.cutil.float_matrix", ["src/testfm/models/cutil/float_matrix.pyx"],
               libraries=["lapack", "cblas"],
-              library_dirs=["/usr/lib/atlas-base/atlas"],
+              library_dirs=["/usr/lib/atlas-base/atlas", "/usr/lib/atlas-base/atlas"],
               include_dirs=include_dirs),
     Extension("testfm.models.cutil.int_array", ["src/testfm/models/cutil/int_array.pyx"]),
     Extension("testfm.evaluation.cutil.measures", ["src/testfm/evaluation/cutil/measures.pyx"]),
     Extension("testfm.models.cutil.tensorcofi", ["src/testfm/models/cutil/tensorcofi.pyx"],
               libraries=["cblas"],
-              library_dirs=["/usr/lib/atlas-base/atlas"],
+              library_dirs=["/usr/lib/atlas-base", "/usr/lib/atlas-base/atlas"],
               include_dirs=include_dirs),
 ]
 
