@@ -7,7 +7,7 @@ from Cython.Distutils import build_ext
 import numpy as np
 
 library_dirs = ["/usr/lib"]
-include_dirs = ["/usr/include/atlas", np.get_include(), "/usr/include"]
+include_dirs = ["/usr/include/atlas", np.get_include()]
 
 ext_modules = [
     Extension("testfm.models.cutil.interface", ["src/testfm/models/cutil/interface.pyx"],
@@ -51,5 +51,5 @@ setup(name='testfm',
       install_requires=get_requirements(),
       cmdclass={'build_ext': build_ext},
       ext_modules=ext_modules
-     )
+)
 

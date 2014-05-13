@@ -3,7 +3,7 @@ An interface for the model classes. It should provide automation for the score c
 """
 cimport cython
 from libc.stdlib cimport malloc, free  #, realloc, rand, RAND_MAX
-from libc.stdio cimport printf
+#from libc.stdio cimport printf
 import numpy as np
 cimport numpy as np
 from testfm.models.cutil.float_matrix cimport float_matrix, _float_matrix, fm_get

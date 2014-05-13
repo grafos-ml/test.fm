@@ -5,8 +5,8 @@ python:
 install:
   - sudo apt-get -q install gfortran libatlas-base-dev libatlas-dev liblapack-dev
   - sudo ls /usr/include/atlas
-  - sudo la /usr/include
   - pip install -r conf/requirements.txt
   - pip install .
+  - rm -r src/testfm
 # command to run tests
-script: nosetests -w src/ -vv --with-cover --cover-tests --cover-erase --cover-html --cover-package=testfm --with-doctest --doctest-tests tests testfm/evaluation testfm/models testfm/fmio testfm/splitter
+script: nosetests -vv --with-cover --cover-tests --cover-erase --cover-html --cover-package=testfm --with-doctest --doctest-tests src/tests
