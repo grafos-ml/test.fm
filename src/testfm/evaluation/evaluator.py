@@ -15,6 +15,8 @@ from testfm.models.cutil.interface import IFactorModel
 from concurrent.futures import ThreadPoolExecutor
 from collections import Counter
 from multiprocessing import cpu_count
+from testfm.models.cutil.interface import NOGILModel
+from testfm.evaluation.cutil.evaluator import evaluate_model
 
 
 def partial_measure(user, entries, factor_model, all_items, non_relevant_count, measure, k=None):
@@ -23,13 +25,11 @@ def partial_measure(user, entries, factor_model, all_items, non_relevant_count, 
     if non_relevant_count is None:
         # Add all items except relevant
         ranked_list = [(False, factor_model.get_score(user, nr)) for nr in all_items if nr not in entries['item']]
-        # Add relevant items
-        ranked_list += [(True, factor_model.get_score(user, r)) for r in entries['item']]
     else:
         #2. inject #non_relevant random items
         ranked_list = [(False, factor_model.get_score(user, nr)) for nr in sample(all_items, non_relevant_count)]
-        #2. add all relevant items from the testing_data
-        ranked_list += [(True, factor_model.get_score(user, i)) for i in entries['item']]
+    #2. add all relevant items from the testing_data
+    ranked_list += [(True, factor_model.get_score(user, i)) for i in entries['item']]
 
         #shuffle(ranked_list)  # Just to make sure we don't introduce any bias (AK: do we need this?)
 
@@ -50,9 +50,6 @@ class Evaluator(object):
     Takes the model,testing data and evaluation measure and spits out the score.
     """
 
-    def __init__(self, workers=None):
-        self.workers = workers or cpu_count()
-
     def evaluate_model(self, factor_model, testing_data, measures=[MAPMeasure()], all_items=None,
                        non_relevant_count=100, k=None):
         """
@@ -67,6 +64,8 @@ class Evaluator(object):
             the list for performance evaluation
         :return: list of score corresponding to measures
         """
+        if isinstance(factor_model, NOGILModel):
+            return evaluate_model(factor_model, testing_data, measures, all_items, non_relevant_count, k)
         #return self.evaluate_model_multiprocessing(factor_model, testing_data, measures=measures, all_items=all_items,
         #                                           non_relevant_count=non_relevant_count, k=k)
         # compute
@@ -78,10 +77,9 @@ class Evaluator(object):
         #1. for each user:
         grouped = testing_data.groupby('user')
 
-        with ThreadPoolExecutor(max_workers=self.workers) as e:
-            results = [e.submit(partial_measure, user, entries, factor_model, all_items, non_relevant_count,
-                                m, k) for user, entries in grouped for m in measures]
-            partial_measures = sum((Counter(r.result()) for r in results), Counter())
+        results = [partial_measure(user, entries, factor_model, all_items, non_relevant_count, m, k) \
+                   for user, entries in grouped for m in measures]
+        partial_measures = sum((Counter(r) for r in results), Counter())
         #7.average the scores for each user
         return [partial_measures[measure.name]/len(grouped) for measure in measures]
 

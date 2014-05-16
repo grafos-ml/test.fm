@@ -4,7 +4,6 @@ python:
 # command to install dependencies
 install:
   - sudo apt-get -q install gfortran libatlas-base-dev libatlas-dev liblapack-dev
-  - sudo ls /usr/include/atlas
   - pip install -r conf/requirements.txt
   - pip install .
   - rm -r src/testfm

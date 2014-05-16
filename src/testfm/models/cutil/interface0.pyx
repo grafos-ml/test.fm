@@ -6,7 +6,7 @@ from libc.stdlib cimport malloc, free  #, realloc, rand, RAND_MAX
 #from libc.stdio cimport printf
 import numpy as np
 cimport numpy as np
-from testfm.models.cutil.float_matrix cimport float_matrix, _float_matrix, fm_get, fm_destroy
+from testfm.models.cutil.float_matrix cimport float_matrix, _float_matrix, fm_get
 import pandas as pd
 from testfm.evaluation.cutil.measures cimport NOGILMeasure
 from random import sample
@@ -79,8 +79,6 @@ cdef class IModel:
     data_map = None
 
     @classmethod
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def param_details(cls):
         """
         Return a dictionary with the parameters for the set parameters and
@@ -94,8 +92,6 @@ cdef class IModel:
         """
         raise NotImplementedError
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def set_params(self, **kwargs):
         """
         Set the parameters in the model.
@@ -105,8 +101,6 @@ cdef class IModel:
         raise NotImplementedError
 
     @staticmethod
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def get_user_column():
         """
         Get the name of the user column in the pandas.DataFrame
@@ -114,8 +108,6 @@ cdef class IModel:
         return "user"
 
     @staticmethod
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def get_item_column():
         """
         Get the name of the item column in the pandas.DataFrame
@@ -123,8 +115,6 @@ cdef class IModel:
         return "item"
 
     @staticmethod
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def get_rating_column():
         """
         Get the name of the rating column in the pandas.DataFrame
@@ -132,8 +122,6 @@ cdef class IModel:
         return "rating"
 
     @staticmethod
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def get_context_columns(self):
         """
         Get a list of names of all the context column names for this model
@@ -141,8 +129,6 @@ cdef class IModel:
         """
         raise NotImplemented
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def get_name(self):
         """
         Get the informative name for the model.
@@ -150,8 +136,6 @@ cdef class IModel:
         """
         return self.__class__.__name__
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def train(self, training_data):
         """
         Train the model with numpy array. The first column is for users, the second for item and the third for rating.
@@ -160,8 +144,6 @@ cdef class IModel:
         """
         raise NotImplemented
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def fit(self, training_data):
         """
         Train the data from a pandas.DataFrame
@@ -178,54 +160,20 @@ cdef class IModel:
         data.append(training_data.get(self.get_rating_column(), np.ones((len(training_data),)).tolist()))
         self.train(np.array(data).transpose())
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def users_size(self):
         """
         Return the number of users
         """
         return len(self.data_map[self.get_user_column()])
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def items_size(self):
         """
         Return the number of items
         """
         return len(self.data_map[self.get_item_column()])
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    def get_score(self, user, item, **context):
-        """
-        Return the score for user, item and evenctuallyt a set of contexts
-        """
-        raise NotImplemented
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    def number_of_context(self):
-        """
-        Return the number of factors
-        """
-        raise NotImplemented
-
-cdef class NOGILModel(IModel):
-    """
-    No gil interface. Implements a nogil get_score and nogil item_score
-    """
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef float nogil_get_score(self, int user, int item, int extra_context, int *context) nogil:
-        """
-        Get the score without python GIL convention
-        """
-        cdef float result = 0.
-        return result
-
-
-cdef class IFactorModel(NOGILModel):
+cdef class IFactorModel(IModel):
     """
     This Model assumes that the score is the matrix product of the user row in the users matrix and the item row in
     the item matrix. The user and item matrices will be stored in a Python list self.factors. The first matrix is for
@@ -234,54 +182,16 @@ cdef class IFactorModel(NOGILModel):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def __cinit__(self, *args, **kwargs):
-        """
-        C-stage of the initiation of this model. It put c_factors to null
-        """
-        self.c_factors = NULL
-        self.c_number_of_context = 0
-        self.c_number_of_factors = kwargs["n_factors"] if "n_factors" in kwargs else args[0]
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    def __dealloc__(self):
-        """
-        Free the memory holding the c_factors
-        """
-        cdef int i
-        if self.c_factors is not NULL:
-            for i in range(self.c_number_of_contexts):
-                if self.c_factors[i] is not NULL:
-                    self.c_factors[i].values = NULL
-                    fm_destroy(self.c_factors[i])
-            free(self.c_factors)
-            self.c_factors = NULL
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    def fit(self, training_data):
-        """
-        Train the data from a pandas.DataFrame
-        :param training_data: DataFrame a frame with columns 'user', 'item', 'contexts'..., 'rating'
-        If rating don't exist it will be populated with 1 for all entries
-        """
-        self.dealloc_factors()
-        super(IFactorModel, self).fit(training_data)
-        self.c_number_of_contexts = 2+len(self.get_context_columns())
-        self.c_factors = self.get_factors()
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     cdef float_matrix *get_factors(self):
         """
         Put factor matrix data in c float_matrix
         :return:
         """
-        cdef int i
-        cdef float_matrix *factor_matrices = <float_matrix *>malloc(sizeof(float_matrix) * self.c_number_of_contexts)
+        cdef int i, number_of_contexts = 2+len(self.get_context_columns())
+        cdef float_matrix *factor_matrices = <float_matrix *>malloc(sizeof(float_matrix) * number_of_contexts)
         if factor_matrices is NULL:
             raise MemoryError()
-        for i in range(self.c_number_of_contexts):
+        for i in range(number_of_contexts):
             factor_matrices[i] = <float_matrix>malloc(sizeof(_float_matrix))
             if factor_matrices[i] is NULL:
                 raise MemoryError()
@@ -294,61 +204,46 @@ cdef class IFactorModel(NOGILModel):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void dealloc_factors(self) nogil:
+    cdef void dealloc_factors(self, float_matrix *factors):
         """
         Dealloc factors
         """
-        cdef int i
-        if self.c_factors is not NULL:
-            for i in range(self.c_number_of_contexts):
-                if self.c_factors[i] is not NULL:
-                    #self.c_factors[i].values = NULL
-                    fm_destroy(self.c_factors[i])
-            free(self.c_factors)
-            self.c_factors = NULL
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef float nogil_get_score(IFactorModel self, int user, int item, int extra_context, int *context) nogil:
-        """
-        Get the score without python GIL convention
-        """
-        cdef int i, j
-        cdef float factor, total = 0.
-        for i in xrange(self.c_number_of_factors):
-            factor = fm_get(self.c_factors[0], user, i)
-            factor *= fm_get(self.c_factors[1], item, i)
-            for j in xrange(extra_context):
-                #factor *= factor_matrices[j].values[context[j*2+1]*i + context[j*2]]
-                if 0 <= context[j] < self.c_factors[j+2].rows:
-                    factor *= fm_get(self.c_factors[j+2], context[j], i)
-            total += factor
-        return total
-
+        cdef int i, number_of_contexts = 2+len(self.get_context_columns())
+        if factors is not NULL:
+            for i in range(number_of_contexts):
+                if factors[i] is not NULL:
+                    factors[i].values = NULL
+                    free(factors[i])
+                free(factors)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def get_score(self, user, item, **context):
-        cdef int c_user = self.data_map[self.get_user_column()][user], \
-            c_item = self.data_map[self.get_item_column()][item], extra_context = len(context)
+        cdef int number_of_contexts = len(self.get_context_columns())+2, i, number_of_factors = self.number_of_factors
+        cdef float_matrix *factor_matrices
         cdef float result
         cdef int *c_context
         try:
-            c_context = <int *>malloc(sizeof(int) * len(self.get_context_columns()))
+            user = self.data_map[self.get_user_column()][user], len(self.data_map[self.get_user_column()])
+            item = self.data_map[self.get_item_column()][item], len(self.data_map[self.get_item_column()])
+            factor_matrices = self.get_factors()
+            c_context = <int *>malloc(sizeof(int) * number_of_contexts * 2)
             if c_context is NULL:
                 raise MemoryError()
-            for i, c in enumerate(self.get_context_columns()):
-                c_context[i] = self.data_map[c][context[c]] if c in context else -1
+            p_context = [user, item] + [
+                (self.data_map[c][context[c]], len(self.data_map[c])) for c in self.get_context_columns()]
+            for i in range(number_of_contexts):
+                c_context[i*2], c_context[i*2+1] = p_context[i]
             with nogil:
-                result = self.nogil_get_score(c_user, c_item, extra_context, c_context)
+                result = get_score(number_of_factors, number_of_contexts, factor_matrices, c_context)
             return result
         finally:
-            #if factor_matrices is not NULL:
-            #    for i in range(number_of_contexts):
-            #        if factor_matrices[i] is not NULL:
-            #            factor_matrices[i].values = NULL
-            #            free(factor_matrices[i])
-            #    free(factor_matrices)
+            if factor_matrices is not NULL:
+                for i in range(number_of_contexts):
+                    if factor_matrices[i] is not NULL:
+                        factor_matrices[i].values = NULL
+                        free(factor_matrices[i])
+                free(factor_matrices)
             if c_context is not NULL:
                 free(c_context)
 
@@ -356,8 +251,9 @@ cdef class IFactorModel(NOGILModel):
     @cython.wraparound(False)
     def partial_measure(self, user, entries, all_items, non_relevant_count, measure):
         cdef float *ranked_list = NULL
-        cdef int i, counter = <int>len(entries['item']), counter0, item, c_user = user
+        cdef int i, counter = <int>len(entries['item']), counter0, item
         cdef int number_of_factors = <int>self.number_of_factors
+        cdef float_matrix *factor_matrices = NULL
         cdef NOGILMeasure c_measure
         cdef int nogil_flag = 0
         cdef int c_context[5]
@@ -383,7 +279,87 @@ cdef class IFactorModel(NOGILModel):
             with nogil:
                 for i in range(counter+counter0):
                     c_context[2] = <int>ranked_list[i*2+1]
-                    ranked_list[i*2+1] = get_score(number_of_factors, 2, self.c_factors, c_context)
+                    ranked_list[i*2+1] = get_score(number_of_factors, 2, factor_matrices, c_context)
+
+                if nogil_flag:
+                    mergesort(ranked_list, counter+counter0)
+                    result = c_measure.nogil_measure(ranked_list, counter+counter0)
+
+            if nogil_flag == 0:
+                ranked_list0 = []
+                for i in range(counter+counter0):
+                    ranked_list0.append((bool(ranked_list[i+2]), ranked_list[i*2+1]))
+                #number of relevant items
+                n = entries['item'].size
+                #5. sort according to the score
+                ranked_list0.sort(key=lambda x: x[1], reverse=True)
+                result = measure.measure([ranked_list[i] for i in range(counter+counter0)], n=n)
+                #6. evaluate according to each measure
+            return {measure.name: result}
+        finally:
+            if ranked_list is not NULL:
+                free(ranked_list)
+            if factor_matrices is not NULL:
+                for i in range(2):
+                    if factor_matrices[i] is not NULL:
+                        factor_matrices[i].values = NULL
+                        free(factor_matrices[i])
+                free(factor_matrices)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def multi_measure(self, training_data, all_items, non_relevant_count, measure):
+        """
+        Ask for measures throw a C-level threading. ith the measure cannot be "lowered" to C-level it return a list of
+        tuples with user and lst of scores
+        :param training_data: Must be grouped by user
+        :param all_items:
+        :param non_relevant_count:
+        :param measure:
+        :return:
+        """
+        cdef int i
+        cdef int ** c_training_data = <int **>malloc(sizeof(int *) * len(training_data))
+
+        for user, entries in training_data:
+
+
+
+
+
+
+
+
+        cdef float *ranked_list = NULL
+        cdef int i, counter = <int>len(entries['item']), counter0, item
+        cdef int number_of_factors = <int>self.number_of_factors
+        cdef float_matrix *factor_matrices = NULL
+        cdef NOGILMeasure c_measure
+        cdef int nogil_flag = 0
+        cdef int c_context[5]
+        c_context[0], c_context[1], c_context[3] = self.data_map[self.get_user_column()][user], \
+                                                   len(self.data_map[self.get_user_column()]), \
+                                                   len(self.data_map[self.get_item_column()])
+        cdef float result
+        if non_relevant_count is None:
+            f_ranked_list = [nr for nr in all_items if nr not in entries['item']]
+        else:
+            f_ranked_list = [nr for nr in sample(all_items, non_relevant_count)]
+        counter0 = len(f_ranked_list)
+        if isinstance(measure, NOGILMeasure):
+            c_measure = <NOGILMeasure>measure
+            nogil_flag = 1
+        try:
+            ranked_list = <float *>malloc(sizeof(float) * (counter+counter0) * 2)
+            factor_matrices = self.get_factors()
+            for i, item in enumerate(f_ranked_list):
+                ranked_list[i*2], ranked_list[i*2+1] = 0., float(self.data_map[self.get_item_column()][item])
+            for i, item in enumerate(entries['item'], start=counter0):
+                ranked_list[i*2], ranked_list[i*2+1] = 1., float(self.data_map[self.get_item_column()][item])
+            with nogil:
+                for i in range(counter+counter0):
+                    c_context[2] = <int>ranked_list[i*2+1]
+                    ranked_list[i*2+1] = get_score(number_of_factors, 2, factor_matrices, c_context)
 
                 if nogil_flag:
                     mergesort(ranked_list, counter+counter0)
