@@ -22,7 +22,7 @@ ext_modules = [
               libraries=["cblas"],
               library_dirs=["/usr/lib/atlas-base", "/usr/lib/atlas-base/atlas"],
               include_dirs=include_dirs),
-    Extension("testfm.evaluation.cutil.evaluator", ["testfm/evaluation/cutil/evaluator.pyx"],
+    Extension("testfm.evaluation.cutil.evaluator", ["src/testfm/evaluation/cutil/evaluator.pyx"],
               extra_compile_args=['-fopenmp'],
               extra_link_args=['-fopenmp'])
 ]

@@ -37,7 +37,7 @@ cdef api float_matrix *tensorcofi_train(float_matrix data_array, int n_factors, 
     cdef float_matrix regularizer = fm_create_diagonal(n_factors, c_lambda)  # Regularizer is a lambda diagonal
     cdef float_matrix matrix_vector_product = fm_new_init(n_factors, 1, 0.)  # Matrix vector product
     cdef float_matrix one = fm_create_diagonal(n_factors, 1.), one_tmp = NULL # Matrix one
-    cdef float_matrix invertible = fm_new_init(n_factors, n_factors, 1.), \
+    cdef float_matrix invertible = fm_new_init(n_factors, n_factors, 0.), \
          invertible_tmp = fm_new(n_factors, n_factors) # Invertible Matrix
     cdef float_matrix base = NULL, base_transpose = NULL, base_tmp = NULL
     cdef float_matrix *factors = <float_matrix *>malloc(sizeof(float_matrix) * n_dimensions)  # Factors
@@ -47,10 +47,8 @@ cdef api float_matrix *tensorcofi_train(float_matrix data_array, int n_factors, 
         tensor[i] = <int_array *>malloc(sizeof(int_array) * dimensions[i])
 
         for j in range(dimensions[i]):
-            tensor[i][j] = NULL
+            tensor[i][j] = ia_new()
         for data_row in range(data_array.rows):
-            if tensor[i][<int>fm_get(data_array,data_row, i)] is NULL:
-                tensor[i][<int>fm_get(data_array, data_row, i)] = ia_new()
             ia_add(tensor[i][<int>fm_get(data_array, data_row, i)], data_row)  # Populate tensor
     # Tensor created
     # Factors created
@@ -58,14 +56,13 @@ cdef api float_matrix *tensorcofi_train(float_matrix data_array, int n_factors, 
 
     for iteration in range(n_iterations):
         for current_dimension in range(n_dimensions):
+            fm_destroy(base)
             # Initiate base
             if n_dimensions == 2:
-                fm_destroy(base)
                 base_transpose = fm_transpose(factors[1-current_dimension])  # New memory was allocated
                 base = fm_multiply(factors[1-current_dimension], base_transpose)  # New memory was allocated
                 fm_destroy(base_transpose)  # Memory from base_transpose released
             else:
-                fm_destroy(base)
                 base = fm_new_init(n_factors, n_factors, 1.)  # New memory was allocated
                 for matrix_index in range(n_dimensions):
                     if matrix_index != current_dimension:
@@ -78,33 +75,31 @@ cdef api float_matrix *tensorcofi_train(float_matrix data_array, int n_factors, 
 
             for data_entry in range(dimensions[current_dimension]):
                 data_row_list = tensor[current_dimension][data_entry]
-                if data_row_list is not NULL:
-                    for i in range(ia_size(data_row_list)):
-                        data_row = data_row_list.values[i]
-                        # Initialize temporary matrix
-                        #  No new memory is allocated
-                        for j in range(tmp.size):
-                            tmp.values[j] = 1.
-                        # Done
-                        for data_column in range(n_dimensions):
-                            if data_column != current_dimension:
-                                fm_static_multiply_column(tmp, factors[data_column],
-                                                          <int>fm_get(data_array, data_row, data_column),
-                                                          tmp)  # No new memory is allocated
-                        score = fm_get(data_array, data_row, data_array.columns-1)
-                        weight = c_lambda * log(1.+fabs(score))
-                        # Start calculation of rank one update in invertible
-                        tmp_transpose = fm_transpose(tmp)  # Memory allocated
-                        fm_static_multiply(tmp, tmp_transpose, invertible_tmp)  # No new memory allocated
-                        fm_static_multiply_scalar(invertible_tmp, weight, invertible_tmp)  # No new memory allocated
-                        fm_static_add(invertible, invertible_tmp, invertible)  # No new memory allocated
-                        fm_destroy(tmp_transpose)  # Free memory from tmp_transpose
-                        # End calculation of rank one update in invertible
-
-                        # Start calculate matrix vector product
-                        fm_static_multiply_scalar(tmp, copysign(score, 1.) * (1.+weight), tmp)  # No new memory allocated
-                        fm_static_add(matrix_vector_product, tmp, matrix_vector_product)  # No new memory allocated
-                        # End calculate matrix vector product
+                for i in range(ia_size(data_row_list)):
+                    data_row = data_row_list.values[i]
+                    # Initialize temporary matrix
+                    #  No new memory is allocated
+                    for j in range(tmp.size):
+                        tmp.values[j] = 1.
+                    # Done
+                    for data_column in range(n_dimensions):
+                        if data_column != current_dimension:
+                            fm_static_multiply_column(tmp, factors[data_column],
+                                                      <int>fm_get(data_array, data_row, data_column),
+                                                      tmp)  # No new memory is allocated
+                    score = fm_get(data_array, data_row, data_array.columns-1)
+                    weight = c_lambda * log(1.+fabs(score))
+                    # Start calculation of rank one update in invertible
+                    tmp_transpose = fm_transpose(tmp)  # Memory allocated
+                    fm_static_multiply(tmp, tmp_transpose, invertible_tmp)  # No new memory allocated
+                    fm_static_multiply_scalar(invertible_tmp, weight, invertible_tmp)  # No new memory allocated
+                    fm_static_add(invertible, invertible_tmp, invertible)  # No new memory allocated
+                    fm_destroy(tmp_transpose)  # Free memory from tmp_transpose
+                    # End calculation of rank one update in invertible
+                    # Start calculate matrix vector product
+                    fm_static_multiply_scalar(tmp, copysign(score, 1.) * (1.+weight), tmp)  # No new memory allocated
+                    fm_static_add(matrix_vector_product, tmp, matrix_vector_product)  # No new memory allocated
+                    # End calculate matrix vector product
                 i = current_dimension
                 fm_static_add(invertible, base, invertible)  # No new memory allocated
                 fm_static_multiply_scalar(regularizer, 1. / dimensions[current_dimension],
