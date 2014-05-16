@@ -1,10 +1,12 @@
 language: python
 python:
   - "2.7"
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get -q install gfortran libatlas-base-dev libatlas-dev liblapack-dev
+  - pip install -q -r conf/requirements.txt
 # command to install dependencies
 install:
-  - sudo apt-get -q install gfortran libatlas-base-dev libatlas-dev liblapack-dev
-  - pip install -r conf/requirements.txt
   - pip install .
   - rm -r src/testfm
 # command to run tests

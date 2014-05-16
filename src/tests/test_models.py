@@ -317,7 +317,7 @@ class MeanPredTest(unittest.TestCase):
         self.assertEqual(model.get_score(10, 100), 4.5)
 
 
-class PyTensorTest(unittest.TestCase):
+class PyTensorTest(object):
 
     def test_user_model_update(self):
         pyTF = PyTensorCoFi()
@@ -325,7 +325,7 @@ class PyTensorTest(unittest.TestCase):
                       [-0.1338534, -0.51448172], [-0.2144651, -0.96081265]])
         user_items = [1, 3, 4]
         res = pyTF.online_user_factors(Y, user_items, p_param=10, lambda_param=0.01)
-        self.assertAlmostEqual(np.array([-1.18324547, -0.95040477]).all(), res.all())
+        assert np.array([-1.18324547, -0.95040477]).all() == res.all(), "Results not equal"
 
     def test_dynamic_updates(self):
         """
@@ -333,8 +333,7 @@ class PyTensorTest(unittest.TestCase):
         We will take a tensor cofi. Train the model, evaluate it. Then we remove all the user factors
         and recompute them using the online_user_factors to check if the performance is almost the same...
         """
-
-        pyTF = PyTensorCoFi()
+        pyTF = PyTensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40)
 
         evaluator = Evaluator()
         tf = TensorCoFi(n_factors=2, n_iterations=100, c_lambda=0.05, c_alpha=40)
@@ -355,12 +354,14 @@ class PyTensorTest(unittest.TestCase):
             #original_factors = tf.factors["user"][uid]
             new_factors = pyTF.online_user_factors(tf.factors[1], iids, p_param=40, lambda_param=0.05)
             #replace original factors with the new factors
-            tf.factors[0][uid] = new_factors
+            tf.factors[0][uid, :] = new_factors
+            #tf.update_user_factors(uid, new_factors)
+
 
         #lets evaluate the new model with real-time updated factors
         map2 = evaluator.evaluate_model(tf, testing)
         #The difference should be smaller than 20%
-        self.assertTrue(abs(map1[0]-map2[0]) < 0.2*map1[0])
+        assert abs(map1[0]-map2[0]) < 0.2*map1[0]
 
 if __name__ == "__main__":
     unittest.main()

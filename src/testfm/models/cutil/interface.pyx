@@ -6,7 +6,7 @@ from libc.stdlib cimport malloc, free  #, realloc, rand, RAND_MAX
 #from libc.stdio cimport printf
 import numpy as np
 cimport numpy as np
-from testfm.models.cutil.float_matrix cimport float_matrix, _float_matrix, fm_get, fm_destroy
+from testfm.models.cutil.float_matrix cimport float_matrix, _float_matrix, fm_get, fm_set, fm_destroy
 import pandas as pd
 from testfm.evaluation.cutil.measures cimport NOGILMeasure
 from random import sample
@@ -354,58 +354,8 @@ cdef class IFactorModel(NOGILModel):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def partial_measure(self, user, entries, all_items, non_relevant_count, measure):
-        cdef float *ranked_list = NULL
-        cdef int i, counter = <int>len(entries['item']), counter0, item, c_user = user
-        cdef int number_of_factors = <int>self.number_of_factors
-        cdef NOGILMeasure c_measure
-        cdef int nogil_flag = 0
-        cdef int c_context[5]
-        c_context[0], c_context[1], c_context[3] = self.data_map[self.get_user_column()][user], \
-                                                   len(self.data_map[self.get_user_column()]), \
-                                                   len(self.data_map[self.get_item_column()])
-        cdef float result
-        if non_relevant_count is None:
-            f_ranked_list = [nr for nr in all_items if nr not in entries['item']]
-        else:
-            f_ranked_list = [nr for nr in sample(all_items, non_relevant_count)]
-        counter0 = len(f_ranked_list)
-        if isinstance(measure, NOGILMeasure):
-            c_measure = <NOGILMeasure>measure
-            nogil_flag = 1
-        try:
-            ranked_list = <float *>malloc(sizeof(float) * (counter+counter0) * 2)
-            factor_matrices = self.get_factors()
-            for i, item in enumerate(f_ranked_list):
-                ranked_list[i*2], ranked_list[i*2+1] = 0., float(self.data_map[self.get_item_column()][item])
-            for i, item in enumerate(entries['item'], start=counter0):
-                ranked_list[i*2], ranked_list[i*2+1] = 1., float(self.data_map[self.get_item_column()][item])
-            with nogil:
-                for i in range(counter+counter0):
-                    c_context[2] = <int>ranked_list[i*2+1]
-                    ranked_list[i*2+1] = get_score(number_of_factors, 2, self.c_factors, c_context)
-
-                if nogil_flag:
-                    mergesort(ranked_list, counter+counter0)
-                    result = c_measure.nogil_measure(ranked_list, counter+counter0)
-
-            if nogil_flag == 0:
-                ranked_list0 = []
-                for i in range(counter+counter0):
-                    ranked_list0.append((bool(ranked_list[i+2]), ranked_list[i*2+1]))
-                #number of relevant items
-                n = entries['item'].size
-                #5. sort according to the score
-                ranked_list0.sort(key=lambda x: x[1], reverse=True)
-                result = measure.measure([ranked_list[i] for i in range(counter+counter0)], n=n)
-                #6. evaluate according to each measure
-            return {measure.name: result}
-        finally:
-            if ranked_list is not NULL:
-                free(ranked_list)
-            if factor_matrices is not NULL:
-                for i in range(2):
-                    if factor_matrices[i] is not NULL:
-                        factor_matrices[i].values = NULL
-                        free(factor_matrices[i])
-                free(factor_matrices)
+    def update_user_factors(self, int user, list factors):
+        cdef int i
+        cdef float f
+        for i, f in enumerate(factors):
+            fm_set(self.c_factors[0], user, i, f)

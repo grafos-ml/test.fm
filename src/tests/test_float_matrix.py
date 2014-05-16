@@ -50,8 +50,33 @@ class TestObjectOperations:
         """
         [FloatMatrix Basic Operations] Test set and get out of the matrix bounds
         """
+        a = FloatMatrix(3, 3)
+        try:
+            c = a[3, 2]
+        except IndexError:
+            pass
+        else:
+            assert True, "Allow out of bounds for rows (%f)" % c
 
+        try:
+            c = a[2, 3]
+        except IndexError:
+            pass
+        else:
+            assert True, "Allow out of bounds for columns (%f)" % c
+        try:
+            a[3, 2] = 3
+        except IndexError:
+            pass
+        else:
+            assert True, "Allow set in out of bounds for rows"
 
+        try:
+            a[2, 3] = 3
+        except IndexError:
+            pass
+        else:
+            assert True, "Allow set out of bounds for columns"
 
 class TestBasicOperations:
     """

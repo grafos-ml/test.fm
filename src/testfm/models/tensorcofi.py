@@ -33,7 +33,7 @@ class TensorCoFi(IFactorModel):
     constant_lambda = .05
     constant_alpha = 40
 
-    def __init__(self, n_factors=None, n_iterations=None, c_lambda=None, c_alpha=None, other_context=None):
+    def __init__(self, n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40, other_context=None):
         """
         Constructor
 
@@ -145,7 +145,7 @@ class PyTensorCoFi(TensorCoFi):
     Python implementation of tensorCoFi algorithm based on the java version from Alexandros Karatzoglou
     """
 
-    def __init__(self, n_factors=None, n_iterations=None, c_lambda=None, c_alpha=None):
+    def __init__(self, n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40):
         """
         Constructor
 
