@@ -104,10 +104,10 @@ class TestObjectOperations:
         #   5.0 6.0
         assert a[0, 0] == 1. and isinstance(a[0, 0], float), "Element (0, 0) is not 1.0 or not a float"
         assert a[0, 1] == 2. and isinstance(a[0, 1], float), "Element (0, 1) is not 2.0 or not a float"
-        assert a[1, 0] == 3. and isinstance(a[0, 2], float), "Element (1, 0) is not 3.0 or not a float"
-        assert a[1, 1] == 4. and isinstance(a[1, 0], float), "Element (1, 1) is not 4.0 or not a float"
-        assert a[2, 0] == 5. and isinstance(a[1, 1], float), "Element (2, 0) is not 5.0 or not a float"
-        assert a[2, 1] == 6. and isinstance(a[1, 2], float), "Element (1, 1) is not 6.0 or not a float"
+        assert a[1, 0] == 3. and isinstance(a[1, 0], float), "Element (1, 0) is not 3.0 or not a float"
+        assert a[1, 1] == 4. and isinstance(a[1, 1], float), "Element (1, 1) is not 4.0 or not a float"
+        assert a[2, 0] == 5. and isinstance(a[2, 0], float), "Element (2, 0) is not 5.0 or not a float"
+        assert a[2, 1] == 6. and isinstance(a[2, 1], float), "Element (1, 1) is not 6.0 or not a float"
 
     @staticmethod
     def test_set_and_get_out_of_bounds_in_symmetric():
@@ -116,31 +116,32 @@ class TestObjectOperations:
         """
         a = FloatMatrix(3, 2)
         try:
-            c = a[3, 2]
+            c = a[3, 1]
         except IndexError:
             pass
         else:
             assert True, "Allow out of bounds for rows (%f)" % c
 
         try:
-            c = a[2, 3]
+            c = a[1, 3]
         except IndexError:
             pass
         else:
             assert True, "Allow out of bounds for columns (%f)" % c
         try:
-            a[3, 2] = 3
+            a[3, 1] = 3
         except IndexError:
             pass
         else:
             assert True, "Allow set in out of bounds for rows"
 
         try:
-            a[2, 3] = 3
+            a[1, 3] = 3
         except IndexError:
             pass
         else:
             assert True, "Allow set out of bounds for columns"
+
 
 class TestBasicOperations:
     """
