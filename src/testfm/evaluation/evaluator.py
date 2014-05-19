@@ -20,8 +20,8 @@ from testfm.evaluation.cutil.evaluator import evaluate_model
 
 
 def partial_measure(user, entries, factor_model, all_items, non_relevant_count, measure, k=None):
-    if isinstance(factor_model, IFactorModel):
-        return factor_model.partial_measure(user, entries, all_items, non_relevant_count, measure)
+    #if isinstance(factor_model, IFactorModel):
+    #    return factor_model.partial_measure(user, entries, all_items, non_relevant_count, measure)
     if non_relevant_count is None:
         # Add all items except relevant
         ranked_list = [(False, factor_model.get_score(user, nr)) for nr in all_items if nr not in entries['item']]
@@ -79,6 +79,7 @@ class Evaluator(object):
 
         results = [partial_measure(user, entries, factor_model, all_items, non_relevant_count, m, k) \
                    for user, entries in grouped for m in measures]
+        #print [v["MAPMeasure"] for v in results]
         partial_measures = sum((Counter(r) for r in results), Counter())
         #7.average the scores for each user
         return [partial_measures[measure.name]/len(grouped) for measure in measures]

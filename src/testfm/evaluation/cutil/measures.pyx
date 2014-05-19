@@ -38,16 +38,15 @@ cdef class MAPMeasure(NOGILMeasure):
         recs - a list of tuples of ground truth and score.
             Example: [(True, 0.92), (False, 0.55), (True, 0.41), (True, 0.2)]
         """
-        #printf("><><><%d\n", list_size)
         cdef float map_measure = 0.
         cdef float relevant = 0.
         cdef int i
-        for i in range(0, list_size*2, 2):
+        for i in range(list_size):
             #printf(">>>%f %f\n", ranked_list[i], ranked_list[i+1])
-            if ranked_list[i] == 1.0:
+            if ranked_list[i*2] == 1.:
                 relevant += 1.
-                map_measure += (relevant / ((i/2)+1.))
-        return 0.0 if relevant == 0 else map_measure/relevant
+                map_measure += (relevant / (i+1.))
+        return 0.0 if relevant == 0. else (map_measure/relevant)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -69,21 +68,30 @@ cdef class MAPMeasure(NOGILMeasure):
         (True, 0.3), (False, 0.2), (False, 0.1), (False, 0)])
         0.4928571428571428
         """
-        cdef float result
-        cdef int l = len(recs)
+        #cdef float result
+        #cdef int l = len(recs)
         if not isinstance(recs, list) or len(recs) < 1:
             return float("nan")
-        try:
-            crec = <float *>malloc(len(recs)*sizeof(float)*2)
-            if crec is NULL:
-                raise MemoryError()
-            for i in range(len(recs)):
-                crec[i*2], crec[i*2+1] = float(recs[i][0]), recs[i][1]
-            with nogil:
-                result = self.nogil_measure(crec, l)
-            return result
-        finally:
-            free(crec)
+        #try:
+        #    crec = <float *>malloc(len(recs)*sizeof(float)*2)
+        #    if crec is NULL:
+        #        raise MemoryError()
+        #    for i in range(len(recs)):
+        #        crec[i*2], crec[i*2+1] = float(recs[i][0]), recs[i][1]
+        #    with nogil:
+        #        result = self.nogil_measure(crec, l)
+        #    return result
+        #finally:
+        #    free(crec)
+        map_measure = 0.
+        relevant = 0.
+
+        for i, (ground_truth, prediction) in enumerate(recs):
+            if ground_truth is True:
+                relevant += 1.
+                map_measure += relevant / (i+1)
+
+        return 0.0 if relevant == 0 else map_measure/relevant
 
     @property
     @cython.boundscheck(False)

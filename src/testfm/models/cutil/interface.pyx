@@ -2,14 +2,11 @@
 An interface for the model classes. It should provide automation for the score calculating
 """
 cimport cython
-from libc.stdlib cimport malloc, free  #, realloc, rand, RAND_MAX
-#from libc.stdio cimport printf
+from libc.stdlib cimport malloc, free
 import numpy as np
 cimport numpy as np
 from testfm.models.cutil.float_matrix cimport float_matrix, _float_matrix, fm_get, fm_set, fm_destroy
 import pandas as pd
-from testfm.evaluation.cutil.measures cimport NOGILMeasure
-from random import sample
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -76,7 +73,11 @@ cdef class IModel:
     Interface class for model
     """
 
-    data_map = None
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def __init__(self):
+        self.data_map = {}
+
 
     @classmethod
     @cython.boundscheck(False)
@@ -134,12 +135,12 @@ cdef class IModel:
     @staticmethod
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def get_context_columns(self):
+    def get_context_columns():
         """
         Get a list of names of all the context column names for this model
         :return:
         """
-        raise NotImplemented
+        return []
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -158,7 +159,7 @@ cdef class IModel:
 
         :param training_data: A numpy array
         """
-        raise NotImplemented
+        pass
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -208,7 +209,7 @@ cdef class IModel:
         """
         Return the number of factors
         """
-        raise NotImplemented
+        return 0
 
 cdef class NOGILModel(IModel):
     """

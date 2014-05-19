@@ -12,24 +12,22 @@ from random import random
 from testfm.models.cutil.interface import IModel
 from math import log
 import numpy as np
+from testfm.models.cutil.baseline_model import NOGILRandomModel
 
 
-class RandomModel(IModel):
+class RandomModel(NOGILRandomModel):
     """
     Random model
     """
     _scores = {}
 
-    def get_score(self, user, item):
+    def get_score(self, user, item, **context):
         key = user, item
         try:
             return self._scores[key]
         except KeyError:
             self._scores[key] = random()
             return self._scores[key]
-
-    def fit(self, training_data):
-        pass
 
     def get_name(self):
         return "Random"
@@ -41,7 +39,7 @@ class IdModel(IModel):
     Used for testing purposes
     """
 
-    def get_score(self, user, item):
+    def get_score(self, user, item, **context):
         return int(item)
 
     def fit(self, training_data):
@@ -62,7 +60,7 @@ class ConstantModel(IModel):
     def __init__(self, constant=1.0):
         self._c = constant
 
-    def get_score(self, user, item):
+    def get_score(self, user, item, **context):
         return self._c
 
     def get_name(self):
@@ -97,7 +95,7 @@ class Item2Item(IModel):
         self._items = {item: set(entries) for item, entries in training_data.groupby('item')['user']}
         self._users = {user: set(entries) for user, entries in training_data.groupby('user')['item']}
 
-    def get_score(self, user, item):
+    def get_score(self, user, item, **context):
         """
         Returns the sum of the list whit self.k elements the sorted similarity between items of the user and item(param)
         excluding the item(param) itself.
@@ -136,7 +134,7 @@ class AverageModel(IModel):
             for i, m in movie_stats.iterrows()
         }
 
-    def get_score(self, user, item):
+    def get_score(self, user, item, **context):
         return self._avg[item]
 
 
@@ -149,7 +147,7 @@ class Popularity(IModel):
     def __init__(self, normalize=True):
         self.normalize = normalize
 
-    def get_score(self, user, item):
+    def get_score(self, user, item, **context):
         #return self._counts.get(item, 0.0)
         return self._counts[item]
 
@@ -176,7 +174,7 @@ class PersonalizedPopularity(IModel):
 
     _counts = {}
 
-    def get_score(self, user, item):
+    def get_score(self, user, item, **context):
         try:
             return float(self._counts[user][item])
         except KeyError:

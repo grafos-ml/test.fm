@@ -189,9 +189,13 @@ cdef list evaluate_full_threading(NOGILModel factor_model, int size_of_users, in
 
 
             with gil:
-                measures[i / size_of_users] = measures.get(i / size_of_users, 0.) + fi
+                try:
+                    measures[i / size_of_users].append(fi)
+                except KeyError:
+                    measures[i / size_of_users] = [fi]
     for i in range(len(measures)):
-        result.append(measures[i] / size_of_users)
+        # print measures[i]
+        result.append(sum(measures[i]) / <float>(size_of_users+1))
     return result
 
 cdef float measure_full_nogil(NOGILModel factor_model, int size_of_user_items, int *user_items, NOGILMeasure measure,
@@ -218,7 +222,7 @@ cdef float measure_full_nogil(NOGILModel factor_model, int size_of_user_items, i
         if total >= total_of_items:
             break
         if is_in(all_items[i], size_of_user_items, user_items):
-            ranked_list[total+2], ranked_list[total*2+1] = 1., factor_model.nogil_get_score(user_items[0], all_items[i],
+            ranked_list[total*2], ranked_list[total*2+1] = 1., factor_model.nogil_get_score(user_items[0], all_items[i],
                                                                                             0, NULL)
             total += 1
         elif secure_counter < non_relevant_count:

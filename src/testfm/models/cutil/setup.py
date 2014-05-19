@@ -22,7 +22,8 @@ ext_modules = [
               include_dirs=include_dirs),
     Extension("testfm.evaluation.cutil.evaluator", ["testfm/evaluation/cutil/evaluator.pyx"],
               extra_compile_args=['-fopenmp'],
-              extra_link_args=['-fopenmp'])
+              extra_link_args=['-fopenmp']),
+    Extension("testfm.models.cutil.baseline_model", ["testfm/models/cutil/baseline_model.pyx"]),
 ]
 
 setup(
