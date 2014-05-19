@@ -8,3 +8,4 @@ nose
 futures
 fabric
 scikit-learn
+sphinx

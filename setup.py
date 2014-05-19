@@ -1,24 +1,27 @@
 __author__ = "linas"
 
 import sys
+import os
+import pip
 from distutils.core import setup
 from setuptools import find_packages
 from distutils.extension import Extension
-from setuptools.command.easy_install import main as install
-from pkg_resources import WorkingSet , DistributionNotFound
+from pkg_resources import WorkingSet, DistributionNotFound
 working_set = WorkingSet()
 try:
     dep = working_set.require("cython")
 except DistributionNotFound:
-    install("cython")
+    pip.main(["install", "cython"])
 try:
     dep = working_set.require("numpy")
 except DistributionNotFound:
-    install("numpy")
+    pip.main(["install", "numpy"])
 from Cython.Distutils import build_ext
 import numpy as np
 
-STD_LIB = "/usr/lib"
+
+ATLAS_LIB = None
+ATLAS_INCLUDE = None
 if sys.platform == "linux" or sys.platform == "linux2":
     ATLAS_LIB = "/usr/lib/atlas-base/atlas"
     ATLAS_INCLUDE = "/usr/include/atlas"
@@ -28,7 +31,11 @@ elif sys.platform == "darwin":
 #elif sys.platform == "win32":
 #    ATLAS_LIB = "/usr/lib/atlas-base/atlas"
 #    ATLAS_INCLUDE = "/usr/include/atlas"
-else:
+
+# Any value in env for ATLAS_LIB or ATLAS_INCLUDE will substitute the previous defaultpython
+ATLAS_LIB = os.environ.get("ATLAS_LIB", None) or ATLAS_LIB
+ATLAS_INCLUDE = os.environ.get("ATLAS_INCLUDE", None) or ATLAS_INCLUDE
+if not ATLAS_INCLUDE or not ATLAS_LIB:
     raise OSError("OS not supported yet")
 
 
@@ -47,7 +54,7 @@ ext_modules = [
     Extension("testfm.models.cutil.tensorcofi", ["src/testfm/models/cutil/tensorcofi.pyx"],
               libraries=["cblas"],
               library_dirs=[ATLAS_LIB],
-              include_dirs=[ATLAS_INCLUDE]),
+              include_dirs=[ATLAS_INCLUDE, np.get_include()]),
     Extension("testfm.models.cutil.baseline_model", ["src/testfm/models/cutil/baseline_model.pyx"]),
 ]
 
