@@ -1,18 +1,17 @@
 cimport cython
-from cython.parallel cimport parallel, prange, threadid
-from libc.stdlib cimport abort, malloc, free
-from libc.stdio cimport printf
+from cython.parallel cimport parallel, prange
+from libc.stdlib cimport malloc, free
 from testfm.evaluation.cutil.measures cimport NOGILMeasure
 from testfm.models.cutil.interface cimport NOGILModel
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef float merge_max(float a, float b) nogil:
     return a if a > b else b
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.overflowcheck(False)
+@cython.cdivision(False)
 cdef void merge_helper(float *input, int left, int right, float *scratch) nogil:
     #base case: one element
     if right == left + 1:
@@ -45,6 +44,8 @@ cdef void merge_helper(float *input, int left, int right, float *scratch) nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.overflowcheck(False)
+@cython.cdivision(False)
 cdef int mergesort(float *input, int size) nogil:
     cdef float *scratch = <float *>malloc(size * sizeof(float) * 2)
     if scratch is not NULL:
@@ -56,6 +57,8 @@ cdef int mergesort(float *input, int size) nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.overflowcheck(False)
+@cython.cdivision(False)
 cdef int is_in(int value, int size, int *int_list) nogil:
     """
     Check if value in tuple list.
@@ -76,6 +79,8 @@ cdef int is_in(int value, int size, int *int_list) nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.overflowcheck(False)
+@cython.cdivision(False)
 def evaluate_model(factor_model, testing_data, measures, all_items, non_relevant_count, k):
     """
     Try to apply native multi threading to evaluation. It can put the score calculation into threading if the model
@@ -157,6 +162,8 @@ def evaluate_model(factor_model, testing_data, measures, all_items, non_relevant
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.overflowcheck(False)
+@cython.cdivision(False)
 cdef list evaluate_full_threading(NOGILModel factor_model, int size_of_users, int *size_of_user_items, int **c_grouped,
                                   list nogil_measures, int size_of_items, int *c_all_items, int non_relevant_count,
                                   int k):
@@ -198,6 +205,10 @@ cdef list evaluate_full_threading(NOGILModel factor_model, int size_of_users, in
         result.append(sum(measures[i]) / <float>(size_of_users+1))
     return result
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.overflowcheck(False)
+@cython.cdivision(False)
 cdef float measure_full_nogil(NOGILModel factor_model, int size_of_user_items, int *user_items, NOGILMeasure measure,
                               int size_of_all_items, int *all_items, int non_relevant_count, int k) nogil:
     """
@@ -238,6 +249,8 @@ cdef float measure_full_nogil(NOGILModel factor_model, int size_of_user_items, i
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.overflowcheck(False)
+@cython.cdivision(False)
 cdef list evaluate_model_only_threading(NOGILModel factor_model, int size_of_users, int *size_of_user_items,
                                         int **c_grouped, list gil_measures, int size_of_items, int *c_all_items,
                                         int non_relevant_count, int k):
@@ -276,6 +289,10 @@ cdef list evaluate_model_only_threading(NOGILModel factor_model, int size_of_use
     return result
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.overflowcheck(False)
+@cython.cdivision(False)
 cdef float measure_model_nogil(NOGILModel factor_model, int size_of_user_items, int *user_items, measure,
                                int size_of_all_items, int *all_items, int non_relevant_count, int k) nogil:
     """

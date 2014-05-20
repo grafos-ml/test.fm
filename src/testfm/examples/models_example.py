@@ -6,7 +6,6 @@ from testfm.evaluation.evaluator import Evaluator
 from testfm.models.baseline_model import Popularity, RandomModel, Item2Item
 from testfm.models.tensorcofi import PyTensorCoFi, TensorCoFi, CTensorCoFi
 from testfm.models.content_based import TFIDFModel, LSIModel
-from testfm.models.ensemble_models import LinearRank
 from testfm.models.bpr import BPR
 from pkg_resources import resource_filename
 import datetime

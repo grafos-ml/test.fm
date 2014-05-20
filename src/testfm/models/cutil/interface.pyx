@@ -8,80 +8,17 @@ cimport numpy as np
 from testfm.models.cutil.float_matrix cimport float_matrix, _float_matrix, fm_get, fm_set, fm_destroy
 import pandas as pd
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef float get_score(int number_of_factors, int number_of_contexts, float_matrix *factor_matrices, int *context) nogil:
-    cdef int i, j
-    cdef float factor, total = 0.
-    for i in xrange(number_of_factors):
-        factor = 1.
-        for j in xrange(number_of_contexts):
-            #factor *= factor_matrices[j].values[context[j*2+1]*i + context[j*2]]
-            factor *= fm_get(factor_matrices[j], context[j*2], i)
-        total += factor
-    return total
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef float merge_max(float a, float b) nogil:
-    return a if a > b else b
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef void merge_helper(float *input, int left, int right, float *scratch) nogil:
-    #base case: one element
-    if right == left + 1:
-        return
-    cdef int i = 0
-    cdef int length = right - left
-    cdef int midpoint_distance = length/2
-    # l and r are to the positions in the left and right subarrays
-    cdef int l = left, r = left + midpoint_distance
-
-    # sort each subarray
-    merge_helper(input, left, left + midpoint_distance, scratch)
-    merge_helper(input, left + midpoint_distance, right, scratch)
-
-    # merge the arrays together using scratch for temporary storage
-    for i in range(length):
-        # Check to see if any elements remain in the left array; if so, we check if there are any elements left in
-        # the right array; if so, we compare them.  Otherwise, we know that the merge must use take the element
-        # from the left array
-        if l < left + midpoint_distance and (r == right or merge_max(input[l*2+1], input[r*2+1]) == input[l*2+1]):
-            scratch[i*2], scratch[i*2+1] = input[l*2], input[l*2+1]
-            l+=1
-        else:
-            scratch[i*2], scratch[i*2+1] = input[r*2], input[r*2+1]
-            r+=1
-    # Copy the sorted subarray back to the input
-    for i in range(left, right):
-        input[i*2], input[i*2+1] = scratch[i*2-left*2], scratch[(i*2-left*2)+1]
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef int mergesort(float *input, int size) nogil:
-    cdef float *scratch = <float *>malloc(size * sizeof(float) * 2)
-    if scratch is not NULL:
-        merge_helper(input, 0, size, scratch)
-        free(scratch)
-        return 1
-    return 0
 
 cdef class IModel:
     """
     Interface class for model
     """
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def __init__(self):
         self.data_map = {}
 
 
     @classmethod
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def param_details(cls):
         """
         Return a dictionary with the parameters for the set parameters and
@@ -95,8 +32,6 @@ cdef class IModel:
         """
         raise NotImplementedError
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def set_params(self, **kwargs):
         """
         Set the parameters in the model.
@@ -106,8 +41,6 @@ cdef class IModel:
         raise NotImplementedError
 
     @staticmethod
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def get_user_column():
         """
         Get the name of the user column in the pandas.DataFrame
@@ -115,8 +48,6 @@ cdef class IModel:
         return "user"
 
     @staticmethod
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def get_item_column():
         """
         Get the name of the item column in the pandas.DataFrame
@@ -124,8 +55,6 @@ cdef class IModel:
         return "item"
 
     @staticmethod
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def get_rating_column():
         """
         Get the name of the rating column in the pandas.DataFrame
@@ -133,8 +62,6 @@ cdef class IModel:
         return "rating"
 
     @staticmethod
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def get_context_columns():
         """
         Get a list of names of all the context column names for this model
@@ -142,8 +69,6 @@ cdef class IModel:
         """
         return []
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def get_name(self):
         """
         Get the informative name for the model.
@@ -151,8 +76,6 @@ cdef class IModel:
         """
         return self.__class__.__name__
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def train(self, training_data):
         """
         Train the model with numpy array. The first column is for users, the second for item and the third for rating.
@@ -195,16 +118,12 @@ cdef class IModel:
         """
         return len(self.data_map[self.get_item_column()])
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def get_score(self, user, item, **context):
         """
         Return the score for user, item and evenctuallyt a set of contexts
         """
         raise NotImplemented
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def number_of_context(self):
         """
         Return the number of factors
@@ -216,8 +135,6 @@ cdef class NOGILModel(IModel):
     No gil interface. Implements a nogil get_score and nogil item_score
     """
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     cdef float nogil_get_score(self, int user, int item, int extra_context, int *context) nogil:
         """
         Get the score without python GIL convention
@@ -258,8 +175,6 @@ cdef class IFactorModel(NOGILModel):
             free(self.c_factors)
             self.c_factors = NULL
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def fit(self, training_data):
         """
         Train the data from a pandas.DataFrame

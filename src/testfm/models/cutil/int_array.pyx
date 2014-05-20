@@ -3,8 +3,6 @@ cimport cython
 from libc.stdlib cimport malloc, free, realloc
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef api int_array ia_new() nogil:
     """
     Create a new int_array
@@ -17,8 +15,6 @@ cdef api int_array ia_new() nogil:
     return ia
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef api void ia_destroy(int_array self) nogil:
     """
     Destroy this int array
@@ -51,7 +47,6 @@ cdef api int ia_add(int_array self, int value) nogil:
     self._size += 1
     return 0
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+
 cdef api int ia_size(int_array self) nogil:
     return self._size

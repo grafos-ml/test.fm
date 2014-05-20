@@ -1,5 +1,5 @@
 Introduction
-===========
+============
 
 Test.fm is (yet another) testing framework for Collaborative Filtering models.
 It integrates well with pandas as the default data manipulation library and
@@ -18,16 +18,18 @@ Example of using the Test.fm framework
 	
 	evaluator = Evaluator()
 
-	#prepare the data
+	# Prepare the data
 	df = pd.read_csv(..., names=["user", "item", "rating", "date", "title"])
 	training, testing = testfm.split.holdoutByRandom(df, 0.9)
 
-	#tell me what models we want to evaluate
-	models = [RandomModel(),
-	          Popularity(),
-	          TensorCoFi()]
+	# Tell me what models we want to evaluate
+	models = [
+	    RandomModel(),
+	    Popularity(),
+	    TensorCoFi()
+	]
 	
-	#evaluate
+	# Evaluate
 	items = training.item.unique()
 	for m in models:
 		m.fit(training)
@@ -50,6 +52,7 @@ Installation
 Nosetests
 =========
 $ nosetests -w src/ -vv --with-cover --cover-tests --cover-erase --cover-html --cover-package=testfm --with-doctest --doctest-tests tests testfm/evaluation testfm/models testfm/fmio testfm/splitter
+
 Similar Projects
 ================
 1. [mrec](https://github.com/Mendeley/mrec/tree/master/mrec) from Mendeley. Good at building models. (python, ?)

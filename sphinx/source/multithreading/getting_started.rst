@@ -97,9 +97,113 @@ items.
     :lines: 102
     :linenos:
 
+This also can be coded as:
+
+.. code-block:: python
+    :linenos:
+
+    # Get the matrices location
+    user_path, item_path = out.split(" ")
+
+    # Load the both matrices. Notice they are loaded as float32
+    user_factor_matrix = np.genfromtxt(open(user_path, "r"), delimiter=",", dtype=np.float32)
+    item_factor_matrix = np.genfromtxt(open(item_path, "r"), delimiter=",", dtype=np.float32)
+
+    # They are loaded with factors as rows. So we use the transpose for respect the 3rd clause in the protocol
+    self.factors = [user_factor_matrix.transpose(), item_factor_matrix.transpose()]
+
 Also must note that the arrays are loaded as np.float32 arrays. And they get transposed after that to correspond to user
 and item rows and factor columns.
 
 After the execution of the train, the fit method go on to fill the C-array with the numpy array data. Actually it just
 turn the pointer to the numpy C-data so it don't replicate data and when there is a change in the factors it is also
 applied to there.
+
+NOGIL Model from Scratch
+------------------------
+
+To make a new **nogil** model from scratch two things are needed. The Cython with the low level routine and the setup.py
+to compile the Cython part. In this example we will make a third structure, a Python wrapper. The reason for this is so
+we can have only the low level part in the binary and the rest of the features in the python side. This way it only
+compile when a change in the nogil part is made and no more than that.
+
+.. note::
+
+     Keep in mind that compelling the Python code using Cython raises the performance of the execution even if you don't
+     use any optimization. The counterpart is you lose in versatility.
+
+
+We will build a random model with the nogil interface. First create a file named crandom.pyx. This file will have the low
+level code for our plugin. Make the necessary imports. For this we need some Python libraries and some C libraries.
+Notice that the python libraries are called the same way but the C libraries are called by using the keyword cimport.
+
+.. code-block:: cython
+    :linenos:
+
+    # crandom.pyx
+
+    cimport cython
+    from libc.stdlib cimport rand, RAND_MAX
+    from testfm.models.cutil.interface cimport NOGILModel
+
+    cdef class NOGILRandomModel(NOGILModel):
+
+        @cython.cdivision(False)
+        cdef float nogil_get_score(NOGILRandomModel self, int user, int item, int extra_context, int *context) nogil:
+            return rand() / <float>RAND_MAX
+
+NOGILModel is imported by the c library in testfm.models.cutil.interface and rand plus RAND_MAX to generate the
+low-level pseudo-random number. Notice how the class is defined as cdef. This make it hybrid between C and Python able
+to have pure C methods. So it can implement a cdef method. Other different thing is that the method as a type of exit
+defined and each parameter also have a type. Last but not least, the decorator on the method is a special Cython
+functionality. This one is for disable the Python security division checks. This can boost the division operation up to
+36 %, according to Cython documentation.
+
+Now for the wrapper.
+
+.. code-block:: python
+    :linenos:
+
+    # random_model.py
+
+    from crandom import NOGILRandomModel
+
+    class RandomModel(NOGILRandomModel):
+        """
+        Random model
+        """
+        _scores = {}
+
+        def get_score(self, user, item, **context):
+            key = user, item
+            try:
+                return self._scores[key]
+            except KeyError:
+                self._scores[key] = random()
+                return self._scores[key]
+
+        def get_name(self):
+            return "Random"
+
+This class inherit the nogil_get_score form the parent. In the end it does the same thing but is faster and allows
+multi-threading.
+
+Just need the setup.py now.
+
+.. code-block:: python
+    :linenos:
+
+    # setup.py
+    from distutils.core import setup
+    from distutils.extension import Extension
+    from Cython.Distutils import build_ext
+
+    setup(
+      name = "random",
+      cmdclass = {"build_ext": build_ext},
+      ext_modules = [
+        Extension("crandom", ["crandom.pyx"])
+      ],
+    )
+
+Now just run python **setup build_ext --inplace** and voilá, you have your first multi-threading model ready to use.

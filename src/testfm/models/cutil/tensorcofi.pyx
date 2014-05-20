@@ -19,6 +19,8 @@ cdef extern from "math.h":
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.overflowcheck(False)
+@cython.cdivision(False)
 cdef api float_matrix *tensorcofi_train(float_matrix data_array, int n_factors, int n_iterations, float c_lambda,
                                         float c_alpha, int n_dimensions, int *dimensions) nogil:
     """
@@ -155,8 +157,6 @@ class CTensorCoFi(IFactorModel):
     constant_alpha = 40
     context_columns = []
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def __init__(self, n_factors=None, n_iterations=None, c_lambda=None, c_alpha=None, other_context=None):
         """
         Constructor
@@ -171,8 +171,6 @@ class CTensorCoFi(IFactorModel):
         self.context_columns = other_context or []
 
     @classmethod
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def param_details(cls):
         """
         Return parameter details for n_factors, n_iterations, c_lambda and c_alpha
@@ -184,8 +182,6 @@ class CTensorCoFi(IFactorModel):
             "c_alpha": (30, 50, 5, 40)
         }
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def get_context_columns(self):
         """
         Get a list of names of all the context column names for this model
@@ -196,6 +192,8 @@ class CTensorCoFi(IFactorModel):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
+    @cython.overflowcheck(False)
+    @cython.cdivision(False)
     def train(self, data):
         """
         Train the model
@@ -267,8 +265,6 @@ class CTensorCoFi(IFactorModel):
         u_factors = u_factors.dot(np.ones(y.shape[0]).transpose())
         return u_factors
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def set_params(self, int n_factors, int n_iterations, float c_lambda, float c_alpha):
         """
         Set the parameters for the TensorCoFi
@@ -278,8 +274,6 @@ class CTensorCoFi(IFactorModel):
         self.constant_lambda = c_lambda or .05
         self.constant_alpha = c_alpha or 40.
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def get_name(self):
         return "CTensorCoFi(n_factors=%s, n_iterations=%s, c_lambda=%.2f, c_alpha=%d)" % \
                (self.number_of_factors, self.number_of_iterations, <float>self.constant_lambda, <int>self.constant_alpha)

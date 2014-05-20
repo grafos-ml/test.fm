@@ -18,8 +18,8 @@ cdef extern from "clapack.h":
                       const int ldb) nogil
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+@cython.overflowcheck(False)
+@cython.cdivision(False)
 cdef api float_matrix fm_new(int rows, int columns) nogil:
     """
     C constructor
@@ -55,8 +55,6 @@ cdef api float_matrix fm_new_init(int rows, int columns, float fill_value) nogil
     return self
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef api void fm_destroy(float_matrix self) nogil:
     """
     Dealloc the C structures
@@ -69,6 +67,8 @@ cdef api void fm_destroy(float_matrix self) nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.overflowcheck(False)
+@cython.cdivision(False)
 cdef api float fm_get(float_matrix self, int row, int column) nogil:
     """
     Get a value from the matrix in the cell (row, column)
@@ -85,6 +85,8 @@ cdef api float fm_get(float_matrix self, int row, int column) nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.overflowcheck(False)
+@cython.cdivision(False)
 cdef api void fm_set(float_matrix self, int row, int column, float value) nogil:
     """
     Set the specific cell to value
@@ -103,8 +105,6 @@ cdef api void fm_set(float_matrix self, int row, int column, float value) nogil:
         self.values[row*self.columns + column] = value
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef api float_matrix fm_static_clone(float_matrix self, float_matrix clone_matrix) nogil:
     """
     Clone this matrix
@@ -115,8 +115,6 @@ cdef api float_matrix fm_static_clone(float_matrix self, float_matrix clone_matr
     return clone_matrix
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef api float_matrix fm_clone(float_matrix self) nogil:
     """
     Clone this matrix
@@ -127,8 +125,8 @@ cdef api float_matrix fm_clone(float_matrix self) nogil:
     return fm_static_clone(self, clone_matrix)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+@cython.overflowcheck(False)
+@cython.cdivision(False)
 cdef api float_matrix fm_static_transpose(float_matrix self, float_matrix fm) nogil:
     """
     Return a transpose of this float matrix
@@ -141,8 +139,6 @@ cdef api float_matrix fm_static_transpose(float_matrix self, float_matrix fm) no
     return fm
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef api float_matrix fm_transpose(float_matrix self) nogil:
     """
     Return a transpose of this float matrix
@@ -152,8 +148,6 @@ cdef api float_matrix fm_transpose(float_matrix self) nogil:
     return fm_static_transpose(self, fm)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef api float_matrix fm_static_multiply_scalar(float_matrix self, float scalar, float_matrix fm) nogil:
     """
     Multiply all values in the matrix by a real number
@@ -163,8 +157,6 @@ cdef api float_matrix fm_static_multiply_scalar(float_matrix self, float scalar,
     return fm
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef api float_matrix fm_multiply_scalar(float_matrix self, float scalar) nogil:
     """
     Multiply all values in the matrix by a real number
@@ -174,8 +166,6 @@ cdef api float_matrix fm_multiply_scalar(float_matrix self, float scalar) nogil:
     return fm_static_multiply_scalar(self, scalar, fm)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef api float_matrix fm_static_multiply(float_matrix self, float_matrix other, float_matrix result) nogil:
     """
     Matrix multiplication
@@ -188,8 +178,6 @@ cdef api float_matrix fm_static_multiply(float_matrix self, float_matrix other, 
     return result
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef api float_matrix fm_multiply(float_matrix self, float_matrix other) nogil:
     """
     Matrix multiplication
@@ -200,8 +188,8 @@ cdef api float_matrix fm_multiply(float_matrix self, float_matrix other) nogil:
     return fm_static_multiply(self, other, result)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+@cython.overflowcheck(False)
+@cython.cdivision(False)
 cdef api float_matrix fm_static_multiply_column(float_matrix self, float_matrix other, int row,
                                                 float_matrix result) nogil:
     """
@@ -217,8 +205,6 @@ cdef api float_matrix fm_static_multiply_column(float_matrix self, float_matrix 
     return result
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef api float_matrix fm_multiply_column(float_matrix self, float_matrix other, int row) nogil:
     """
     Matrix multiplication
@@ -229,8 +215,8 @@ cdef api float_matrix fm_multiply_column(float_matrix self, float_matrix other, 
     return fm_static_multiply_column(self, other, row, result)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+@cython.overflowcheck(False)
+@cython.cdivision(False)
 cdef api float_matrix fm_static_add(float_matrix self, float_matrix other, float_matrix result) nogil:
     """
     Add 2 matrices
@@ -245,8 +231,6 @@ cdef api float_matrix fm_static_add(float_matrix self, float_matrix other, float
     return result
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef api float_matrix fm_add(float_matrix self, float_matrix other) nogil:
     """
     Add 2 matrices
@@ -257,8 +241,8 @@ cdef api float_matrix fm_add(float_matrix self, float_matrix other) nogil:
     return fm_static_add(self, other, result)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+@cython.overflowcheck(False)
+@cython.cdivision(False)
 cdef api float_matrix fm_static_element_wise_multiply(float_matrix self, float_matrix other, float_matrix result) nogil:
     """
     Do the element wise multiplication in matrices
@@ -273,8 +257,6 @@ cdef api float_matrix fm_static_element_wise_multiply(float_matrix self, float_m
     return result
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef api float_matrix fm_element_wise_multiply(float_matrix self, float_matrix other) nogil:
     """
     Do the element wise multiplication in matrices
@@ -285,8 +267,8 @@ cdef api float_matrix fm_element_wise_multiply(float_matrix self, float_matrix o
     return fm_static_element_wise_multiply(self, other, result)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+@cython.overflowcheck(False)
+@cython.cdivision(False)
 cdef api float_matrix fm_static_element_wise_division(float_matrix self, float_matrix other, float_matrix result) nogil:
     """
     Do the element wise multiplication in matrices
@@ -301,8 +283,6 @@ cdef api float_matrix fm_static_element_wise_division(float_matrix self, float_m
     return result
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef api float_matrix fm_element_wise_division(float_matrix self, float_matrix other) nogil:
     """
     Do the element wise multiplication in matrices
@@ -313,8 +293,6 @@ cdef api float_matrix fm_element_wise_division(float_matrix self, float_matrix o
     return fm_static_element_wise_division(self, other, result)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef api float_matrix fm_diagonal(float_matrix self, float scalar) nogil:
     """
     Make self diagonal. Make sure the matrix is square
@@ -328,8 +306,6 @@ cdef api float_matrix fm_diagonal(float_matrix self, float scalar) nogil:
     return self
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef api float_matrix fm_create_diagonal(int dim, float scalar) nogil:
     """
     Do the element wise multiplication in matrices
@@ -342,6 +318,8 @@ cdef api float_matrix fm_create_diagonal(int dim, float scalar) nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.overflowcheck(False)
+@cython.cdivision(False)
 cdef api float_matrix fm_create_random(int rows, int columns) nogil:
     """
     Create a matrix with random numbers between 0 and 1
@@ -368,8 +346,6 @@ cdef api float_matrix fm_create_random(int rows, int columns) nogil:
 #            printf("%f", fm_get(self, row, columns))
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef api float_matrix fm_solve(float_matrix self, float_matrix result, int *ipiv) nogil:
     """
     Solve the system SELF * X = RESULT
@@ -383,8 +359,6 @@ cdef api float_matrix fm_solve(float_matrix self, float_matrix result, int *ipiv
 
 cdef class FloatMatrix:
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def __cinit__(FloatMatrix self, rows=None, columns=None, initialize=True):
         """
         C constructor
@@ -396,16 +370,12 @@ cdef class FloatMatrix:
             if self.matrix is NULL or self.matrix.values is NULL:
                 raise MemoryError
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def __dealloc__(FloatMatrix self):
         """
         Dealloc the C structures
         """
         fm_destroy(self.matrix)
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def __getitem__(FloatMatrix self, tuple place):
         """
         Get item
@@ -418,8 +388,6 @@ cdef class FloatMatrix:
         else:
             raise IndexError, "%s cell doesn't exist. Matrix dimension is (%d, %d)" % (place, self.rows, self.columns)
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def __setitem__(FloatMatrix self, tuple place, float value):
         """
         set item
@@ -432,8 +400,6 @@ cdef class FloatMatrix:
         else:
             raise IndexError, "%s cell doesn't exist. Matrix dimension is (%d, %d)" % (place, self.rows, self.columns)
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def clone(FloatMatrix self):
         """
         Clone this Float Matrix
@@ -443,8 +409,6 @@ cdef class FloatMatrix:
         clone_matrix.matrix = fm_clone(self.matrix)
         return clone_matrix
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def transpose(FloatMatrix self):
         """
         Return a transpose of this float matrix
@@ -455,8 +419,6 @@ cdef class FloatMatrix:
         return transpose_fm
 
     @property
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def is_transpose(FloatMatrix self):
         """
         Return true if self is transpose
@@ -464,8 +426,6 @@ cdef class FloatMatrix:
         """
         return bool(self.matrix.transpose)
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def __mul__(FloatMatrix self, other):
         """
         Return a transpose of this float matrix
@@ -484,8 +444,6 @@ cdef class FloatMatrix:
             result.matrix = fm_multiply(self.matrix, (<FloatMatrix>other).matrix)
         return result
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def __div__(FloatMatrix self, FloatMatrix other):
         """
         Return a division of this float matrix with other
@@ -496,8 +454,6 @@ cdef class FloatMatrix:
 
         return result
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def element_wise_multiplication(FloatMatrix self, FloatMatrix other):
         """
         Do the element wise multiplication in matrices
@@ -511,8 +467,6 @@ cdef class FloatMatrix:
         result.matrix = fm_element_wise_multiply(self.matrix, other.matrix)
         return result
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def column_multiplication(FloatMatrix self, FloatMatrix other, int column):
         """
         Do the element wise multiplication in matrices
@@ -527,8 +481,6 @@ cdef class FloatMatrix:
         result.matrix = fm_multiply_column(self.matrix, other.matrix, column)
         return result
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def  __add__(FloatMatrix self, FloatMatrix other):
         """
         Add 2 matrices
@@ -543,30 +495,20 @@ cdef class FloatMatrix:
         return result
 
     @property
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def rows(FloatMatrix self):
         return self.matrix.rows
 
     @property
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def columns(FloatMatrix self):
         return self.matrix.columns
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def __len__(FloatMatrix self):
         return self.matrix.size
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def __str__(FloatMatrix self):
         return u"\n".join(u", ".join(unicode(self[i, j]) for j in xrange(self.columns)) for i in xrange(self.rows))
 
     @staticmethod
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def one(int rows, int columns):
         """
         Create a float matrix of ones
@@ -579,8 +521,6 @@ cdef class FloatMatrix:
         return fm
 
     @staticmethod
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def eye(int dim):
         """
         Create a diagonal matrix
@@ -592,8 +532,6 @@ cdef class FloatMatrix:
         return fm
 
     @staticmethod
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def random(int rows, int columns):
         """
         Create a matrix with pseudo random values between 0 and 1

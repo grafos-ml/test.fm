@@ -7,7 +7,7 @@ Test.FM documentation
 *********************
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    multithreading/getting_started
    code
