@@ -50,20 +50,22 @@ class Evaluator(object):
     Takes the model,testing data and evaluation measure and spits out the score.
     """
 
-    def evaluate_model(self, factor_model, testing_data, measures=[MAPMeasure()], all_items=None,
+    def evaluate_model(self, factor_model, testing_data, measures=None, all_items=None,
                        non_relevant_count=100, k=None):
         """
-        Evaluate the model using some testing data in pandas.DataFrame
+        Evaluate the model using some testing data in pandas.DataFrame. The Evaluator check if the model in evaluation
+        is able to be executed with multi-threading. If so it executes a low level routine using C-Threads otherwise
+        execute a single thread routine.
 
-        :param factor_model: ModelInterface  an instance of ModelInterface
-        :param measures: list of measure we want to compute (instances of)
-        :param all_items: list of items available in the data set (used for
-            negative sampling).
-         If set to None, then testing items are used for this
-        :param non_relevant_count: int number of non relevant items to add to
-            the list for performance evaluation
-        :return: list of score corresponding to measures
+        :param factor_model: An instance that Should implement IModel
+        :param measures: List of measure we want to compute. They should implement IMeasure. Default: MAPMeasure
+        :param all_items: List of items available in the data set (used for negative sampling). If set to None, only
+            testing items will be used.
+
+        :param non_relevant_count: int number of non relevant items to add to the list for performance evaluation
+        :return: List of score corresponding to measures
         """
+        measures = measures or [MAPMeasure()]
         if isinstance(factor_model, NOGILModel):
             return evaluate_model(factor_model, testing_data, measures, all_items, non_relevant_count, k)
         #return self.evaluate_model_multiprocessing(factor_model, testing_data, measures=measures, all_items=all_items,
