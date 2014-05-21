@@ -21,7 +21,7 @@ from testfm.models.cutil.interface import IModel
 import getpass
 
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 #logger.setLevel(logging.WARNING)
 
 logger.addHandler(logging.StreamHandler())
@@ -78,7 +78,8 @@ class BaseOkapiModel(IModel):
     _std_output = "okapi/output/%(model)s/%(hash)s"
     _manager_dir = "okapi/_bsp"
     _model_java_class = None
-    _okapi_local_repository = resource_filename(okapi.__name__, "lib/")
+    #_okapi_local_repository = resource_filename(okapi.__name__, "lib/")
+    _okapi_local_repository = "okapi/jar"
     _okapi_jar = "okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar"
     _source = ""
 
@@ -148,7 +149,7 @@ class BaseOkapiModel(IModel):
         run(self.source % "hadoop dfs -rmr %s" % self._manager_dir, quiet=True)
         hadoop_command = OKAPI_COMMAND % {
             "model_class": self._model_java_class,
-            "okapi_jar": "%s%s" % (self._okapi_local_repository, self._okapi_jar),
+            "okapi_jar": "%s/%s" % (self._okapi_local_repository, self._okapi_jar),
             "max_item_id": self.get_item_len(data, **kwargs),
             "input": self.input,
             "output": self.output,
@@ -285,8 +286,8 @@ class DynamicOkapiModel(BaseOkapiModel):
 
         >>> import pandas as pd
         >>> data = pd.DataFrame({i: [j**i for j in range(20, 30)] for i in range(2, 4)})
-        >>> DynamicOkapiModel.hash_data(data)
-        '6e7b438bfdd5b50cf08e458360d2ae2f'
+        >>> ModelConnector.hash_data(data)
+        '37693cfc748049e45d87b8c7d8b9aacd'
 
         :param data: data to hash
         """
@@ -408,6 +409,8 @@ class BPROkapi(DynamicOkapiModel):
         :return:
         """
         return "BPR"
+
+
 
 
 class TFMAPOkapi(DynamicOkapiModel):
