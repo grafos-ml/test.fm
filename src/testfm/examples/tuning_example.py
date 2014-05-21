@@ -12,7 +12,7 @@ if __name__ == "__main__":
     eval = Evaluator()  # Call this before loading the data to save memory (fork of process takes place)
 
     # Prepare the data
-    df = pd.read_csv(resource_filename(testfm.__name__,'data/movielenshead.dat'),
+    df = pd.read_csv(resource_filename(testfm.__name__, 'data/movielenshead.dat'),
                      sep="::", header=None, names=['user', 'item', 'rating', 'date', 'title'])
     print df.head()
     training, testing = testfm.split.holdoutByRandom(df, 0.9)

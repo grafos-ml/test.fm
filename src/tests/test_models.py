@@ -58,6 +58,22 @@ class TestTensorCoFi(unittest.TestCase):
         self.assertEqual(len(self.df.user.unique()), tf.factors[0].shape[0])
         self.assertEqual(len(self.df.item.unique()), tf.factors[1].shape[0])
 
+    def test_refit(self):
+        """
+        [TensorCoFi] Test fit after first fitting
+        """
+        tf = TensorCoFi(n_factors=2)
+        tf.fit(self.df)
+        tf.fit(self.df)  # Second fit
+        #item and user are row vectors
+        self.assertEqual(len(self.df.user.unique()), tf.factors[0].shape[0])
+        self.assertEqual(len(self.df.item.unique()), tf.factors[1].shape[0])
+        tf.fit(self.df)  # Third fit
+        #item and user are row vectors
+        self.assertEqual(len(self.df.user.unique()), tf.factors[0].shape[0])
+        self.assertEqual(len(self.df.item.unique()), tf.factors[1].shape[0])
+
+
     def test_ids_returns(self):
         tf = TensorCoFi(n_factors=2)
         inp = [{"user": 10, "item": 100},

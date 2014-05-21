@@ -52,7 +52,7 @@ class ParameterTuning(object):
         """
         Return a mean for the predictive power
         """
-        model.setParams(**kwargs)
+        model.set_params(**kwargs)
         model.fit(training)
         evaluator = Evaluator()
         # Return the MAPMeasure in position 0

@@ -152,13 +152,13 @@ cdef class IFactorModel(NOGILModel):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def __cinit__(self, *args, **kwargs):
+    def __cinit__(self, int n_factors=20, *args, **kwargs):
         """
         C-stage of the initiation of this model. It put c_factors to null
         """
         self.c_factors = NULL
         self.c_number_of_context = 0
-        self.c_number_of_factors = kwargs["n_factors"] if "n_factors" in kwargs else args[0]
+        self.c_number_of_factors = n_factors
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -166,14 +166,7 @@ cdef class IFactorModel(NOGILModel):
         """
         Free the memory holding the c_factors
         """
-        cdef int i
-        if self.c_factors is not NULL:
-            for i in range(self.c_number_of_contexts):
-                if self.c_factors[i] is not NULL:
-                    self.c_factors[i].values = NULL
-                    fm_destroy(self.c_factors[i])
-            free(self.c_factors)
-            self.c_factors = NULL
+        self.dealloc_factors()
 
     def fit(self, training_data):
         """
@@ -218,7 +211,7 @@ cdef class IFactorModel(NOGILModel):
         if self.c_factors is not NULL:
             for i in range(self.c_number_of_contexts):
                 if self.c_factors[i] is not NULL:
-                    #self.c_factors[i].values = NULL
+                    self.c_factors[i].values = NULL
                     fm_destroy(self.c_factors[i])
             free(self.c_factors)
             self.c_factors = NULL
@@ -275,3 +268,9 @@ cdef class IFactorModel(NOGILModel):
         cdef float f
         for i, f in enumerate(factors):
             fm_set(self.c_factors[0], user, i, f)
+
+    def set_params(self, n_factors, *args, **kwargs):
+        """
+        Set the parameters for the TensorCoFi
+        """
+        self.c_number_of_factors = n_factors

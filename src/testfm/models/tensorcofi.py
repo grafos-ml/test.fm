@@ -127,10 +127,11 @@ class TensorCoFi(IFactorModel):
         u_factors = u_factors.dot(np.ones(y.shape[0]).transpose())
         return u_factors
 
-    def set_params(self, n_factors, n_iterations, c_lambda, c_alpha):
+    def set_params(self, n_factors=None, n_iterations=None, c_lambda=None, c_alpha=None):
         """
         Set the parameters for the TensorCoFi
         """
+        super(TensorCoFi, self).set_params(n_factors, n_iterations, c_lambda, c_alpha)
         self.number_of_factors = n_factors or self.number_of_factors
         self.number_of_iterations = n_iterations or self.number_of_iterations
         self.constant_lambda = c_lambda or self.constant_lambda
