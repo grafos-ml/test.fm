@@ -9,3 +9,4 @@ futures
 fabric
 scikit-learn
 sphinx
+coverage

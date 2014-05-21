@@ -94,7 +94,7 @@ items.
 
 .. literalinclude:: /../../src/testfm/models/tensorcofi.py
     :language: python
-    :lines: 102
+    :lines: 102-103
     :linenos:
 
 This also can be coded as:

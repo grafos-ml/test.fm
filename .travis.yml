@@ -9,4 +9,4 @@ install:
   - pip install .
   - rm -r src/testfm
 # command to run tests
-script: nosetests -vv --with-cover --cover-tests --cover-erase --cover-html --cover-package=testfm --with-doctest --doctest-tests src/tests
+script: nosetests -vv --with-cover --cover-tests --cover-erase --cover-html --cover-package=testfm --with-doctest --doctest-tests --all-modules

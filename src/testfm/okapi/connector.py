@@ -285,8 +285,8 @@ class DynamicOkapiModel(BaseOkapiModel):
 
         >>> import pandas as pd
         >>> data = pd.DataFrame({i: [j**i for j in range(20, 30)] for i in range(2, 4)})
-        >>> ModelConnector.hash_data(data)
-        '37693cfc748049e45d87b8c7d8b9aacd'
+        >>> DynamicOkapiModel.hash_data(data)
+        '6e7b438bfdd5b50cf08e458360d2ae2f'
 
         :param data: data to hash
         """

@@ -99,7 +99,8 @@ class TensorCoFi(IFactorModel):
             #os.remove(name)
             print out
             raise Exception(err)
-        self.factors = [np.genfromtxt(open(path, "r"), delimiter=",", dtype=np.float32).transpose() for path in out.split(" ")]
+        self.factors = [np.genfromtxt(open(path, "r"), delimiter=",",
+                                      dtype=np.float32).transpose() for path in out.split(" ")]
         shutil.rmtree("log")
 
     def get_model(self):

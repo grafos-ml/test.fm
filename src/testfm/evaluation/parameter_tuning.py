@@ -69,7 +69,7 @@ class ParameterTuning(object):
         (min,max,step,default)
         """
         # Create a grid of parameters
-        kwargs = kwargs or model.paramDetails()
+        kwargs = kwargs or model.param_details()
         grid = zip(*(x.flat for x in np.mgrid[[slice(*row[:3])
                      for row in kwargs.values()]]))
         m_instance = model()

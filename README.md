@@ -51,7 +51,11 @@ Installation
 
 Nosetests
 =========
-$ nosetests -w src/ -vv --with-cover --cover-tests --cover-erase --cover-html --cover-package=testfm --with-doctest --doctest-tests tests testfm/evaluation testfm/models testfm/fmio testfm/splitter
+>>> nosetests -w src/ -vv --with-cover --cover-tests --cover-erase --cover-html --cover-package=testfm --with-doctest --doctest-tests tests testfm/evaluation testfm/models testfm/fmio testfm/splitter
+
+Build Documentation
+===================
+>>> sphinx-build -b html source_folder doc_folder
 
 Similar Projects
 ================
