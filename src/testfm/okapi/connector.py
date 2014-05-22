@@ -78,8 +78,7 @@ class BaseOkapiModel(IModel):
     _std_output = "okapi/output/%(model)s/%(hash)s"
     _manager_dir = "okapi/_bsp"
     _model_java_class = None
-    #_okapi_local_repository = resource_filename(okapi.__name__, "lib/")
-    _okapi_local_repository = "okapi/jar"
+    _okapi_local_repository = resource_filename(okapi.__name__, "lib/")
     _okapi_jar = "okapi-0.3.2-SNAPSHOT-jar-with-dependencies.jar"
     _source = ""
 
@@ -149,7 +148,7 @@ class BaseOkapiModel(IModel):
         run(self.source % "hadoop dfs -rmr %s" % self._manager_dir, quiet=True)
         hadoop_command = OKAPI_COMMAND % {
             "model_class": self._model_java_class,
-            "okapi_jar": "%s/%s" % (self._okapi_local_repository, self._okapi_jar),
+            "okapi_jar": "%s%s" % (self._okapi_local_repository, self._okapi_jar),
             "max_item_id": self.get_item_len(data, **kwargs),
             "input": self.input,
             "output": self.output,
