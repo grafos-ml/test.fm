@@ -27,7 +27,7 @@ Example of using the Test.fm framework
 	    RandomModel(),
 	    Popularity(),
 	    TensorCoFi()
-	]
+	    ]
 	
 	# Evaluate
 	items = training.item.unique()

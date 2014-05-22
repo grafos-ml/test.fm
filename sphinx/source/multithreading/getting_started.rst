@@ -33,7 +33,7 @@ just need Python side implementation.
 Getting Started
 ===============
 
-The first step is :ref:`installing the Test.fm framework <install-testfm>`. After that just run:
+The first step is :ref:`installing the Test.fm framework <get-testfm>`. After that just run:
 
 .. code-block:: python
    :linenos:
