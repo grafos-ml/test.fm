@@ -142,8 +142,30 @@ class TestObjectOperations:
         else:
             assert True, "Allow set out of bounds for columns"
 
+    @staticmethod
+    def test_clone():
+        """
+        [FloatMatrix Basic Operations] Test the matrix is cloned
+        """
+        matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+        a = FloatMatrix(3, 3)
+        for i, row in enumerate(matrix):
+            for j, value in enumerate(row):
+                a[i, j] = value  # Try to set value to some row and column
+        cloned_a = a.clone()
+        b = cloned_a.element_wise_multiplication(a)
+        assert b[0, 0] == a[0, 0] ** 2, "Element (0, 0) is not working correctly"
+        assert b[0, 1] == a[0, 1] ** 2, "Element (0, 1) is not working correctly"
+        assert b[0, 2] == a[0, 2] ** 2, "Element (0, 2) is not working correctly"
+        assert b[1, 0] == a[1, 0] ** 2, "Element (1, 0) is not working correctly"
+        assert b[1, 1] == a[1, 1] ** 2, "Element (1, 1) is not working correctly"
+        assert b[1, 2] == a[1, 2] ** 2, "Element (1, 2) is not working correctly"
+        assert b[2, 0] == a[2, 0] ** 2, "Element (2, 0) is not working correctly"
+        assert b[2, 1] == a[2, 1] ** 2, "Element (2, 1) is not working correctly"
+        assert b[2, 2] == a[2, 2] ** 2, "Element (2, 2) is not working correctly"
 
-class TestBasicOperations:
+
+class TestMatrixOperations:
     """
     Test for the basic operations in the matrix
     """
@@ -151,7 +173,7 @@ class TestBasicOperations:
     @staticmethod
     def test_transpose():
         """
-        Test the transpose fo th matrix
+        [FloatMatrix Matrix Operations] Test the transpose for the matrix
         """
         matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
         a = FloatMatrix(3, 3)

@@ -20,7 +20,7 @@ Install it on Ubuntu
 It is farly easy to install it on Ubuntu. First make sure that you install the ATLAS and LAPACK library. If you don't
 have it just run::
 
-    sudo apt-get install gfortran libatlas-base-dev libatlas-dev liblapack-dev
+    $ sudo apt-get install gfortran libatlas-base-dev libatlas-dev liblapack-dev
 
 After this you may want to install a Python `virtual environment <http://virtualenv.readthedocs.org/en/latest/>`_. Also,
 you can use the `virtualenvwrapper <http://virtualenvwrapper.readthedocs.org/en/latest/>`_, a pretty neat tool if you
@@ -35,7 +35,7 @@ ____________________________
 
 #. In that folder run::
 
-    python setup.py install
+    $ python setup.py install
 
 2 - Install it with pip
 _______________________
@@ -44,12 +44,12 @@ This project is not yet in the pip repo. So in order to make it happen just foll
 
 #. Just run::
 
-    pip install https://github.com/grafos-ml/test.fm/archive/version-2.zip
+    $ pip install https://github.com/grafos-ml/test.fm/archive/version-2.zip
 
 #. Done.
 
 .. note::
 
-    If you have the ATLAS installed in a different place other than the standard place you have to pass them in a set of
+    If you have ATLAS installed in a different place other than the standard place you have to pass them in a set of
     environment variables. ATLAS_LIB variable with the path for the ATLAS library and ATLAS_INCLUDE with the path for
     the ATLAS include files.
