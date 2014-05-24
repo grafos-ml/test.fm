@@ -6,18 +6,16 @@ import pip
 from distutils.core import setup
 from setuptools import find_packages
 from distutils.extension import Extension
-from pkg_resources import WorkingSet, DistributionNotFound
-working_set = WorkingSet()
 try:
-    dep = working_set.require("cython")
-except DistributionNotFound:
+    from Cython.Distutils import build_ext
+except ImportError:
     pip.main(["install", "cython"])
+    from Cython.Distutils import build_ext
 try:
-    dep = working_set.require("numpy")
-except DistributionNotFound:
+    import numpy as np
+except ImportError:
     pip.main(["install", "numpy"])
-from Cython.Distutils import build_ext
-import numpy as np
+    import numpy as np
 
 STD_ATLAS_LIB = "/usr/lib/atlas-base/atlas"
 STD_LIB = "/usr/lib"
