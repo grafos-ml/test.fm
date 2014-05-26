@@ -17,8 +17,17 @@ except ImportError:
     pip.main(["install", "numpy"])
     import numpy as np
 
-STD_ATLAS_LIB = "/usr/lib/atlas-base/atlas"
-STD_LIB = "/usr/lib"
+LIBS = ["/usr/lib/atlas-base/atlas", "/usr/local", "/usr/lib"]
+
+
+def search_for_in_all(name, lib_gen):
+    """
+    Ĩterate all over lib_gen for the name
+    """
+    try:
+        return search_for(name, lib_gen.next()) or search_for_in_all(name, lib_gen)
+    except StopIteration:
+        return None
 
 
 def search_for(file_name, location):
@@ -45,8 +54,7 @@ def find_blas():
         blas = "libblas.a"
     else:
         raise OSError("OS not supported yet")
-    result = search_for(blas, STD_ATLAS_LIB) or search_for(blas, STD_LIB)
-    print result
+    result = search_for_in_all(blas, (lib for lib in LIBS))
     if result is None:
         raise EnvironmentError("Cannot find %s" % blas)
     return result
@@ -62,8 +70,7 @@ def find_lapack():
         lapack = "liblapack.a"
     else:
         raise OSError("OS not supported yet")
-    result = search_for(lapack, STD_ATLAS_LIB) or search_for(lapack, STD_LIB)
-
+    result = search_for_in_all(lapack, (lib for lib in LIBS))
     if result is None:
         raise EnvironmentError("Cannot find %s" % lapack)
     return result
