@@ -6,6 +6,7 @@ import pip
 from distutils.core import setup
 from setuptools import find_packages
 from distutils.extension import Extension
+from pkg_resources import resource_filename
 try:
     from Cython.Distutils import build_ext
 except ImportError:
@@ -78,12 +79,7 @@ def find_lapack():
 
 BLASLIB = os.environ.get("BLASLIB", find_blas())
 LAPACKLIB = os.environ.get("LAPACKLIB", find_lapack())
-if sys.platform == "linux" or sys.platform == "linux2":
-    src = "src/%s"
-elif sys.platform == "darwin":
-    src = "%s"
-else:
-    raise OSError("OS not supported yet")
+src = resource_filename(__name__, "src/%s")
 
 
 ext_modules = [
