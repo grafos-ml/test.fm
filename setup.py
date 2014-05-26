@@ -22,7 +22,7 @@ LIBS = ["/usr/lib/atlas-base/atlas", "/usr/local", "/opt/local", "/usr/lib"]
 
 def search_for_in_all(name, lib_gen):
     """
-    Ĩterate all over lib_gen for the name.
+    Iterate all over lib_gen for the name.
     """
     try:
         return search_for(name, lib_gen.next()) or search_for_in_all(name, lib_gen)
@@ -51,7 +51,7 @@ def find_blas():
     if sys.platform == "linux" or sys.platform == "linux2":
         blas = "libblas.so"
     elif sys.platform == "darwin":
-        blas = "libblas.a"
+        blas = "libcblas.a"
     else:
         raise OSError("OS not supported yet")
     result = search_for_in_all(blas, (lib for lib in LIBS))
