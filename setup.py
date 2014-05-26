@@ -79,7 +79,7 @@ def find_lapack():
 
 BLASLIB = os.environ.get("BLASLIB", find_blas())
 LAPACKLIB = os.environ.get("LAPACKLIB", find_lapack())
-src = resource_filename(__name__, "src/%s")
+src =  "src/%s"
 
 
 ext_modules = [
