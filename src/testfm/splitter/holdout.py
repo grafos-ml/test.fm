@@ -16,7 +16,7 @@ __since__ = 17, 1, 2014
 import pandas as pd
 import numpy as np
 from testfm.splitter.interface import SplitterInterface
-from testfm.config_ import USER, DATE
+from testfm.settings import USER, DATE
 
 ############################################
 ################# VARIABLES ################
