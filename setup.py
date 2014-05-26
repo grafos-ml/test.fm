@@ -17,12 +17,12 @@ except ImportError:
     pip.main(["install", "numpy"])
     import numpy as np
 
-LIBS = ["/usr/lib/atlas-base/atlas", "/usr/local", "/usr/lib"]
+LIBS = ["/usr/lib/atlas-base/atlas", "/usr/local", "/opt/local", "/usr/lib"]
 
 
 def search_for_in_all(name, lib_gen):
     """
-    Ĩterate all over lib_gen for the name
+    Ĩterate all over lib_gen for the name.
     """
     try:
         return search_for(name, lib_gen.next()) or search_for_in_all(name, lib_gen)
