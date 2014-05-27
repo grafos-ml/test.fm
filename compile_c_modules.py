@@ -67,29 +67,27 @@ def find_lapack():
 
 BLASLIB = os.environ.get("BLASLIB", find_blas())
 LAPACKLIB = os.environ.get("LAPACKLIB", find_lapack())
+
 src = "src/%s"
 
 
 ext_modules = [
-    Extension("testfm.evaluation.cutil.measures", [src % "testfm/evaluation/cutil/measures.pyx"],
-              libraries=["python2.7"]),
+    Extension("testfm.evaluation.cutil.measures", [src % "testfm/evaluation/cutil/measures.pyx"]),
     Extension("testfm.evaluation.cutil.evaluator", [src % "testfm/evaluation/cutil/evaluator.pyx"],
               extra_compile_args=["-fopenmp"],
               extra_link_args=["-fopenmp"]),
     Extension("testfm.models.cutil.interface", [src % "testfm/models/cutil/interface.pyx"],
-              include_dirs=[np.get_include()],
-              libraries=["python2.7"]),
+              include_dirs=[np.get_include()]),
     Extension("testfm.models.cutil.float_matrix", [src % "testfm/models/cutil/float_matrix.pyx"],
-              libraries=["lapack", "cblas", "python2.7"],
+              libraries=["lapack", "cblas"],
               library_dirs=[BLASLIB, LAPACKLIB],
               include_dirs=["./include"]),
     Extension("testfm.models.cutil.int_array", [src % "testfm/models/cutil/int_array.pyx"]),
     Extension("testfm.models.cutil.tensorcofi", [src % "testfm/models/cutil/tensorcofi.pyx"],
-              libraries=["cblas", "python2.7"],
+              libraries=["cblas"],
               library_dirs=[BLASLIB, LAPACKLIB],
               include_dirs=["./include", np.get_include()]),
-    Extension("testfm.models.cutil.baseline_model", [src % "testfm/models/cutil/baseline_model.pyx"],
-              libraries=["python2.7"]),
+    Extension("testfm.models.cutil.baseline_model", [src % "testfm/models/cutil/baseline_model.pyx"]),
 ]
 
 setup(
