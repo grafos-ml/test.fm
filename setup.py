@@ -1,18 +1,8 @@
 __author__ = "linas"
 
-import pip
+
 from distutils.core import setup
 from setuptools import find_packages
-try:
-    from Cython.Distutils import build_ext
-except ImportError:
-    pip.main(["install", "cython"])
-    from Cython.Distutils import build_ext
-try:
-    import numpy as np
-except ImportError:
-    pip.main(["install", "numpy"])
-    import numpy as np
 from compile_c_modules import ext_modules
 
 
