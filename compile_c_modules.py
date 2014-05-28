@@ -14,10 +14,8 @@ try:
 except ImportError:
     pip.main(["install", "numpy"])
     import numpy as np
-from Cython.Build import cythonize
 
 LIBS = ["/usr/lib/atlas-base/atlas", "/usr/local", "/opt/local", "/usr/lib"]
-GOMPLIB = os.environ.get("GOMPLIB", "")
 
 def search_for_in_all(name, lib_gen):
     """
@@ -86,8 +84,7 @@ ext_modules = [
     Extension("testfm.evaluation.cutil.measures", [src % "testfm/evaluation/cutil/measures.pyx"]),
     Extension("testfm.evaluation.cutil.evaluator", [src % "testfm/evaluation/cutil/evaluator.pyx"],
               extra_compile_args=["-fopenmp"],
-              extra_link_args=["-fopenmp"],
-              library_dirs=[GOMPLIB, "/usr/lib"]),
+              extra_link_args=["-fopenmp", " -force_load"]),
     Extension("testfm.models.cutil.interface", [src % "testfm/models/cutil/interface.pyx"],
               include_dirs=[np.get_include()]),
     Extension("testfm.models.cutil.float_matrix", [src % "testfm/models/cutil/float_matrix.pyx"],
