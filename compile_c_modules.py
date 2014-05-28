@@ -17,7 +17,7 @@ except ImportError:
 from Cython.Build import cythonize
 
 LIBS = ["/usr/lib/atlas-base/atlas", "/usr/local", "/opt/local", "/usr/lib"]
-
+GOMPLIB = os.environ.get("GOMPLIB", "")
 
 def search_for_in_all(name, lib_gen):
     """
@@ -83,34 +83,23 @@ if sys.platform == "darwin":
     pass
 
 ext_modules = [
-    Extension("testfm.evaluation.cutil.measures", [src % "testfm/evaluation/cutil/measures.pyx"],
-              extra_compile_args=[],
-              extra_link_args=[]),
+    Extension("testfm.evaluation.cutil.measures", [src % "testfm/evaluation/cutil/measures.pyx"]),
     Extension("testfm.evaluation.cutil.evaluator", [src % "testfm/evaluation/cutil/evaluator.pyx"],
               extra_compile_args=["-fopenmp"],
-              extra_link_args=["-fopenmp"]),
+              extra_link_args=["-fopenmp"],
+              library_dirs=[GOMPLIB]),
     Extension("testfm.models.cutil.interface", [src % "testfm/models/cutil/interface.pyx"],
-              include_dirs=[np.get_include()],
-              extra_compile_args=[],
-              extra_link_args=[]),
+              include_dirs=[np.get_include()]),
     Extension("testfm.models.cutil.float_matrix", [src % "testfm/models/cutil/float_matrix.pyx"],
               libraries=["lapack", "cblas"],
               library_dirs=[BLASLIB, LAPACKLIB],
-              include_dirs=["./include"],
-              extra_compile_args=[],
-              extra_link_args=[]),
-    Extension("testfm.models.cutil.int_array", [src % "testfm/models/cutil/int_array.pyx"],
-              extra_compile_args=[],
-              extra_link_args=[]),
+              include_dirs=["./include"]),
+    Extension("testfm.models.cutil.int_array", [src % "testfm/models/cutil/int_array.pyx"]),
     Extension("testfm.models.cutil.tensorcofi", [src % "testfm/models/cutil/tensorcofi.pyx"],
               libraries=["cblas"],
               library_dirs=[BLASLIB, LAPACKLIB],
-              include_dirs=["./include", np.get_include()],
-              extra_compile_args=[],
-              extra_link_args=[]),
-    Extension("testfm.models.cutil.baseline_model", [src % "testfm/models/cutil/baseline_model.pyx"],
-              extra_compile_args=[],
-              extra_link_args=[]),
+              include_dirs=["./include", np.get_include()]),
+    Extension("testfm.models.cutil.baseline_model", [src % "testfm/models/cutil/baseline_model.pyx"]),
 ]
 
 setup(
