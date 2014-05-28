@@ -84,7 +84,7 @@ ext_modules = [
     Extension("testfm.evaluation.cutil.measures", [src % "testfm/evaluation/cutil/measures.pyx"]),
     Extension("testfm.evaluation.cutil.evaluator", [src % "testfm/evaluation/cutil/evaluator.pyx"],
               extra_compile_args=["-fopenmp"],
-              extra_link_args=["-fopenmp", " -force_load"]),
+              extra_link_args=["-fopenmp"]),
     Extension("testfm.models.cutil.interface", [src % "testfm/models/cutil/interface.pyx"],
               include_dirs=[np.get_include()]),
     Extension("testfm.models.cutil.float_matrix", [src % "testfm/models/cutil/float_matrix.pyx"],
