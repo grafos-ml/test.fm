@@ -69,7 +69,8 @@ BLASLIB = os.environ.get("BLASLIB", find_blas())
 LAPACKLIB = os.environ.get("LAPACKLIB", find_lapack())
 
 src = "src/%s"
-
+if sys.platform == "darwin":
+    pass
 
 ext_modules = [
     Extension("testfm.evaluation.cutil.measures", [src % "testfm/evaluation/cutil/measures.pyx"]),
