@@ -16,7 +16,7 @@ except ImportError:
     import numpy as np
 
 LIBS = ["/usr/lib/atlas-base/atlas", "/usr/local", "/opt/local", "/usr/lib"]
-GOMPLIB = os.environ.get("GOMPLIB", "")
+MAC_GCC_LIB = ["/opt/local/lib/gcc48", "/opt/local/lib/gcc47", "/opt/local/lib/gcc46"]
 
 def search_for_in_all(name, lib_gen):
     """
@@ -42,11 +42,25 @@ def search_for(file_name, location):
     return result
 
 
+def find_gcc():
+    """
+    Find GCC lib
+    """
+    if sys.platform in ("linux", "linux2"):
+        # GCC is the standard library
+        return ""
+    elif sys.platform == "darwin":
+        for path in MAC_GCC_LIB:
+            if os.path.isdir(path):
+                return path
+    raise EnvironmentError("Cannot find gcc library in the system.")
+
+
 def find_blas():
     """
     Try to find the blas library file in the standard libraries
     """
-    if sys.platform == "linux" or sys.platform == "linux2":
+    if sys.platform in ("linux", "linux2"):
         blas = "libblas.so"
     elif sys.platform == "darwin":
         blas = "libcblas.a"
@@ -62,7 +76,7 @@ def find_lapack():
     """
     Try to find the lapack library file in the standard libraries
     """
-    if sys.platform == "linux" or sys.platform == "linux2":
+    if sys.platform in ("linux", "linux2"):
         lapack = "liblapack.so"
     elif sys.platform == "darwin":
         lapack = "liblapack.a"
@@ -78,15 +92,14 @@ BLASLIB = os.environ.get("BLASLIB", find_blas())
 LAPACKLIB = os.environ.get("LAPACKLIB", find_lapack())
 
 src = "src/%s"
-if sys.platform == "darwin":
-    pass
+GCCLIB = os.environ.get("GCCLIB", find_gcc())
 
 ext_modules = [
     Extension("testfm.evaluation.cutil.measures", [src % "testfm/evaluation/cutil/measures.pyx"]),
     Extension("testfm.evaluation.cutil.evaluator", [src % "testfm/evaluation/cutil/evaluator.pyx"],
               extra_compile_args=["-fopenmp"],
               extra_link_args=["-fopenmp"],
-              library_dirs=[GOMPLIB, "/usr/lib"]),
+              library_dirs=[GCCLIB, "/usr/lib"]),
     Extension("testfm.models.cutil.interface", [src % "testfm/models/cutil/interface.pyx"],
               include_dirs=[np.get_include()]),
     Extension("testfm.models.cutil.float_matrix", [src % "testfm/models/cutil/float_matrix.pyx"],
