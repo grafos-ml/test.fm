@@ -68,7 +68,7 @@ ext_modules = [
     Extension("testfm.models.cutil.tensorcofi", [src % "testfm/models/cutil/tensorcofi.pyx"],
               libraries=bl_lib,
               library_dirs=bl_lib_path,
-              include_dirs=bl_lib_include+np.get_include()),
+              include_dirs=bl_lib_include+[np.get_include()]),
     Extension("testfm.models.cutil.baseline_model", [src % "testfm/models/cutil/baseline_model.pyx"]),
 ]
 
