@@ -14,33 +14,10 @@ try:
 except ImportError:
     pip.main(["install", "numpy"])
     import numpy as np
+from numpy.distutils.system_info import get_info
 
 LIBS = ["/usr/lib/atlas-base/atlas", "/usr/local", "/opt/local", "/usr/lib"]
 MAC_GCC_LIB = ["/opt/local/lib/gcc48", "/opt/local/lib/gcc47", "/opt/local/lib/gcc46"]
-
-def search_for_in_all(name, lib_gen):
-    """
-    Iterate all over lib_gen for the name.
-    """
-    try:
-        return search_for(name, lib_gen.next()) or search_for_in_all(name, lib_gen)
-    except StopIteration:
-        return None
-
-
-def search_for(file_name, location):
-    """
-    Search for the path of file
-    """
-    result = None
-    for root, dirs, files in os.walk(location):
-        print "searching at %s" % root
-        if file_name in files:
-            print " found it"
-            result = root
-            break
-    return result
-
 
 def find_gcc():
     """
@@ -55,41 +32,22 @@ def find_gcc():
                 return path
     raise EnvironmentError("Cannot find gcc library in the system.")
 
+atlas_info = get_info("atlas")
+if len(atlas_info) != 0:
+    bl_lib = atlas_info["libraries"]
+    bl_lib_path = atlas_info["library_dirs"]
+    bl_lib_include = atlas_info["include_dirs"]
+else:
+    blas_info = get_info("blas")
+    lapack_info = get_info("lapack")
+    if len(blas_info) == 0:
+        raise EnvironmentError("Blas library is not detected in the system")
+    if len(lapack_info) == 0:
+        raise EnvironmentError("Lapack library is not detected in the system")
+    bl_lib = set(blas_info["libraries"] + lapack_info["libraries"])
+    bl_lib_path = set(blas_info["library_dirs"] + lapack_info["library_dirs"])
+    bl_lib_include = set(blas_info["include_dirs"] + lapack_info["include_dirs"])
 
-def find_blas():
-    """
-    Try to find the blas library file in the standard libraries
-    """
-    if sys.platform in ("linux", "linux2"):
-        blas = "libblas.so"
-    elif sys.platform == "darwin":
-        blas = "libcblas.a"
-    else:
-        raise OSError("OS not supported yet")
-    result = search_for_in_all(blas, (lib for lib in LIBS))
-    if result is None:
-        raise EnvironmentError("Cannot find %s" % blas)
-    return result
-
-
-def find_lapack():
-    """
-    Try to find the lapack library file in the standard libraries
-    """
-    if sys.platform in ("linux", "linux2"):
-        lapack = "liblapack.so"
-    elif sys.platform == "darwin":
-        lapack = "liblapack.a"
-    else:
-        raise OSError("OS not supported yet")
-    result = search_for_in_all(lapack, (lib for lib in LIBS))
-    if result is None:
-        raise EnvironmentError("Cannot find %s" % lapack)
-    return result
-
-
-BLASLIB = os.environ.get("BLASLIB", find_blas())
-LAPACKLIB = os.environ.get("LAPACKLIB", find_lapack())
 
 src = "src/%s"
 GCCLIB = os.environ.get("GCCLIB", find_gcc())
@@ -103,14 +61,14 @@ ext_modules = [
     Extension("testfm.models.cutil.interface", [src % "testfm/models/cutil/interface.pyx"],
               include_dirs=[np.get_include()]),
     Extension("testfm.models.cutil.float_matrix", [src % "testfm/models/cutil/float_matrix.pyx"],
-              libraries=["lapack", "cblas", "atlas"],
-              library_dirs=[BLASLIB, LAPACKLIB],
-              include_dirs=["./include"]),
+              libraries=bl_lib,
+              library_dirs=bl_lib_path,
+              include_dirs=bl_lib_include),
     Extension("testfm.models.cutil.int_array", [src % "testfm/models/cutil/int_array.pyx"]),
     Extension("testfm.models.cutil.tensorcofi", [src % "testfm/models/cutil/tensorcofi.pyx"],
-              libraries=["cblas", "atlas"],
-              library_dirs=[BLASLIB, LAPACKLIB],
-              include_dirs=["./include", np.get_include()]),
+              libraries=bl_lib,
+              library_dirs=bl_lib_path,
+              include_dirs=bl_lib_include+np.get_include()),
     Extension("testfm.models.cutil.baseline_model", [src % "testfm/models/cutil/baseline_model.pyx"]),
 ]
 
