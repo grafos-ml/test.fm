@@ -53,10 +53,10 @@ else:
         raise EnvironmentError("Cannot find the path for cblas.h or lapack.h. You can set it using env variables "
                                "BLAS_H and LAPACK_H.\n NOTE: You need to pass the path to the directories were this "
                                "header files are, not the path to the files.")
-    bl_lib = set(blas_info["libraries"] + lapack_info["libraries"])
-    bl_lib_path = set(blas_info["library_dirs"] + lapack_info["library_dirs"])
-    bl_lib_include = set(blas_info.get("include_dirs", os.environ["BLAS_H"]) +
-                         lapack_info.get("include_dirs", "LAPACK_H"))
+    bl_lib = list(set(blas_info["libraries"] + lapack_info["libraries"]))
+    bl_lib_path = list(set(blas_info["library_dirs"] + lapack_info["library_dirs"]))
+    bl_lib_include = list(set(blas_info.get("include_dirs", os.environ["BLAS_H"]) +
+                         lapack_info.get("include_dirs", "LAPACK_H")))
 
 src = "src/%s"
 GCCLIB = os.environ.get("GCCLIB", find_gcc())
@@ -77,7 +77,7 @@ ext_modules = [
     Extension("testfm.models.cutil.tensorcofi", [src % "testfm/models/cutil/tensorcofi.pyx"],
               libraries=bl_lib,
               library_dirs=bl_lib_path,
-              include_dirs=set(list(bl_lib_include)+[np.get_include()])),
+              include_dirs=list(set(bl_lib_include+[np.get_include()]))),
     Extension("testfm.models.cutil.baseline_model", [src % "testfm/models/cutil/baseline_model.pyx"]),
 ]
 
