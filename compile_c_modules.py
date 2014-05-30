@@ -45,10 +45,14 @@ else:
         raise EnvironmentError("Blas library is not detected in the system")
     if len(lapack_info) == 0:
         raise EnvironmentError("Lapack library is not detected in the system")
+    if ("include_dirs" not in blas_info or "BLAS_H" not in os.environ) and \
+            ("include_dirs" not in lapack_info or "LAPACK_H" not in os.environ):
+        raise EnvironmentError("Cannot find the path for cblas.h or lapack.h. You can set it using env variables BLAS_H "
+                               "and LAPACK_H.")
     bl_lib = set(blas_info["libraries"] + lapack_info["libraries"])
     bl_lib_path = set(blas_info["library_dirs"] + lapack_info["library_dirs"])
-    bl_lib_include = set(blas_info["include_dirs"] + lapack_info["include_dirs"])
-
+    bl_lib_include = set(blas_info.get("include_dirs", os.environ["BLAS_H"]) +
+                         lapack_info.get("include_dirs", "LAPACK_H"))
 
 src = "src/%s"
 GCCLIB = os.environ.get("GCCLIB", find_gcc())
