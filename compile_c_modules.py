@@ -19,13 +19,14 @@ from numpy.distutils.system_info import get_info
 LIBS = ["/usr/lib/atlas-base/atlas", "/usr/local", "/opt/local", "/usr/lib"]
 MAC_GCC_LIB = ["/opt/local/lib/gcc48", "/opt/local/lib/gcc47", "/opt/local/lib/gcc46"]
 
+
 def find_gcc():
     """
     Find GCC lib
     """
     if sys.platform in ("linux", "linux2"):
         # GCC is the standard library
-        return ""
+        return "/usr/lib"
     elif sys.platform == "darwin":
         for path in MAC_GCC_LIB:
             if os.path.isdir(path):
@@ -57,7 +58,7 @@ ext_modules = [
     Extension("testfm.evaluation.cutil.evaluator", [src % "testfm/evaluation/cutil/evaluator.pyx"],
               extra_compile_args=["-fopenmp"],
               extra_link_args=["-fopenmp"],
-              library_dirs=[GCCLIB, "/usr/lib"]),
+              library_dirs=[GCCLIB]),
     Extension("testfm.models.cutil.interface", [src % "testfm/models/cutil/interface.pyx"],
               include_dirs=[np.get_include()]),
     Extension("testfm.models.cutil.float_matrix", [src % "testfm/models/cutil/float_matrix.pyx"],
