@@ -16,7 +16,6 @@ except ImportError:
     import numpy as np
 from numpy.distutils.system_info import get_info
 
-LIBS = ["/usr/lib/atlas-base/atlas", "/usr/local", "/opt/local", "/usr/lib"]
 MAC_GCC_LIB = ["/opt/local/lib/gcc48", "/opt/local/lib/gcc47", "/opt/local/lib/gcc46"]
 
 
@@ -47,8 +46,9 @@ else:
         raise EnvironmentError("Lapack library is not detected in the system")
     if ("include_dirs" not in blas_info or "BLAS_H" not in os.environ) and \
             ("include_dirs" not in lapack_info or "LAPACK_H" not in os.environ):
-        raise EnvironmentError("Cannot find the path for cblas.h or lapack.h. You can set it using env variables BLAS_H "
-                               "and LAPACK_H.")
+        raise EnvironmentError("Cannot find the path for cblas.h or lapack.h. You can set it using env variables "
+                               "BLAS_H and LAPACK_H.\n NOTE: You need to pass the path to the directories were this "
+                               "header files are, not the path to the files.")
     bl_lib = set(blas_info["libraries"] + lapack_info["libraries"])
     bl_lib_path = set(blas_info["library_dirs"] + lapack_info["library_dirs"])
     bl_lib_include = set(blas_info.get("include_dirs", os.environ["BLAS_H"]) +
