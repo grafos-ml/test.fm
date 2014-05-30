@@ -3,7 +3,7 @@ __author__ = "linas"
 
 from distutils.core import setup
 from setuptools import find_packages
-from compile_c_modules import ext_modules
+from compile_c_modules import ext_modules, build_ext
 
 
 def get_requirements():
@@ -31,7 +31,7 @@ setup(
     license="Apache2",
     include_package_data=True,
     install_requires=get_requirements(),
-    #cmdclass={"build_ext": build_ext},
+    cmdclass={"build_ext": build_ext},
     ext_modules=ext_modules
 )
 

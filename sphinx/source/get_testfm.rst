@@ -51,15 +51,33 @@ This project is not yet in the pip repo. So in order to make it happen just foll
 Install it on Mac OS
 --------------------
 
-It is more complicated to install Test.fm with Mac OS that with Ubuntu. First make sure to have installed Atlas library.
+To set Test.fm up and running in Mac OS as the same requisites. Install BLAS and LAPACK libraries. ATLAS is recommended.
+To install ATLAS you will need to have a fortran 77 compiler installed.
 If you don't have it use the MacPort::
 
-    $ port install atlas +gcc47
+    $ port install gcc48 +gfortran
+    $ port install atlas
+
+The gcc library is a specific requisite to install Test.fm, so if you use the binary BLAS you will still need to install
+gcc on mac.
+
+If you have pip installed it should do just by running::
+
+    $ pip install https://github.com/grafos-ml/test.fm/archive/version-2.zip
+
+If you have some compilation errors try download the zip unpack it build the binaries and than install::
+
+    $ python package_dir/setup.py build_ext --inplace
+    $ python package_dir/setup.py install
+    $ rm -r package_dir
 
 
+Uninstall Test.fm
+-----------------
 
-.. note::
+If you think this package is to awesome for you can just remove it from your python environment. We recommend to use the
+pip::
 
-    If you have ATLAS installed in a different place other than the standard place you have to pass them in a set of
-    environment variables. BLASLIB variable with the path for the BLAS library and LAPACKLIB with the path for
-    LAPACK library.
+    $ pip uninstall testfm
+
+Or you can go old school and remove the directory by yourself.
