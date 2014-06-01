@@ -61,11 +61,6 @@ else:
     bl_lib_include = list(set(blas_info.get("include_dirs", os.environ["BLAS_H"]) +
                          lapack_info.get("include_dirs", "LAPACK_H")))
 
-if sys.platform == "darwin":
-    os.environ["CFLAGS"] = "-arch i386 -arch x86_64"
-    os.environ["FFLAGS"] = "-m32 -m64"
-    os.environ["LDFLAGS"] = "-Wall -undefined dynamic_lookup -bundle -arch i386 -arch x86_64"
-
 src = "src/%s"
 GCCLIB = os.environ.get("GCCLIB", find_gcc())
 

@@ -24,6 +24,12 @@ def get_requirements():
 packages = find_packages("src")
 packages.remove("tests")
 
+
+if sys.platform == "darwin":
+    os.environ["CFLAGS"] = "-arch i386 -arch x86_64"
+    os.environ["FFLAGS"] = "-m32 -m64"
+    os.environ["LDFLAGS"] = "-Wall -undefined dynamic_lookup -bundle -arch i386 -arch x86_64"
+
 setup(
     name="testfm",
     version="1.1.2",
