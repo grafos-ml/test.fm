@@ -8,7 +8,7 @@ import pip
 try:
     from Cython.Distutils import build_ext
 except ImportError:
-    if platform.mac_ver()[0] >= 10.9:
+    if sys.platform == "darwin" and platform.mac_ver()[0] >= 10.9:
         os.environ["CFLAGS"] = "-Wunused-command-line-argument-hard-error-in-future"
     pip.main(["install", "cython"])
     from Cython.Distutils import build_ext
@@ -62,8 +62,7 @@ else:
                          lapack_info.get("include_dirs", "LAPACK_H")))
 
 if sys.platform == "darwin":
-    os.environ["CFLAGS"] = os.environ["CFLAGS"] + " -arch i386 -arch x86_64" \
-        if "CFLAGS" in os.environ else "-arch i386 -arch x86_64"
+    os.environ["CFLAGS"] = "-arch i386 -arch x86_64"
     os.environ["FFLAGS"] = "-m32 -m64"
     os.environ["LDFLAGS"] = "-Wall -undefined dynamic_lookup -bundle -arch i386 -arch x86_64"
 
