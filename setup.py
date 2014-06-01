@@ -28,7 +28,7 @@ packages.remove("tests")
 
 
 if sys.platform == "darwin":
-    os.environ["ARCHFLAGS"] = "-Wno-error=unused-command-line-argument-hard-error-in-future"
+    os.environ["CFLAGS"] = "-Wunused-command-line-argument-hard-error-in-future"
 
 setup(
     name="testfm",
