@@ -1,12 +1,15 @@
 __author__ = 'joaonrb'
 import sys
 import os
+import platform
 from distutils.core import setup
 from distutils.extension import Extension
 import pip
 try:
     from Cython.Distutils import build_ext
 except ImportError:
+    if platform.mac_ver()[0] >= 10.9:
+        os.environ["CFLAGS"] = "-Wunused-command-line-argument-hard-error-in-future"
     pip.main(["install", "cython"])
     from Cython.Distutils import build_ext
 try:

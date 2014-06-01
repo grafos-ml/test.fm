@@ -1,12 +1,16 @@
 __author__ = "linas"
 
 import pip
+import os
+import platform
 from distutils.core import setup
 from setuptools import find_packages
 from compile_c_modules import ext_modules, build_ext
 try:
     from Cython.Build import cythonize
 except ImportError:
+    if platform.mac_ver()[0] >= 10.9:
+        os.environ["CFLAGS"] = "-Wunused-command-line-argument-hard-error-in-future"
     pip.main(["install", "cython"])
     from Cython.Build import cythonize
 
