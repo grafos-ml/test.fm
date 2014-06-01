@@ -1,10 +1,15 @@
 __author__ = "linas"
 
-
+import pip
 from distutils.core import setup
 from setuptools import find_packages
 from compile_c_modules import ext_modules, build_ext
-from Cython.Build import cythonize
+try:
+    from Cython.Build import cythonize
+except ImportError:
+    pip.main(["install", "cython"])
+    from Cython.Build import cythonize
+
 
 
 def get_requirements():

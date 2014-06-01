@@ -55,8 +55,7 @@ To set Test.fm up and running in Mac OS as the same requisites. Install BLAS and
 To install ATLAS you will need to have a fortran 77 compiler installed.
 If you don't have it use the MacPort::
 
-    $ port install gcc48 +gfortran
-    $ port install atlas
+    $ port install atlas +gcc47+gfortran
 
 The gcc library is a specific requisite to install Test.fm, so if you use the binary BLAS you will still need to install
 gcc on mac.
