@@ -26,6 +26,10 @@ def get_requirements():
 packages = find_packages("src")
 packages.remove("tests")
 
+
+if sys.platform == "darwin":
+    os.environ["ARCHFLAGS"] = "-Wno-error=unused-command-line-argument-hard-error-in-future"
+
 setup(
     name="testfm",
     version="1.1.2",
