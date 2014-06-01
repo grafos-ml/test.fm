@@ -4,6 +4,7 @@ __author__ = "linas"
 from distutils.core import setup
 from setuptools import find_packages
 from compile_c_modules import ext_modules, build_ext
+from Cython.Build import cythonize
 
 
 def get_requirements():
@@ -11,15 +12,18 @@ def get_requirements():
         reqs = [x.replace("\n", "").strip() for x in reqs_file if not x.startswith("#")]
         return reqs
 
+packages = find_packages("src")
+packages.remove("tests")
+
 setup(
     name="testfm",
-    version="1.1",
+    version="1.1.2",
     description="Experimentation library for Recommender Systems",
     author="L. Baltrunas and J. Baptista",
     author_email="linas.baltrunas@gmail.com",
     url="http://grafos.ml",
     package_dir={"": "src"},
-    packages=find_packages("src"),
+    packages=packages,
     test_suite="tests",
     package_data={
         "testfm/lib": ["*.jar"],
@@ -32,6 +36,6 @@ setup(
     include_package_data=True,
     install_requires=get_requirements(),
     cmdclass={"build_ext": build_ext},
-    ext_modules=ext_modules
+    ext_modules=cythonize(ext_modules)
 )
 
