@@ -22,6 +22,8 @@ from numpy.distutils.system_info import get_info
 
 abspath = os.path.abspath(__file__)
 work_path = os.path.dirname(abspath+"/src")
+print ">>>>>>>>>>", work_path
+raw_input()
 os.chdir(work_path)
 
 MAC_GCC_LIB = ["/opt/local/lib/gcc48", "/opt/local/lib/gcc47", "/opt/local/lib/gcc46"]
