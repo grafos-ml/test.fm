@@ -70,6 +70,14 @@ If you have some compilation errors try download the zip unpack it build the bin
     $ python package_dir/setup.py install
     $ rm -r package_dir
 
+Known Issues
+____________
+
+#. Mavericks PIP issue:
+    Some python libraries with dependencies of binary modules could have to be build from the source. The problem is the
+    binaries in the repositories are not supported for the new versions.
+
+
 Install on Windows
 ------------------
 
