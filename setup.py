@@ -8,7 +8,7 @@ __author__ = "linas"
 #import pip
 from setuptools import setup
 from setuptools import find_packages
-from compile_c_modules import ext_modules, build_ext
+from compile import ext_modules, build_ext
 
 
 def get_requirements():
