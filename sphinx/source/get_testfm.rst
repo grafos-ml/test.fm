@@ -51,14 +51,14 @@ This project is not yet in the pip repo. So in order to make it happen just foll
 Install on Mac OS
 -----------------
 
-To set Test.fm up and running in Mac OS as the same requisites. Install BLAS and LAPACK libraries. ATLAS is recommended.
-To install ATLAS you will need to have a fortran 77 compiler installed.
+To set Test.fm up and running in Mac OS as the same requisites. Install CBLAS and LAPACK libraries. ATLAS library in Mac
+ships with them both so it is recommended. To install ATLAS you will need to have a fortran 77 compiler installed.
 If you don't have it use the MacPort::
 
     $ port install atlas +gcc47+gfortran
 
-The gcc library is a specific requisite to install Test.fm, so if you use the binary BLAS you will still need to install
-gcc on mac.
+The gcc library is a specific requisite to install Test.fm, so if you use the binary CBLAS you will still need to
+install gcc on mac.
 
 If you have pip installed it should do just by running::
 
@@ -71,7 +71,7 @@ If you have pip installed it should do just by running::
 
 If you have some compilation errors try download the zip unpack it build the binaries and than install::
 
-    $ python package_dir/setup.py build_ext
+    $ python package_dir/compile.py build_ext
     $ python package_dir/setup.py install
     $ rm -r package_dir
 
@@ -80,7 +80,7 @@ ____________
 
 #. Mavericks PIP issue:
     Some python libraries with dependencies of binary modules could have to be build from the source. The problem is the
-    binaries in the repositories are not supported for the new versions.
+    binaries in the repositories are not supported for the new OS version.
 
 
 Install on Windows
