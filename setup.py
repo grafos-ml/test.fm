@@ -1,20 +1,18 @@
 __author__ = "linas"
 
+#import os
+#import sys
+#import platform
+#if sys.platform == "darwin" and platform.mac_ver()[0] >= 10.9:
+#    os.environ["ARCHFLAGS"] = "-Wno-error=unused-command-line-argument-hard-error-in-future"
 import pip
-import os
-import sys
-import platform
 from distutils.core import setup
 from setuptools import find_packages
 from compile_c_modules import ext_modules, build_ext
 try:
     from Cython.Build import cythonize
 except ImportError:
-    if sys.platform == "darwin" and platform.mac_ver()[0] >= 10.9:
-        os.environ["CFLAGS"] = "-Wunused-command-line-argument-hard-error-in-future"
     pip.main(["install", "cython"])
-    if sys.platform == "darwin" and platform.mac_ver()[0] >= 10.9:
-        del os.environ["CFLAGS"]
     from Cython.Build import cythonize
 
 
@@ -27,8 +25,6 @@ packages = find_packages("src")
 packages.remove("tests")
 
 
-if sys.platform == "darwin":
-    os.environ["ARCHFLAGS"] = "-Wno-error=unused-command-line-argument-hard-error-in-future"
 
 setup(
     name="testfm",

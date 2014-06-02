@@ -1,18 +1,17 @@
 __author__ = 'joaonrb'
+
 import sys
 import os
-import platform
+#import platform
+#if sys.platform == "darwin" and platform.mac_ver()[0] >= 10.9:
+#    os.environ["ARCHFLAGS"] = "-Wno-error=unused-command-line-argument-hard-error-in-future"
 from distutils.core import setup
 from distutils.extension import Extension
 import pip
 try:
     from Cython.Distutils import build_ext
 except ImportError:
-    if sys.platform == "darwin" and platform.mac_ver()[0] >= 10.9:
-        os.environ["CFLAGS"] = "-Wunused-command-line-argument-hard-error-in-future"
     pip.main(["install", "cython"])
-    if sys.platform == "darwin" and platform.mac_ver()[0] >= 10.9:
-        del os.environ["CFLAGS"]
     from Cython.Distutils import build_ext
 try:
     import numpy as np

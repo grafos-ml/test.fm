@@ -14,8 +14,8 @@ Test.fm is currently in heavy development stage. To get it just access to the pr
 `GitHub <https://github.com/grafos-ml/test.fm>`_ and download the zip version. If you want to contribute feel free to
 fork it.
 
-Install it on Ubuntu
---------------------
+Install on Ubuntu
+-----------------
 
 It is farly easy to install it on Ubuntu. First make sure that you install the Python developer tools, ATLAS and LAPACK
 library. If you don't have it just run::
@@ -48,8 +48,8 @@ This project is not yet in the pip repo. So in order to make it happen just foll
 
 #. Done.
 
-Install it on Mac OS
---------------------
+Install on Mac OS
+-----------------
 
 To set Test.fm up and running in Mac OS as the same requisites. Install BLAS and LAPACK libraries. ATLAS is recommended.
 To install ATLAS you will need to have a fortran 77 compiler installed.
@@ -70,6 +70,10 @@ If you have some compilation errors try download the zip unpack it build the bin
     $ python package_dir/setup.py install
     $ rm -r package_dir
 
+Install on Windows
+------------------
+
+Test.fm don't have support for Windows.
 
 Uninstall Test.fm
 -----------------
