@@ -5,6 +5,7 @@ __author__ = "linas"
 #import platform
 #if sys.platform == "darwin" and platform.mac_ver()[0] >= 10.9:
 #    os.environ["ARCHFLAGS"] = "-Wno-error=unused-command-line-argument-hard-error-in-future"
+import pip
 from distutils.core import setup
 from setuptools import find_packages
 from compile_c_modules import ext_modules, build_ext
@@ -15,7 +16,7 @@ def get_requirements():
         reqs = [x.replace("\n", "").strip() for x in reqs_file if not x.startswith("#")]
         return reqs
 
-packages = find_packages("src")
+packages = find_packages(".")
 
 
 setup(
@@ -25,7 +26,7 @@ setup(
     author="L. Baltrunas and J. Baptista",
     author_email="linas.baltrunas@gmail.com",
     url="http://grafos.ml",
-    package_dir={"": "src"},
+    package_dir={"": "."},
     packages=packages,
     test_suite="tests",
     package_data={
