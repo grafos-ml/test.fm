@@ -66,23 +66,23 @@ src = "src/%s"
 GCCLIB = os.environ.get("GCCLIB", find_gcc())
 
 ext_modules = [
-    Extension("testfm.evaluation.cutil.measures", [src % "testfm/evaluation/cutil/measures.pyx", "testfm/evaluation/cutil/measures.c"]),
-    Extension("testfm.evaluation.cutil.evaluator", [src % "testfm/evaluation/cutil/evaluator.pyx", "testfm/evaluation/cutil/evaluator.c"],
+    Extension("testfm.evaluation.cutil.measures", [src % "testfm/evaluation/cutil/measures.pyx"]),
+    Extension("testfm.evaluation.cutil.evaluator", [src % "testfm/evaluation/cutil/evaluator.pyx"],
               extra_compile_args=["-fopenmp"],
               extra_link_args=["-fopenmp"],
               library_dirs=[GCCLIB]),
-    Extension("testfm.models.cutil.interface", [src % "testfm/models/cutil/interface.pyx", "testfm/models/cutil/interface.c"],
+    Extension("testfm.models.cutil.interface", [src % "testfm/models/cutil/interface.pyx"],
               include_dirs=[np.get_include()]),
-    Extension("testfm.models.cutil.float_matrix", [src % "testfm/models/cutil/float_matrix.pyx", "testfm/models/cutil/float_matrix.c"],
+    Extension("testfm.models.cutil.float_matrix", [src % "testfm/models/cutil/float_matrix.pyx"],
               libraries=bl_lib,
               library_dirs=bl_lib_path,
               include_dirs=bl_lib_include),
-    Extension("testfm.models.cutil.int_array", [src % "testfm/models/cutil/int_array.pyx", "testfm/models/cutil/int_array.c"]),
-    Extension("testfm.models.cutil.tensorcofi", [src % "testfm/models/cutil/tensorcofi.pyx", "testfm/models/cutil/tensorcofi.c"],
+    Extension("testfm.models.cutil.int_array", [src % "testfm/models/cutil/int_array.pyx"]),
+    Extension("testfm.models.cutil.tensorcofi", [src % "testfm/models/cutil/tensorcofi.pyx"],
               libraries=bl_lib,
               library_dirs=bl_lib_path,
               include_dirs=list(set(bl_lib_include+[np.get_include()]))),
-    Extension("testfm.models.cutil.baseline_model", [src % "testfm/models/cutil/baseline_model.pyx", "testfm/models/cutil/baseline_model.c"]),
+    Extension("testfm.models.cutil.baseline_model", [src % "testfm/models/cutil/baseline_model.pyx"]),
 ]
 
 setup(
