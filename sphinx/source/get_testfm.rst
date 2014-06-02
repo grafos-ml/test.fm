@@ -5,7 +5,7 @@ Get Test.fm
 
 Test.fm is an open-source project under `Apache2 licence <https://github.com/grafos-ml/test.fm/blob/master/LICENSE>`_.
 It is currently supported for Python 2.7 or higher but don't offer support on Python 3 series. It has dependencies
-on ATLAS and LAPACK libraries.
+on CBLAS, LAPACK libraries, Java RE and some python modules.
 
 How to get Test.fm
 ==================
@@ -64,9 +64,14 @@ If you have pip installed it should do just by running::
 
     $ pip install https://github.com/grafos-ml/test.fm/archive/version-2.zip
 
+.. warning::
+
+    This is the standard way and work pretty well on linux based systems. However this method raised some complications
+    on Mavericks. Is you cannot use this in a different release of the Mac OS please post on the issue page.
+
 If you have some compilation errors try download the zip unpack it build the binaries and than install::
 
-    $ python package_dir/setup.py build_ext --inplace
+    $ python package_dir/setup.py build_ext
     $ python package_dir/setup.py install
     $ rm -r package_dir
 

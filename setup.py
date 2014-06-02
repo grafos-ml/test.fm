@@ -5,15 +5,9 @@ __author__ = "linas"
 #import platform
 #if sys.platform == "darwin" and platform.mac_ver()[0] >= 10.9:
 #    os.environ["ARCHFLAGS"] = "-Wno-error=unused-command-line-argument-hard-error-in-future"
-import pip
 from distutils.core import setup
 from setuptools import find_packages
 from compile_c_modules import ext_modules, build_ext
-try:
-    from Cython.Build import cythonize
-except ImportError:
-    pip.main(["install", "cython"])
-    from Cython.Build import cythonize
 
 
 def get_requirements():
@@ -22,8 +16,6 @@ def get_requirements():
         return reqs
 
 packages = find_packages("src")
-packages.remove("tests")
-
 
 
 setup(
@@ -47,6 +39,6 @@ setup(
     include_package_data=True,
     install_requires=get_requirements(),
     cmdclass={"build_ext": build_ext},
-    ext_modules=cythonize(ext_modules)
+    ext_modules=ext_modules
 )
 
