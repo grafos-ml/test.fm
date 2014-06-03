@@ -1,14 +1,14 @@
 .. _get-testfm:
 
 Installing Test.fm
-***********
+******************
 
 Test.fm is an open-source recommender system testing toolkit under `Apache2 licence <https://github.com/grafos-ml/test.fm/blob/master/LICENSE>`_.
 It is currently supported for Python 2.7 or higher but don't offer support on Python 3 series. It has dependencies
 on CBLAS, LAPACK libraries, Java RE and some python modules.
 
 How to install Test.fm
-==================
+======================
 
 Test.fm is currently in heavy development stage. To get it just access to the project page at
 `GitHub <https://github.com/grafos-ml/test.fm>`_ and download the zip version. If you want to contribute feel free to
@@ -32,14 +32,14 @@ _______________________
 
 This project is not yet in the pip repo. So in order to make it happen just type::
 
-    $ pip install https://github.com/grafos-ml/test.fm/archive/version-2.zip
+    $ pip install https://github.com/grafos-ml/test.fm/archive/v1.0.tar.gz
 
 This should install all the dependencies and the test.fm itself.
 
 2 - Install it with setup.py
 ____________________________
 
-#. Download the zip file from `GitHub <https://github.com/grafos-ml/test.fm/archive/version-2.zip>`_.
+#. Download the zip file from `GitHub <https://github.com/grafos-ml/test.fm/archive/v1.0.tar.gz>`_.
 
 #. Unzip the file content to some folder.
 
@@ -67,7 +67,7 @@ In case this fails, try first running::
 
 Now install test.fm using::
 
-    $ pip install https://github.com/grafos-ml/test.fm/archive/version-2.zip
+    $ pip install https://github.com/grafos-ml/test.fm/archive/v1.0.tar.gz
 
 .. warning::
 
