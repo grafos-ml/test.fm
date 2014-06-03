@@ -41,6 +41,7 @@ See other examples [here...](https://github.com/grafos-ml/test.fm/tree/master/sr
 
 Installation
 ============
+You can check the official documentation [here](http://grafos-ml.github.io/test.fm).
 1. download and extract the sources.
 2. check the dependencies in conf/requirements.txt
 3. run #sudo python setup.py install
@@ -53,9 +54,6 @@ Nosetests
 =========
 $ nosetests -w src/ -vv --with-cover --cover-tests --cover-erase --cover-html --cover-package=testfm --with-doctest --doctest-tests tests testfm/evaluation testfm/models testfm/fmio testfm/splitter
 
-Documentation
-=============
-[grafos-ml.github.io/test.fm](http://grafos-ml.github.io/test.fm)
 
 Build Documentation
 ===================
