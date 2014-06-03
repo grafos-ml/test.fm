@@ -1,13 +1,13 @@
 .. _get-testfm:
 
-Get Test.fm
+Installing Test.fm
 ***********
 
-Test.fm is an open-source project under `Apache2 licence <https://github.com/grafos-ml/test.fm/blob/master/LICENSE>`_.
+Test.fm is an open-source recommender system testing toolkit under `Apache2 licence <https://github.com/grafos-ml/test.fm/blob/master/LICENSE>`_.
 It is currently supported for Python 2.7 or higher but don't offer support on Python 3 series. It has dependencies
 on CBLAS, LAPACK libraries, Java RE and some python modules.
 
-How to get Test.fm
+How to install Test.fm
 ==================
 
 Test.fm is currently in heavy development stage. To get it just access to the project page at
@@ -16,17 +16,27 @@ fork it.
 
 Install on Ubuntu
 -----------------
-
-It is farly easy to install it on Ubuntu. First make sure that you install the Python developer tools, ATLAS and LAPACK
+It is fairly easy to install test.fm on Ubuntu. First make sure that you install the Python developer tools, ATLAS and LAPACK
 library. If you don't have it just run::
 
     $ sudo apt-get install gfortran libatlas-base-dev liblapack-dev python-dev build-essential
 
 After this you may want to install a Python `virtual environment <http://virtualenv.readthedocs.org/en/latest/>`_. Also,
 you can use the `virtualenvwrapper <http://virtualenvwrapper.readthedocs.org/en/latest/>`_, a pretty neat tool if you
-need to work with a lot of virtual environments. Now, to install it there are 2 ways.
+need to work with a lot of virtual environments. 
 
-1 - Install it with setup.py
+There are 2 ways to install test.fm::
+
+1 - Install it with pip
+_______________________
+
+This project is not yet in the pip repo. So in order to make it happen just type::
+
+    $ pip install https://github.com/grafos-ml/test.fm/archive/version-2.zip
+
+This should install all the dependencies and the test.fm itself.
+
+2 - Install it with setup.py
 ____________________________
 
 #. Download the zip file from `GitHub <https://github.com/grafos-ml/test.fm/archive/version-2.zip>`_.
@@ -37,39 +47,35 @@ ____________________________
 
     $ python setup.py install
 
-2 - Install it with pip
-_______________________
 
-This project is not yet in the pip repo. So in order to make it happen just follow the steps.
-
-#. Just run::
-
-    $ pip install https://github.com/grafos-ml/test.fm/archive/version-2.zip
-
-#. Done.
 
 Install on Mac OS
 -----------------
 
-To set Test.fm up and running in Mac OS as the same requisites. Install CBLAS and LAPACK libraries. ATLAS library in Mac
-ships with them both so it is recommended. To install ATLAS you will need to have a fortran 77 compiler installed.
-If you don't have it use the MacPort::
-
-    $ port install atlas +gcc47+gfortran
-
+To install test.fm  on Mac OS you need to install CBLAS and LAPACK libraries. ATLAS library in Mac
+ships with them both so it is the recommended way of installing. To install ATLAS you will need to have a fortran 77 compiler installed.
 The gcc library is a specific requisite to install Test.fm, so if you use the binary CBLAS you will still need to
 install gcc on mac.
 
-If you have pip installed it should do just by running::
+Please install the dependencies with::
+
+    $ port install atlas +gcc47+gfortran
+
+In case this fails, try first running::
+    
+    $ port clean atlas ; port install atlas +gcc47+gfortran
+
+Now install test.fm using::
 
     $ pip install https://github.com/grafos-ml/test.fm/archive/version-2.zip
 
 .. warning::
 
-    This is the standard way and work pretty well on linux based systems. However this method raised some complications
-    on Mavericks. Is you cannot use this in a different release of the Mac OS please post on the issue page.
+    This is the standard way to install test.fm and works pretty well on linux based systems and OS X 10.9.2. 
+    However this method raised some complications on other versions of Mac OS. 
+    Is you cannot use this in a different release of the Mac OS please post on the issue page with the exact version of your OS.
 
-If you have some compilation errors try download the zip unpack it build the binaries and than install::
+If you have some compilation errors, try download the zip unpack it, build the binaries and than install using::
 
     $ python package_dir/compile.py build_ext
     $ python package_dir/setup.py install
@@ -79,21 +85,29 @@ Known Issues
 ____________
 
 #. Mavericks PIP issue:
-    Some python libraries with dependencies of binary modules could have to be build from the source. The problem is the
-    binaries in the repositories are not supported for the new OS version.
+    Some python libraries (pandas) fails to compile and have to be build from the source. The problem is the
+    binaries in the repositories are not supported for some specific OS versions.
 
 
 Install on Windows
 ------------------
 
-Test.fm don't have support for Windows.
+At this moment Test.fm doesn't have support for Windows.
 
 Uninstall Test.fm
 -----------------
 
-If you think this package is to awesome for you can just remove it from your python environment. We recommend to use the
+If you think this package is too awesome for you can just remove it from your python environment. We recommend to use the
 pip::
 
     $ pip uninstall testfm
 
 Or you can go old school and remove the directory by yourself.
+
+Developing Test.fm
+------------------
+
+In case you are contributing to the test.fm, please fork the code and use::
+
+    $ python setup.py develop
+
