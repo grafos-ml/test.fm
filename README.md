@@ -1,5 +1,5 @@
-[!][v1.0](https://travis-ci.org/grafos-ml/test.fm.svg?branch=master)
-[!][development](https://travis-ci.org/grafos-ml/test.fm.svg?branch=development)
+[![v1.0](https://travis-ci.org/grafos-ml/test.fm.svg?branch=development)](https://travis-ci.org/grafos-ml/test.fm)
+[!][development](https://travis-ci.org/grafos-ml/test.fm.svg?branch=master)](https://travis-ci.org/grafos-ml/test.fm)
 
 Introduction
 ============
