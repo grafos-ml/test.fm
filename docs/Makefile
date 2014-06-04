@@ -177,8 +177,7 @@ pseudoxml:
 	@echo "Build finished. The pseudo-XML files are in $(BUILDDIR)/pseudoxml."
 
 publish:
-	ifeq($(TRAVIS_BRANCH), "master")
-		ghp-import -n $(BUILDDIR)/html
-		cd $(BUILDDIR)/html
-		@git push -fq https://${GH_TOKEN}@github.com/$(TRAVIS_REPO_SLUG).git gh-pages > /dev/null
-	endif
+	ghp-import -n $(BUILDDIR)/html
+	cd $(BUILDDIR)/html
+	[ -n "$(TRAVIS_BRANCH)" == "master" ] && @git push -fq https://${GH_TOKEN}@github.com/$(TRAVIS_REPO_SLUG).git gh-pages > /dev/null && echo "Documentation published"
+	[ -n "$(TRAVIS_BRANCH)" != "master" ] && echo "Documentation not published"
