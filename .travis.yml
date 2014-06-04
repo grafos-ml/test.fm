@@ -1,10 +1,6 @@
 language: python
 python:
 - '2.7'
-branches:
-  only:
-  - development
-  - master
 before_install:
 - sudo apt-get update -qq
 - sudo apt-get -q install gfortran libatlas-base-dev libatlas-dev liblapack-dev
