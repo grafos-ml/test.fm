@@ -1,3 +1,6 @@
+[!][v1.0](https://travis-ci.org/grafos-ml/test.fm.svg?branch=master)
+[!][development](https://travis-ci.org/grafos-ml/test.fm.svg?branch=development)
+
 Introduction
 ============
 
