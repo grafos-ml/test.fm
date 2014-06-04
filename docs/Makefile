@@ -179,5 +179,8 @@ pseudoxml:
 publish:
 	ghp-import -n $(BUILDDIR)/html
 	cd $(BUILDDIR)/html
-	[ -n "$(TRAVIS_BRANCH)" == "master" ] && @git push -fq https://${GH_TOKEN}@github.com/$(TRAVIS_REPO_SLUG).git gh-pages > /dev/null && echo "Documentation published"
-	[ -n "$(TRAVIS_BRANCH)" != "master" ] && echo "Documentation not published"
+	if [ $(TRAVIS_BRANCH) = master ]; then \
+	    @git push -fq https://${GH_TOKEN}@github.com/$(TRAVIS_REPO_SLUG).git gh-pages > /dev/null && echo "Documentation published"; \
+	else \
+	    echo "Documentation not published"; \
+	fi
