@@ -3,6 +3,7 @@ python:
 - '2.7'
 branches:
   only:
+  - development
   - master
 before_install:
 - sudo apt-get update -qq
