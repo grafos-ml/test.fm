@@ -1,14 +1,21 @@
 language: python
 python:
-  - "2.7"
+- '2.7'
+branches:
+  only:
+  - master
 before_install:
-  - sudo apt-get update -qq
-  - sudo apt-get -q install gfortran libatlas-base-dev libatlas-dev liblapack-dev
-# command to install dependencies
+- sudo apt-get update -qq
+- sudo apt-get -q install gfortran libatlas-base-dev libatlas-dev liblapack-dev
 install:
-  - pip install .
-  - rm -r src/testfm
-# command to run tests
-# For some reason, travis-ci is not running nosetests with options
-#script: nosetests -vv --with-cover --cover-tests --cover-erase --cover-html --cover-package=testfm --with-doctest --doctest-tests --all-modules
-script: nosetests -vv
+- pip install ghp-import
+- pip install .
+- rm -r src/testfm
+script:
+- nosetests -vv
+- cd docs
+- make html
+- make publish
+env:
+  global:
+    secure: Zo3QQDaECGIapei96Nj+Ro3xsMlVBzL/U4Yw38bZ7Uar/bzq3WaSVg3Ug8i74Nsy9x6kabScG0v8OlJ+hx/OIkalY2XbfDrrMkq/xXBRTovVltfpECFGrtL0yK1X1699rZDbN+T3nr1lZeN9+8QmEhWvEe/dSChvxCTxkErycPg=
