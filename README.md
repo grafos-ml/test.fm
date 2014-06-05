@@ -43,7 +43,7 @@ See other examples [here...](https://github.com/grafos-ml/test.fm/tree/master/sr
 
 Installation
 ============
-You can check the official documentation [here](http://grafos-ml.github.io/test.fm).
+You can check the official **documentation** [here](http://grafos-ml.github.io/test.fm).
 
 1. download and extract the sources.
 2. check the dependencies in conf/requirements.txt
