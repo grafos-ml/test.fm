@@ -12,8 +12,7 @@ import datetime
 
 
 if __name__ == "__main__":
-    #because of Global Interpreter Lock we need to initialize evaluator here (it forks processes)
-    eval = Evaluator()
+    evaluator = Evaluator()
 
     #prepare the data
     df = pd.read_csv(resource_filename(testfm.__name__, "data/movielenshead.dat"), sep="::", header=None, names=["user", "item", "rating", "date", "title"])
@@ -39,6 +38,4 @@ if __name__ == "__main__":
         m.fit(training)
         print datetime.datetime.now()-t,
         print m.get_name().ljust(50),
-        print eval.evaluate_model(m, testing, all_items=items,)
-
-    #eval.close()#need this call to clean up the worker processes
+        print evaluator.evaluate_model(m, testing, all_items=items,)
