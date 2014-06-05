@@ -178,10 +178,10 @@ pseudoxml:
 
 publish:
 	if [ $(TRAVIS_BRANCH) = master ]; then \
-		$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html \
-		ghp-import -n $(BUILDDIR)/html \
-		cd $(BUILDDIR)/html \
-	    @git push -fq https://${GH_TOKEN}@github.com/$(TRAVIS_REPO_SLUG).git gh-pages > /dev/null && echo "Documentation published"; \
+		$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html && \
+		ghp-import -n $(BUILDDIR)/html && \
+		cd $(BUILDDIR)/html && \
+		git push -fq https://${GH_TOKEN}@github.com/$(TRAVIS_REPO_SLUG).git gh-pages > /dev/null && echo "Documentation published"; \
 	else \
 	    echo "Documentation not published"; \
 	fi

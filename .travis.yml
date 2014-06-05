@@ -10,6 +10,7 @@ install:
 - rm -r src/testfm
 script:
 - nosetests -vv
+after_success:
 - cd docs
 - make publish
 env:
