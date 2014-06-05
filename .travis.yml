@@ -14,4 +14,4 @@ script:
 - make publish
 env:
   global:
-    secure: Zo3QQDaECGIapei96Nj+Ro3xsMlVBzL/U4Yw38bZ7Uar/bzq3WaSVg3Ug8i74Nsy9x6kabScG0v8OlJ+hx/OIkalY2XbfDrrMkq/xXBRTovVltfpECFGrtL0yK1X1699rZDbN+T3nr1lZeN9+8QmEhWvEe/dSChvxCTxkErycPg=
+  - secure: dMa5sKLUi7mjp4YHVj0YTVj4wZ+S+zUWKhPrWA30HpOPzd+s9BoV3fXU30x4Qc+fM/h8CYrtzDe8EZUdwRKNk/2jlIn6fou4UGoO081rRgNwPeKivpOo0uR7iuywyCHJJFQroUaWcJugJn55XtKMYxr0owwAjqI9z5fp4xMytA4=
