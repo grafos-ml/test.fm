@@ -31,7 +31,7 @@ class BPR(IModel):
         self._eta = eta
 
     @classmethod
-    def paramDetails(cls):
+    def param_details(cls):
         """
         Return parameter details for dim, nIter, reg, eta
         """

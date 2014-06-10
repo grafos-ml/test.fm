@@ -15,7 +15,8 @@ if __name__ == "__main__":
     evaluator = Evaluator()
 
     #prepare the data
-    df = pd.read_csv(resource_filename(testfm.__name__, "data/movielenshead.dat"), sep="::", header=None, names=["user", "item", "rating", "date", "title"])
+    df = pd.read_csv(resource_filename(testfm.__name__, "data/movielenshead.dat"),
+                     sep="::", header=None, names=["user", "item", "rating", "date", "title"])
     print df.head()
     training, testing = testfm.split.holdoutByRandom(df, 0.5)
 
