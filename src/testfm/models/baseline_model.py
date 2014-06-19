@@ -128,7 +128,7 @@ class AverageModel(IModel):
         :param training_data: DataFrame training data
         :return:
         """
-        movie_stats = training_data.groupby('item').agg({'rating': [np.mean]})
+        movie_stats = training_data.groupby('item').agg({'rating': [lambda x: np.mean(x.apply(lambda y: float(y)))]})
         self._avg = {
             i: m[0]
             for i, m in movie_stats.iterrows()

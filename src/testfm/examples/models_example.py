@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     #tell me what models we want to evaluate
     models = [
-        SVDpp(),
+        AverageModel(),
         RandomModel(), Item2Item(),
         BPR(),
         TFIDFModel("title"),
