@@ -20,8 +20,8 @@ if __name__ == "__main__":
     print "Tuning the parameters."
     tr, validation = testfm.split.holdoutByRandom(training, 0.7)
     pt = ParameterTuning()
-    pt.set_max_iterations(10)
-    pt.set_z_value(80)
+    pt.set_max_iterations(100)
+    pt.set_z_value(90)
     tf_params = pt.get_best_params(TensorCoFi, tr, validation)
     print tf_params
 

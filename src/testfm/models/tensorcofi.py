@@ -54,7 +54,7 @@ class TensorCoFi(IFactorModel):
         return {
             "n_factors": (10, 20, 2, 20),
             "n_iterations": (1, 10, 2, 5),
-            "c_lambda": (.1, 1., .1, .05),
+            "c_lambda": (.1, 1., .05, .05),
             "c_alpha": (30, 50, 5, 40)
         }
 
@@ -168,10 +168,10 @@ class PyTensorCoFi(TensorCoFi):
         Set the parameters for the TensorCoFi
         """
         super(PyTensorCoFi, self).set_params(n_factors, n_iterations, c_lambda, c_alpha)
-        self.number_of_factors = n_factors or self.number_of_factors
-        self.number_of_iterations = n_iterations or self.number_of_iterations
-        self.constant_lambda = c_lambda or self.constant_lambda
-        self.constant_alpha = c_alpha or self.constant_alpha
+        self.number_of_factors = int(n_factors or self.number_of_factors)
+        self.number_of_iterations = int(n_iterations or self.number_of_iterations)
+        self.constant_lambda = float(c_lambda or self.constant_lambda)
+        self.constant_alpha = float(c_alpha or self.constant_alpha)
         self.dimensions = None
         self.base = self.tmp_calc = None
         self.tmp = np.ones((self.number_of_factors, 1))
