@@ -51,11 +51,11 @@ class SVDpp(IModel):
         logger.debug("Started training model {}".format(__name__))
         cmd = " ".join(["svdpp",
                         "--training={} ".format(training_filename),
-                        "--biassgd_lambda={}".format(self._lamb),
-                        "--biassgd_gamma={}".format(self._gamm),
+                        "--biassgd_lambda={}".format(self._c_lambda),
+                        "--biassgd_gamma={}".format(self._c_gamma),
                         "--minval=1 ",
                         "--maxval=5 ",
-                        "--max_iter={}".format(self._nIter),
+                        "--max_iter={}".format(self._n_iterations),
                         "--quiet=1 "])
         logger.debug(cmd)
         self.execute_command(cmd)

@@ -50,6 +50,9 @@ class Evaluator(object):
     Takes the model,testing data and evaluation measure and spits out the score.
     """
 
+    def __init__(self, use_multi_threading=True):
+        self.use_muilti = use_multi_threading
+
     def evaluate_model(self, factor_model, testing_data, measures=None, all_items=None,
                        non_relevant_count=100, k=None):
         """
@@ -66,7 +69,7 @@ class Evaluator(object):
         :return: List of score corresponding to measures
         """
         measures = measures or [MAPMeasure()]
-        if isinstance(factor_model, NOGILModel):
+        if self.use_muilti and isinstance(factor_model, NOGILModel):
             return evaluate_model(factor_model, testing_data, measures, all_items, non_relevant_count, k)
         #return self.evaluate_model_multiprocessing(factor_model, testing_data, measures=measures, all_items=all_items,
         #                                           non_relevant_count=non_relevant_count, k=k)

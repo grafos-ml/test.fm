@@ -102,7 +102,6 @@ cdef api float_matrix *tensorcofi_train(float_matrix data_array, int n_factors, 
                     fm_static_multiply_scalar(tmp, copysign(score, 1.) * (1.+weight), tmp)  # No new memory allocated
                     fm_static_add(matrix_vector_product, tmp, matrix_vector_product)  # No new memory allocated
                     # End calculate matrix vector product
-                i = current_dimension
                 fm_static_add(invertible, base, invertible)  # No new memory allocated
                 fm_static_multiply_scalar(regularizer, 1. / dimensions[current_dimension],
                                           regularizer)  # No new memory allocated

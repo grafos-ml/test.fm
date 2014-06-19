@@ -3,10 +3,11 @@ __author__ = "linas"
 import testfm
 import pandas as pd
 from testfm.evaluation.evaluator import Evaluator
-from testfm.models.baseline_model import Popularity, RandomModel, Item2Item
+from testfm.models.baseline_model import Popularity, RandomModel, Item2Item, AverageModel
 from testfm.models.tensorcofi import PyTensorCoFi, TensorCoFi, CTensorCoFi
 from testfm.models.content_based import TFIDFModel, LSIModel
 from testfm.models.bpr import BPR
+from testfm.models.graphchi_models import SVDpp
 from pkg_resources import resource_filename
 import datetime
 
@@ -15,13 +16,16 @@ if __name__ == "__main__":
     evaluator = Evaluator()
 
     #prepare the data
-    df = pd.read_csv(resource_filename(testfm.__name__, "data/movielenshead.dat"), sep="::", header=None, names=["user", "item", "rating", "date", "title"])
+    df = pd.read_csv(resource_filename(testfm.__name__, "data/movielenshead.dat"),
+                     sep="::", header=None, names=["user", "item", "rating", "date", "title"])
+    print "Size: %d" % len(df)
     print df.head()
     training, testing = testfm.split.holdoutByRandom(df, 0.5)
 
     #tell me what models we want to evaluate
     models = [
-        RandomModel(),
+        SVDpp(),
+        RandomModel(), Item2Item(),
         BPR(),
         TFIDFModel("title"),
         Popularity(),
