@@ -14,6 +14,7 @@ cdef class IModel:
     Interface class for model
     """
 
+    data_map = {}
     def __init__(self):
         self.data_map = {}
 
@@ -69,12 +70,13 @@ cdef class IModel:
         """
         return []
 
-    def get_name(self):
+    @classmethod
+    def get_name(cls):
         """
         Get the informative name for the model.
         :return:
         """
-        return self.__class__.__name__
+        return cls.__name__
 
     def train(self, training_data):
         """
@@ -120,7 +122,7 @@ cdef class IModel:
 
     def get_score(self, user, item, **context):
         """
-        Return the score for user, item and evenctuallyt a set of contexts
+        Return the score for user, item and evenctually a set of contexts
         """
         raise NotImplemented
 
@@ -129,6 +131,23 @@ cdef class IModel:
         Return the number of factors
         """
         return 0
+
+    #def __reduce__(self):
+        #d = {}
+        #d["c_factor"] = NULL
+        #d["c_number_of_context"] = self.c_number_of_context
+        #d["c_number_of_factors"] = self.c_number_of_factors
+        #return IModel, (), d
+    #    return IModel, (), {"data_map": self.data_map}
+
+    #def __setstate__(self, d):
+        #d["c_number_of_context"] = self.c_number_of_context
+        #d["c_number_of_factors"] = self.c_number_of_factors
+        #self.c_factors = self.get_factors()
+        #self.c_factors = <float_matrix *>d["c_factor"]
+        #self.c_number_of_context = d["c_number_of_context"]
+        #self.c_number_of_factors = d["c_number_of_factors"]
+    #    self.data_map = d["data_map"]
 
 cdef class NOGILModel(IModel):
     """
@@ -150,9 +169,10 @@ cdef class IFactorModel(NOGILModel):
     users and the second is for items. The both matrices must be a numpy.array with shape (obj, factors)
     """
 
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def __cinit__(self, int n_factors=20, *args, **kwargs):
+    def __cinit__(self, n_factors=20, *args, **kwargs):
         """
         C-stage of the initiation of this model. It put c_factors to null
         """
@@ -178,6 +198,7 @@ cdef class IFactorModel(NOGILModel):
         super(IFactorModel, self).fit(training_data)
         self.c_number_of_contexts = 2+len(self.get_context_columns())
         self.c_factors = self.get_factors()
+
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -224,6 +245,11 @@ cdef class IFactorModel(NOGILModel):
         """
         cdef int i, j
         cdef float factor, total = 0.
+        if self.c_factors == NULL:
+            with gil:
+                self.c_number_of_factors = self.dimensions
+                self.c_number_of_contexts = 2+len(self.get_context_columns())
+                self.c_factors = self.get_factors()
         for i in xrange(self.c_number_of_factors):
             factor = fm_get(self.c_factors[0], user, i)
             factor *= fm_get(self.c_factors[1], item, i)

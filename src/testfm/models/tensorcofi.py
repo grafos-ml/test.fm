@@ -163,6 +163,21 @@ class PyTensorCoFi(TensorCoFi):
         self.invertible = np.zeros((self.number_of_factors, self.number_of_factors))
         self.matrix_vector_product = np.zeros((self.number_of_factors, 1))
 
+    def set_params(self, n_factors=None, n_iterations=None, c_lambda=None, c_alpha=None):
+        """
+        Set the parameters for the TensorCoFi
+        """
+        super(PyTensorCoFi, self).set_params(n_factors, n_iterations, c_lambda, c_alpha)
+        self.number_of_factors = n_factors or self.number_of_factors
+        self.number_of_iterations = n_iterations or self.number_of_iterations
+        self.constant_lambda = c_lambda or self.constant_lambda
+        self.constant_alpha = c_alpha or self.constant_alpha
+        self.dimensions = None
+        self.base = self.tmp_calc = None
+        self.tmp = np.ones((self.number_of_factors, 1))
+        self.invertible = np.zeros((self.number_of_factors, self.number_of_factors))
+        self.matrix_vector_product = np.zeros((self.number_of_factors, 1))
+
     def base_for_2_dimensions(self, current_dimension):
         """
         Calculation of base matrix for 2 dimension tensor
