@@ -20,9 +20,16 @@ except ImportError:
     import numpy as np
 from numpy.distutils.system_info import get_info
 
-abspath = os.path.abspath(__file__)
-work_path = os.path.dirname(abspath)
-os.chdir(work_path)
+if __name__ == "__main__":
+    src = "%s"
+    abspath = os.path.abspath(__file__)
+    work_path = os.path.dirname(abspath)+"/src"
+    os.chdir(work_path)
+else:
+    src = "src/%s"
+    abspath = os.path.abspath(__file__)
+    work_path = os.path.dirname(abspath)
+    os.chdir(work_path)
 
 MAC_GCC_LIB = ["/opt/local/lib/gcc48", "/opt/local/lib/gcc47", "/opt/local/lib/gcc46"]
 
@@ -62,7 +69,7 @@ else:
     bl_lib_include = list(set(blas_info.get("include_dirs", os.environ["BLAS_H"]) +
                          lapack_info.get("include_dirs", "LAPACK_H")))
 
-src = "src/%s"
+
 GCCLIB = os.environ.get("GCCLIB", find_gcc())
 
 ext_modules = [

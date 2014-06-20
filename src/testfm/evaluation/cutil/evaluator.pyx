@@ -1,8 +1,10 @@
 cimport cython
 from cython.parallel cimport parallel, prange
 from libc.stdlib cimport malloc, free
+from libc.stdio cimport printf
 from testfm.evaluation.cutil.measures cimport NOGILMeasure
 from testfm.models.cutil.interface cimport NOGILModel
+import random
 
 
 cdef float merge_max(float a, float b) nogil:
@@ -189,11 +191,10 @@ cdef list evaluate_full_threading(NOGILModel factor_model, int size_of_users, in
             with gil:
                 m = nogil_measures[i / size_of_users]
             j =  i % size_of_users
-            c_nrc = \
-                non_relevant_count if size_of_items - non_relevant_count >= size_of_user_items[j] else size_of_items - size_of_user_items[j]
+            c_nrc = non_relevant_count if size_of_items - non_relevant_count >= size_of_user_items[j] \
+                    else size_of_items - size_of_user_items[j]
             fi = measure_full_nogil(factor_model, size_of_user_items[j], c_grouped[j], m, size_of_items,
                                            c_all_items, c_nrc, k)
-
 
             with gil:
                 try:
@@ -223,24 +224,38 @@ cdef float measure_full_nogil(NOGILModel factor_model, int size_of_user_items, i
     :param k:
     :return:
     """
-    cdef int i, j, secure_counter = 0, total = 0, \
-        total_of_items = (non_relevant_count + size_of_user_items) if non_relevant_count else size_of_all_items
+    cdef int i, j, secure_counter = 0, total = 0, total_of_items = non_relevant_count + size_of_user_items
     cdef float *ranked_list = <float *>malloc(sizeof(float) * total_of_items * 2)
     cdef float result
+    with gil:
+        items = random.sample([all_items[item] for item in range(size_of_all_items) 
+                              if not is_in(all_items[item], size_of_user_items, user_items)], non_relevant_count)
     if ranked_list is NULL:
         return -1.
-    for i in range(size_of_all_items):
-        if total >= total_of_items:
-            break
-        if is_in(all_items[i], size_of_user_items, user_items):
-            ranked_list[total*2], ranked_list[total*2+1] = 1., factor_model.nogil_get_score(user_items[0], all_items[i],
-                                                                                            0, NULL)
-            total += 1
-        elif secure_counter < non_relevant_count:
-            ranked_list[total*2], ranked_list[total*2+1] = 0., factor_model.nogil_get_score(user_items[0], all_items[i],
-                                                                                            0, NULL)
-            secure_counter += 1
-            total += 1
+    for i in range(size_of_user_items):
+        if i+1 > size_of_user_items:
+            with gil:
+                raise Exception
+        ranked_list[i*2], ranked_list[i*2+1] = 1., factor_model.nogil_get_score(user_items[0], user_items[i+1], 0, NULL)
+    for j in range(non_relevant_count):
+        total = i+j
+        with gil:
+            j = items.pop()
+        ranked_list[total*2], ranked_list[total*2+1] = 0., factor_model.nogil_get_score(user_items[0], j, 0, NULL)
+    # ->
+    #for i in range(size_of_all_items):
+    #    if total >= total_of_items:
+    #        break
+    #    if is_in(all_items[i], size_of_user_items, user_items):
+    #        ranked_list[total*2], ranked_list[total*2+1] = 1., factor_model.nogil_get_score(user_items[0], all_items[i],
+    #                                                                                        0, NULL)
+    #        total += 1
+    #    elif secure_counter < non_relevant_count:
+    #        ranked_list[total*2], ranked_list[total*2+1] = 0., factor_model.nogil_get_score(user_items[0], all_items[i],
+    #                                                                                        0, NULL)
+    #        secure_counter += 1
+    #        total += 1
+    # ->
     mergesort(ranked_list, total)
     result = measure.nogil_measure(ranked_list, total if k <= 0 else k)
     free(ranked_list)

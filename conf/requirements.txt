@@ -10,3 +10,4 @@ fabric
 scikit-learn
 sphinx
 coverage
+tabulate
