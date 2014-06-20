@@ -15,42 +15,42 @@ from testfm.models.cutil.interface import IModel
 
 class BPR(IModel):
 
-    def __init__(self, eta=0.001, reg=0.0001, dim=10, nIter=15):
-                
-        self.set_params(eta, reg, dim, nIter)
+    def __init__(self, eta=0.001, reg=0.0001, dim=10, n_iter=15):
+        self.set_params(eta, reg, dim, n_iter)
         self.U = {}
         self.M = {}
 
-    def set_params(self, eta=0.01, reg=0.0001, dim=10, nIter=15):
+    def set_params(self, eta=0.01, reg=0.0001, dim=10, n_iter=15):
         """
         Set the parameters for the BPR model
         """
-        self._dim = dim
-        self._nIter = nIter
-        self._reg = reg
-        self._eta = eta
+        self._dim = int(dim)
+        self._n_iter = int(n_iter)
+        self._reg = float(reg)
+        self._eta = float(eta)
+        self.U = {}
+        self.M = {}
 
     @classmethod
-    def paramDetails(cls):
+    def param_details(cls):
         """
         Return parameter details for dim, nIter, reg, eta
         """
         return {
-                "dim": (10, 20, 4, 15),
-                "nIter": (10, 15, 20, 24),
-                "reg": (000.1, 0.0001, .001, .0005),
-                "eta": (0.01, 0.03, 0.004, 0.0009)
+                "dim": (10, 20, 4, 20),
+                "n_iter": (10, 15, 3, 15),
+                "reg": (0.0001, 0.01, .001, .0001),
+                "eta": (0.01, 0.08, 0.005, 0.03)
         }
 
     def fit(self, data):
         """
         Train the model
         """
-
         data_array = data[["user", "item"]]
         items = data.item.unique()
 
-        for iter in range(self._nIter):
+        for iter in range(self._n_iter):
             for idx, row in data_array.iterrows():
                 self._additiveupdate(row, items)
 
@@ -82,7 +82,7 @@ class BPR(IModel):
         return np.dot(self.U[user], self.M[item])
 
     def get_name(self):
-        return "BPR (dim={},iter={},reg={},eta={})".format(self._dim, self._nIter, self._reg, self._eta)
+        return "BPR (dim={},iter={},reg={},eta={})".format(self._dim, self._n_iter, self._reg, self._eta)
 
     def compute_partial_loss(self, y, f):
         """
