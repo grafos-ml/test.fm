@@ -193,17 +193,17 @@ cdef list evaluate_full_threading(NOGILModel factor_model, int size_of_users, in
             j =  i % size_of_users
             c_nrc = non_relevant_count if size_of_items - non_relevant_count >= size_of_user_items[j] \
                     else size_of_items - size_of_user_items[j]
-            fi = measure_full_nogil(factor_model, size_of_user_items[j], c_grouped[j], m, size_of_items,
-                                           c_all_items, c_nrc, k)
+            fi = measure_full_nogil(factor_model, size_of_user_items[j], c_grouped[j], m, size_of_items, c_all_items, 
+                                    c_nrc, k)
 
             with gil:
                 try:
-                    measures[i / size_of_users].append(fi)
+                    measures[m.name].append(fi)
                 except KeyError:
-                    measures[i / size_of_users] = [fi]
-    for i in range(len(measures)):
-        # print measures[i]
-        result.append(sum(measures[i]) / <float>(size_of_users+1))
+                    measures[m.name] = [fi]
+    for m in nogil_measures:
+        #print measures
+        result.append(sum(measures[m.name]))
     return result
 
 @cython.boundscheck(False)
@@ -233,9 +233,9 @@ cdef float measure_full_nogil(NOGILModel factor_model, int size_of_user_items, i
     if ranked_list is NULL:
         return -1.
     for i in range(size_of_user_items):
-        if i+1 > size_of_user_items:
-            with gil:
-                raise Exception
+        #if i+1 > size_of_user_items:
+        #    with gil:
+        #        raise Exception
         ranked_list[i*2], ranked_list[i*2+1] = 1., factor_model.nogil_get_score(user_items[0], user_items[i+1], 0, NULL)
     for j in range(non_relevant_count):
         total = i+j
@@ -257,7 +257,7 @@ cdef float measure_full_nogil(NOGILModel factor_model, int size_of_user_items, i
     #        total += 1
     # ->
     mergesort(ranked_list, total)
-    result = measure.nogil_measure(ranked_list, total if k <= 0 else k)
+    result = measure.nogil_measure(ranked_list, (total+1) if k <= 0 else k)  # <- Change total to total+1
     free(ranked_list)
     return result
 
@@ -322,6 +322,7 @@ cdef float measure_model_nogil(NOGILModel factor_model, int size_of_user_items, 
     :param k:
     :return:
     """
+    # TODO -> is not fixed
     cdef int i, j, secure_counter = 0, total = 0, \
         total_of_items = (non_relevant_count + size_of_user_items) if non_relevant_count else size_of_all_items
     cdef float *ranked_list = <float *>malloc(sizeof(float) * total_of_items * 2)

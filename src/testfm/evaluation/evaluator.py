@@ -74,16 +74,14 @@ class Evaluator(object):
         #all_items = all_items or testing_dataframe.item.unique()
         if all_items is None:
             all_items = testing_data.item.unique()
-
-        if self.use_muilti and isinstance(factor_model, NOGILModel):
-            return evaluate_model(factor_model, testing_data, measures, all_items, non_relevant_count, k)
-        #return self.evaluate_model_multiprocessing(factor_model, testing_data, measures=measures, all_items=all_items,
-        #                                           non_relevant_count=non_relevant_count, k=k)
-        # compute
-
         #1. for each user:
         grouped = testing_data.groupby('user')
 
+        if self.use_muilti and isinstance(factor_model, NOGILModel):
+            return [e/len(grouped) for e in evaluate_model(factor_model, testing_data, measures, all_items, non_relevant_count, k)]
+        #return self.evaluate_model_multiprocessing(factor_model, testing_data, measures=measures, all_items=all_items,
+        #                                           non_relevant_count=non_relevant_count, k=k)
+        # compute
         results = [partial_measure(user, entries, factor_model, all_items, non_relevant_count, m, k) \
                    for user, entries in grouped for m in measures]
         #print [v["MAPMeasure"] for v in results]
