@@ -13,7 +13,8 @@ import numpy as np
 from scipy.stats import f as F
 from tabulate import tabulate
 
-SAMPLE_SIZE_FOR_TEST = 10
+SAMPLE_SIZE_FOR_TEST = 5
+ALPHA = 0.01
 
 
 def assert_equality_in_groups(results, alpha=0.05, groups="groups", test_var="test_var"):
@@ -43,8 +44,8 @@ def assert_equality_in_groups(results, alpha=0.05, groups="groups", test_var="te
     f = ms_models / ms_error
 
     p = 1. - F.cdf(f, df_models, df_error)
-    assert p >= alpha, u"Theres is statistic evidence to confirm that the measure and the std measure is " \
-                       u"quite diferent for \u237A=%.3f:\n %s\n\nANOVA table\n%s" % (alpha, data, tabulate([
+    assert p >= alpha, "Theres is statistic evidence to confirm that the measure and the std measure is " \
+                       "quite diferent for alpha=%.3f:\n %s\n\nANOVA table\n%s" % (alpha, data, tabulate([
         ["Source of Variation", "DF", "SS", "MS", "F", "p-value"],
         [groups, "%d" % df_models, "%.4f" % ss_models, "%.4f" % ms_models, "%.4f" % f, "%.4f" % p],
         ["Error", "%d" % df_error, "%.4f" % ss_error, "%.4f" % ms_error, "", ""],
@@ -55,6 +56,9 @@ def assert_equality_in_groups(results, alpha=0.05, groups="groups", test_var="te
 class TestEvaluator(unittest.TestCase):
 
     def test_rmse(self):
+        """
+        [EVALUATOR] Test the rmse measure
+        """
         eval = Evaluator()
 
         model = ConstantModel(constant=3.0)
@@ -65,6 +69,9 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(sqrt((0+4+1)/3.0), rmse)
 
     def test_default(self):
+        """
+        [EVALUATOR] Test the measure
+        """
         mapm = MAPMeasure()
         model = IdModel()
         evaluation = Evaluator()
@@ -84,9 +91,9 @@ class TestEvaluator(unittest.TestCase):
                           (False, 0.2), (False, 0.1), (False, 0)])
         assert r == 0.4928571428571428, "Measure should be around 0.4928571428571428 (%f)" % r
 
-    def test_nogil_against_std_5(self):
+    def test_nogil_against_std_05(self):
         """
-        [EVALUATOR] Test the groups measure differences between python and c implementations for 05% training
+        [EVALUATOR] Test the groups measure differences between python and c implementations for 5% training
         """
         df = pd.read_csv(resource_filename(testfm.__name__, 'data/movielenshead.dat'),
                          sep="::", header=None, names=['user', 'item', 'rating', 'date', 'title'])
@@ -97,13 +104,13 @@ class TestEvaluator(unittest.TestCase):
         for i in range(SAMPLE_SIZE_FOR_TEST):
             training, testing = testfm.split.holdoutByRandom(df, 0.05)
             model.fit(training)
-            results["implementation"].append(1), results["measure"].append(ev_nogil.evaluate_model(model, testing)[0])
-            results["implementation"].append(0), results["measure"].append(ev.evaluate_model(model, testing)[0])
+            results["implementation"].append("Cython"), results["measure"].append(ev_nogil.evaluate_model(model, testing)[0])
+            results["implementation"].append("Python"), results["measure"].append(ev.evaluate_model(model, testing)[0])
 
         #####################
         # ANOVA over result #
         #####################
-        assert_equality_in_groups(results, alpha=0.05, groups="implementation", test_var="measure")
+        assert_equality_in_groups(results, alpha=ALPHA, groups="implementation", test_var="measure")
 
     def test_nogil_against_std_15(self):
         """
@@ -118,13 +125,13 @@ class TestEvaluator(unittest.TestCase):
         for i in range(SAMPLE_SIZE_FOR_TEST):
             training, testing = testfm.split.holdoutByRandom(df, 0.15)
             model.fit(training)
-            results["implementation"].append(1), results["measure"].append(ev_nogil.evaluate_model(model, testing)[0])
-            results["implementation"].append(0), results["measure"].append(ev.evaluate_model(model, testing)[0])
+            results["implementation"].append("Cython"), results["measure"].append(ev_nogil.evaluate_model(model, testing)[0])
+            results["implementation"].append("Python"), results["measure"].append(ev.evaluate_model(model, testing)[0])
 
         #####################
         # ANOVA over result #
         #####################
-        assert_equality_in_groups(results, alpha=0.05, groups="implementation", test_var="measure")
+        assert_equality_in_groups(results, alpha=ALPHA, groups="implementation", test_var="measure")
 
     def test_nogil_against_std_25(self):
         """
@@ -139,13 +146,13 @@ class TestEvaluator(unittest.TestCase):
         for i in range(SAMPLE_SIZE_FOR_TEST):
             training, testing = testfm.split.holdoutByRandom(df, 0.25)
             model.fit(training)
-            results["implementation"].append(1), results["measure"].append(ev_nogil.evaluate_model(model, testing)[0])
-            results["implementation"].append(0), results["measure"].append(ev.evaluate_model(model, testing)[0])
+            results["implementation"].append("Cython"), results["measure"].append(ev_nogil.evaluate_model(model, testing)[0])
+            results["implementation"].append("Python"), results["measure"].append(ev.evaluate_model(model, testing)[0])
 
         #####################
         # ANOVA over result #
         #####################
-        assert_equality_in_groups(results, alpha=0.05, groups="implementation", test_var="measure")
+        assert_equality_in_groups(results, alpha=ALPHA, groups="implementation", test_var="measure")
 
     def test_nogil_against_std_50(self):
         """
@@ -160,13 +167,13 @@ class TestEvaluator(unittest.TestCase):
         for i in range(SAMPLE_SIZE_FOR_TEST):
             training, testing = testfm.split.holdoutByRandom(df, 0.5)
             model.fit(training)
-            results["implementation"].append(1), results["measure"].append(ev_nogil.evaluate_model(model, testing)[0])
-            results["implementation"].append(0), results["measure"].append(ev.evaluate_model(model, testing)[0])
+            results["implementation"].append("Cython"), results["measure"].append(ev_nogil.evaluate_model(model, testing)[0])
+            results["implementation"].append("Python"), results["measure"].append(ev.evaluate_model(model, testing)[0])
 
         #####################
         # ANOVA over result #
         #####################
-        assert_equality_in_groups(results, alpha=0.05, groups="implementation", test_var="measure")
+        assert_equality_in_groups(results, alpha=ALPHA, groups="implementation", test_var="measure")
 
     def test_nogil_against_std_75(self):
         """
@@ -181,13 +188,13 @@ class TestEvaluator(unittest.TestCase):
         for i in range(SAMPLE_SIZE_FOR_TEST):
             training, testing = testfm.split.holdoutByRandom(df, 0.75)
             model.fit(training)
-            results["implementation"].append(1), results["measure"].append(ev_nogil.evaluate_model(model, testing)[0])
-            results["implementation"].append(0), results["measure"].append(ev.evaluate_model(model, testing)[0])
+            results["implementation"].append("Cython"), results["measure"].append(ev_nogil.evaluate_model(model, testing)[0])
+            results["implementation"].append("Python"), results["measure"].append(ev.evaluate_model(model, testing)[0])
 
         #####################
         # ANOVA over result #
         #####################
-        assert_equality_in_groups(results, alpha=0.05, groups="implementation", test_var="measure")
+        assert_equality_in_groups(results, alpha=ALPHA, groups="implementation", test_var="measure")
 
     def test_nogil_against_std_85(self):
         """
@@ -202,13 +209,13 @@ class TestEvaluator(unittest.TestCase):
         for i in range(SAMPLE_SIZE_FOR_TEST):
             training, testing = testfm.split.holdoutByRandom(df, 0.85)
             model.fit(training)
-            results["implementation"].append(1), results["measure"].append(ev_nogil.evaluate_model(model, testing)[0])
-            results["implementation"].append(0), results["measure"].append(ev.evaluate_model(model, testing)[0])
+            results["implementation"].append("Cython"), results["measure"].append(ev_nogil.evaluate_model(model, testing)[0])
+            results["implementation"].append("Python"), results["measure"].append(ev.evaluate_model(model, testing)[0])
 
         #####################
         # ANOVA over result #
         #####################
-        assert_equality_in_groups(results, alpha=0.05, groups="implementation", test_var="measure")
+        assert_equality_in_groups(results, alpha=ALPHA, groups="implementation", test_var="measure")
 
     def test_nogil_against_std_95(self):
         """
@@ -223,10 +230,10 @@ class TestEvaluator(unittest.TestCase):
         for i in range(SAMPLE_SIZE_FOR_TEST):
             training, testing = testfm.split.holdoutByRandom(df, 0.95)
             model.fit(training)
-            results["implementation"].append(1), results["measure"].append(ev_nogil.evaluate_model(model, testing)[0])
-            results["implementation"].append(0), results["measure"].append(ev.evaluate_model(model, testing)[0])
+            results["implementation"].append("Cython"), results["measure"].append(ev_nogil.evaluate_model(model, testing)[0])
+            results["implementation"].append("Python"), results["measure"].append(ev.evaluate_model(model, testing)[0])
 
         #####################
         # ANOVA over result #
         #####################
-        assert_equality_in_groups(results, alpha=0.05, groups="implementation", test_var="measure")
+        assert_equality_in_groups(results, alpha=ALPHA, groups="implementation", test_var="measure")

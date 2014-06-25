@@ -97,7 +97,8 @@ def evaluate_model(factor_model, testing_data, measures, all_items, non_relevant
     """
     cdef int i, j, user, item, c_nrc = non_relevant_count or len(all_items)
 
-    cdef int *c_all_items = NULL, *size_of_user_items = NULL
+    cdef int *c_all_items = NULL
+    cdef int *size_of_user_items = NULL
     cdef int size_of_items, size_of_users
     cdef int **c_grouped = NULL
     try:
@@ -149,7 +150,7 @@ def evaluate_model(factor_model, testing_data, measures, all_items, non_relevant
         #                                              nogil_measures, size_of_items, c_all_items, c_nrc, k)
         #    results += evaluate_no_threading(factor_model, size_of_users, size_of_user_items, c_grouped, gil_measures,
         #                                     size_of_items, c_all_items,  c_nrc, k)
-        return filter(None, results)
+        return results
     finally:
         if c_all_items is not NULL:
             free(c_all_items)
@@ -236,12 +237,16 @@ cdef float measure_full_nogil(NOGILModel factor_model, int size_of_user_items, i
         #if i+1 > size_of_user_items:
         #    with gil:
         #        raise Exception
-        ranked_list[i*2], ranked_list[i*2+1] = 1., factor_model.nogil_get_score(user_items[0], user_items[i+1], 0, NULL)
+       ranked_list[i*2], ranked_list[i*2+1] = 1., factor_model.nogil_get_score(user_items[0], user_items[i+1], 0, NULL)
     for j in range(non_relevant_count):
-        total = i+j
+        total = i+j+1
         with gil:
             j = items.pop()
         ranked_list[total*2], ranked_list[total*2+1] = 0., factor_model.nogil_get_score(user_items[0], j, 0, NULL)
+    #if total != size_of_user_items+non_relevant_count:
+    #    with gil:
+    #        print([(ranked_list[i*2], ranked_list[i*2+1]) for i in range(size_of_user_items+non_relevant_count)])
+    #        raise Exception("%d, %d" % (total, size_of_user_items+non_relevant_count))
     # ->
     #for i in range(size_of_all_items):
     #    if total >= total_of_items:
@@ -256,12 +261,14 @@ cdef float measure_full_nogil(NOGILModel factor_model, int size_of_user_items, i
     #        secure_counter += 1
     #        total += 1
     # ->
-    mergesort(ranked_list, total)
-    result = measure.nogil_measure(ranked_list, (total+1) if k <= 0 else k)  # <- Change total to total+1
+    mergesort(ranked_list, total+1)
+    #with gil:
+    #    print([(ranked_list[i*2], ranked_list[i*2+1]) for i in range(size_of_user_items+non_relevant_count)])
+    result = measure.nogil_measure(ranked_list, (total+1) if k <= 0 else (k+1))
     free(ranked_list)
     return result
 
-
+###################################################################################################################
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.overflowcheck(False)
@@ -279,6 +286,7 @@ cdef list evaluate_model_only_threading(NOGILModel factor_model, int size_of_use
     :param k:
     :return:
     """
+    # TODO -> is not fixed
     if len(gil_measures) == 0:
         return []
     cdef int i, j, n_measures = len(gil_measures), n = size_of_users * n_measures, c_nrc

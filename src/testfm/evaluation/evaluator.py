@@ -27,8 +27,10 @@ def partial_measure(user, entries, factor_model, all_items, non_relevant_count, 
         ranked_list = [(False, factor_model.get_score(user, nr)) for nr in all_items if nr not in entries['item']]
     else:
         #2. inject #non_relevant random items
+        nr_items = [i for i in all_items if i not in entries['item']]
         ranked_list = [(False, factor_model.get_score(user, nr))
-                       for nr in sample([i for i in all_items if i not in entries['item']], non_relevant_count)]
+                       for nr in sample(nr_items, non_relevant_count \
+                if len(nr_items) > non_relevant_count else len(nr_items))]
     #2. add all relevant items from the testing_data
     ranked_list += [(True, factor_model.get_score(user, i)) for i in entries['item']]
 
