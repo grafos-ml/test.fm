@@ -233,7 +233,7 @@ class PyTensorCoFi(TensorCoFi):
 
         regularizer = np.multiply(np.eye(self.number_of_factors), self.constant_lambda)
         one = np.eye(self.number_of_factors)
-        tensor = [[[] for _ in xrange(training_data.shape[0])] for _ in xrange(len(self.dimensions))]
+        tensor = [[[] for _ in xrange(dim)] for dim in self.dimensions]
         for index, dimension in enumerate(self.dimensions):
             for row in xrange(training_data.shape[0]):
                 tensor[index][int(training_data[row, index])].append(row)
