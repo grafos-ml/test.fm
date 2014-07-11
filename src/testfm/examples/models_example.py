@@ -2,6 +2,7 @@ __author__ = "linas"
 
 import testfm
 import pandas as pd
+import numpy as np
 from testfm.evaluation.evaluator import Evaluator
 from testfm.models.baseline_model import Popularity, RandomModel, Item2Item, AverageModel
 from testfm.models.tensorcofi import PyTensorCoFi, TensorCoFi, CTensorCoFi
@@ -24,19 +25,20 @@ if __name__ == "__main__":
 
     #tell me what models we want to evaluate
     models = [
-        AverageModel(),
-        RandomModel(), Item2Item(),
-        BPR(),
-        TFIDFModel("title"),
-        Popularity(),
-        TensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
+        #AverageModel(),
+        #RandomModel(), Item2Item(),
+        #BPR(),
+        #TFIDFModel("title"),
+        #Popularity(),
+        #TensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
         PyTensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
-        CTensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
-        LSIModel("title")
+        #CTensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
+        #LSIModel("title")
     ]
 
     #models += [LinearRank([models[2], models[3]],  item_features_column=["rating"])]
     items = training.item.unique()
+    users = training.user.unique()
     for m in models:
         t = datetime.datetime.now()
         m.fit(training)

@@ -187,7 +187,7 @@ class PersonalizedPopularity(IModel):
             try:
                 self._counts[useritem[0]].update({useritem[1]: count})
             except KeyError:
-                self._counts.update({useritem[0]:{useritem[1]: count}})
+                self._counts.update({useritem[0]: {useritem[1]: count}})
 
     def get_name(self):
         return "PersonalizedPopularity"

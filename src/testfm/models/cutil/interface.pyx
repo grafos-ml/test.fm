@@ -289,6 +289,39 @@ cdef class IFactorModel(NOGILModel):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
+    @cython.overflowcheck(False)
+    @cython.cdivision(False)
+    def get_not_mapped_recommendation(self, user, **context):
+        """
+        Return the recommendation as a numpy array
+        """
+        #cdef int c_user = user
+        #cdef float_matrix rec = <float_matrix>malloc(sizeof(_float_matrix)), users, items
+        #np_rec = np.zeros((len(self.data_map[self.get_item_column()]),), dtype=np.float32)
+
+        #rec.rows = 1
+        #rec.columns = len(self.data_map[self.get_item_column()])
+        #rec.values = <float *>(<np.ndarray[float, ndim=2, mode="c"]>np_rec).data
+        #if self.c_factors == NULL:
+        #    self.c_number_of_factors = self.dimensions
+        #    self.c_number_of_contexts = 2+len(self.get_context_columns())
+        #    self.c_factors = self.get_factors()
+        #users, items = self.c_factors[0], self.c_factors[1]
+        #fm_static_multiply_row(users, c_user, items, rec)
+        #return np_rec
+        users, items = self.factors
+        return np.squeeze(np.asarray(np.dot(users[user], items.transpose())))
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.overflowcheck(False)
+    @cython.cdivision(False)
+    def get_recommendation(self, user, **context):
+        return self.get_not_mapped_recommendation(self.data_map[self.get_user_column()][user], **context)
+
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def update_user_factors(self, int user, list factors):
         cdef int i
         cdef float f

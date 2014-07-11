@@ -111,16 +111,15 @@ class TensorCoFi(IFactorModel):
     #    item_vec = self.factors[1][:, self.data_map[self.get_item_column()][item]-1]
     #    return np.dot(user_vec, item_vec)
 
-    @staticmethod
-    def online_user_factors(matrix_y, user_item_ids, p_param=10, lambda_param=0.01):
+    def online_user_factors(self, user_item_ids, p_param=10, lambda_param=0.01):
         """
         :param matrix_y: application matrix Y.shape = (#apps, #factors)
         :param user_item_ids: the rows that correspond to installed applications in Y matrix
         :param p_param: p parameter
         :param lambda_param: regularizer
         """
-        y = matrix_y[user_item_ids]
-        base1 = matrix_y.transpose().dot(matrix_y)
+        y = self.factors[1][user_item_ids]
+        base1 = self.factors[1].transpose().dot(self.factors[1])
         base2 = y.transpose().dot(np.diag([p_param - 1] * y.shape[0])).dot(y)
         base = base1 + base2 + np.diag([lambda_param] * base1.shape[0])
         u_factors = np.linalg.inv(base).dot(y.transpose()).dot(np.diag([p_param] * y.shape[0]))
