@@ -365,6 +365,9 @@ class RandomOkapi(DynamicOkapiModel):
         """
         return "random"
 
+import logging
+
+logging.disable(logging.WARNING)
 
 class PopularityOkapi(DynamicOkapiModel):
     """

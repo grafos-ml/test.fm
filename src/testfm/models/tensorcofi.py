@@ -54,7 +54,7 @@ class TensorCoFi(IFactorModel):
         return {
             "n_factors": (10, 20, 2, 20),
             "n_iterations": (1, 10, 2, 5),
-            "c_lambda": (.1, 1., .1, .05),
+            "c_lambda": (.1, 1., .05, .05),
             "c_alpha": (30, 50, 5, 40)
         }
 
@@ -111,16 +111,15 @@ class TensorCoFi(IFactorModel):
     #    item_vec = self.factors[1][:, self.data_map[self.get_item_column()][item]-1]
     #    return np.dot(user_vec, item_vec)
 
-    @staticmethod
-    def online_user_factors(matrix_y, user_item_ids, p_param=10, lambda_param=0.01):
+    def online_user_factors(self, user_item_ids, p_param=10, lambda_param=0.01):
         """
         :param matrix_y: application matrix Y.shape = (#apps, #factors)
         :param user_item_ids: the rows that correspond to installed applications in Y matrix
         :param p_param: p parameter
         :param lambda_param: regularizer
         """
-        y = matrix_y[user_item_ids]
-        base1 = matrix_y.transpose().dot(matrix_y)
+        y = self.factors[1][user_item_ids]
+        base1 = self.factors[1].transpose().dot(self.factors[1])
         base2 = y.transpose().dot(np.diag([p_param - 1] * y.shape[0])).dot(y)
         base = base1 + base2 + np.diag([lambda_param] * base1.shape[0])
         u_factors = np.linalg.inv(base).dot(y.transpose()).dot(np.diag([p_param] * y.shape[0]))
@@ -157,6 +156,21 @@ class PyTensorCoFi(TensorCoFi):
         :param c_alpha: Constant important in weight calculation
         """
         super(PyTensorCoFi, self).__init__(n_factors, n_iterations, c_lambda, c_alpha)
+        self.dimensions = None
+        self.base = self.tmp_calc = None
+        self.tmp = np.ones((self.number_of_factors, 1))
+        self.invertible = np.zeros((self.number_of_factors, self.number_of_factors))
+        self.matrix_vector_product = np.zeros((self.number_of_factors, 1))
+
+    def set_params(self, n_factors=None, n_iterations=None, c_lambda=None, c_alpha=None):
+        """
+        Set the parameters for the TensorCoFi
+        """
+        super(PyTensorCoFi, self).set_params(n_factors, n_iterations, c_lambda, c_alpha)
+        self.number_of_factors = int(n_factors or self.number_of_factors)
+        self.number_of_iterations = int(n_iterations or self.number_of_iterations)
+        self.constant_lambda = float(c_lambda or self.constant_lambda)
+        self.constant_alpha = float(c_alpha or self.constant_alpha)
         self.dimensions = None
         self.base = self.tmp_calc = None
         self.tmp = np.ones((self.number_of_factors, 1))
@@ -218,7 +232,7 @@ class PyTensorCoFi(TensorCoFi):
 
         regularizer = np.multiply(np.eye(self.number_of_factors), self.constant_lambda)
         one = np.eye(self.number_of_factors)
-        tensor = [[[] for _ in xrange(training_data.shape[0])] for _ in xrange(len(self.dimensions))]
+        tensor = [[[] for _ in xrange(dim)] for dim in self.dimensions]
         for index, dimension in enumerate(self.dimensions):
             for row in xrange(training_data.shape[0]):
                 tensor[index][int(training_data[row, index])].append(row)

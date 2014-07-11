@@ -21,7 +21,7 @@ packages = find_packages("src")
 
 setup(
     name="testfm",
-    version="1.0",
+    version="1.1.alpha",
     description="Experimentation library for Recommender Systems",
     author="L. Baltrunas and J. Baptista",
     author_email="linas.baltrunas@gmail.com",

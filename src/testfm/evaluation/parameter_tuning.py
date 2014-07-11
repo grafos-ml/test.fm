@@ -70,8 +70,7 @@ class ParameterTuning(object):
         """
         # Create a grid of parameters
         kwargs = kwargs or model.param_details()
-        grid = zip(*(x.flat for x in np.mgrid[[slice(*row[:3])
-                     for row in kwargs.values()]]))
+        grid = zip(*(x.flat for x in np.mgrid[[slice(*row[:3]) for row in kwargs.values()]]))
         m_instance = model()
         values = {k: ParameterTuning.tune(m_instance, training, testing, non_relevant_count,
                                           **dict(zip(kwargs.keys()[:2], k)))

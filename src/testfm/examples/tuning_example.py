@@ -2,7 +2,8 @@ __author__ = 'linas'
 
 import pandas as pd
 import testfm
-from testfm.models.tensorcofi import TensorCoFi
+from testfm.models.tensorcofi import PyTensorCoFi as TensorCoFi
+from testfm.models.bpr import BPR as TensorCoFi
 from testfm.evaluation.evaluator import Evaluator
 from pkg_resources import resource_filename
 
@@ -20,8 +21,8 @@ if __name__ == "__main__":
     print "Tuning the parameters."
     tr, validation = testfm.split.holdoutByRandom(training, 0.7)
     pt = ParameterTuning()
-    pt.set_max_iterations(10)
-    pt.set_z_value(80)
+    pt.set_max_iterations(100)
+    pt.set_z_value(90)
     tf_params = pt.get_best_params(TensorCoFi, tr, validation)
     print tf_params
 

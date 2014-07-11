@@ -27,7 +27,10 @@ def partial_measure(user, entries, factor_model, all_items, non_relevant_count, 
         ranked_list = [(False, factor_model.get_score(user, nr)) for nr in all_items if nr not in entries['item']]
     else:
         #2. inject #non_relevant random items
-        ranked_list = [(False, factor_model.get_score(user, nr)) for nr in sample(all_items, non_relevant_count)]
+        nr_items = [i for i in all_items if i not in entries['item']]
+        ranked_list = [(False, factor_model.get_score(user, nr))
+                       for nr in sample(nr_items, non_relevant_count \
+                if len(nr_items) > non_relevant_count else len(nr_items))]
     #2. add all relevant items from the testing_data
     ranked_list += [(True, factor_model.get_score(user, i)) for i in entries['item']]
 
@@ -50,6 +53,9 @@ class Evaluator(object):
     Takes the model,testing data and evaluation measure and spits out the score.
     """
 
+    def __init__(self, use_multi_threading=True):
+        self.use_muilti = use_multi_threading
+
     def evaluate_model(self, factor_model, testing_data, measures=None, all_items=None,
                        non_relevant_count=100, k=None):
         """
@@ -66,19 +72,18 @@ class Evaluator(object):
         :return: List of score corresponding to measures
         """
         measures = measures or [MAPMeasure()]
-        if isinstance(factor_model, NOGILModel):
-            return evaluate_model(factor_model, testing_data, measures, all_items, non_relevant_count, k)
-        #return self.evaluate_model_multiprocessing(factor_model, testing_data, measures=measures, all_items=all_items,
-        #                                           non_relevant_count=non_relevant_count, k=k)
-        # compute
 
         #all_items = all_items or testing_dataframe.item.unique()
         if all_items is None:
             all_items = testing_data.item.unique()
-
         #1. for each user:
         grouped = testing_data.groupby('user')
 
+        if self.use_muilti and isinstance(factor_model, NOGILModel):
+            return [e/len(grouped) for e in evaluate_model(factor_model, testing_data, measures, all_items, non_relevant_count, k)]
+        #return self.evaluate_model_multiprocessing(factor_model, testing_data, measures=measures, all_items=all_items,
+        #                                           non_relevant_count=non_relevant_count, k=k)
+        # compute
         results = [partial_measure(user, entries, factor_model, all_items, non_relevant_count, m, k) \
                    for user, entries in grouped for m in measures]
         #print [v["MAPMeasure"] for v in results]

@@ -128,7 +128,7 @@ class AverageModel(IModel):
         :param training_data: DataFrame training data
         :return:
         """
-        movie_stats = training_data.groupby('item').agg({'rating': [np.mean]})
+        movie_stats = training_data.groupby('item').agg({'rating': [lambda x: np.mean(x.apply(lambda y: float(y)))]})
         self._avg = {
             i: m[0]
             for i, m in movie_stats.iterrows()
@@ -187,7 +187,7 @@ class PersonalizedPopularity(IModel):
             try:
                 self._counts[useritem[0]].update({useritem[1]: count})
             except KeyError:
-                self._counts.update({useritem[0]:{useritem[1]: count}})
+                self._counts.update({useritem[0]: {useritem[1]: count}})
 
     def get_name(self):
         return "PersonalizedPopularity"
