@@ -8,12 +8,13 @@ them into a single model.
 .. moduleauthor:: Linas
 """
 
-__author__ = 'linas'
+__author__ = "linas"
 
 
-from testfm.models.interface import ModelInterface
+from testfm.models.cutil.interface import IModel
 
-class LinearEnsemble(ModelInterface):
+
+class LinearEnsemble(IModel):
 
     _models = []
     _weights = []
@@ -34,11 +35,11 @@ class LinearEnsemble(ModelInterface):
         self._weights = weights
         self._models = models
 
-    def fit(self,training_data):
+    def fit(self, training_data):
         pass
 
-    def getScore(self,user,item):
-        '''
+    def get_score(self, user, item):
+        """
         :param user:
         :param item:
         :return:
@@ -46,23 +47,23 @@ class LinearEnsemble(ModelInterface):
         >>> model1 = IdModel()
         >>> model2 = ConstantModel(1.0)
         >>> ensemble = LinearEnsemble([model1, model2], weights=[0.5, 0.5])
-        >>> ensemble.getScore(0, 5)
+        >>> ensemble.get_score(0, 5)
         3.0
 
         3 because we combine two models in a way: 5 (id of item)*0.5+1(constant
         factor)*0.5
 
-        '''
-        predictions = (m.getScore(user, item) for m in self._models)
+        """
+        predictions = (m.get_score(user, item) for m in self._models)
         return sum((w*p for w, p in zip(self._weights, predictions)))
 
-    def getName(self):
+    def get_name(self):
         models = ",".join((m.getName() for m in self._models))
         weights = ",".join(("{:1.4f}".format(w) for w in self._weights))
         return "Linear Ensemble ("+models+"|"+weights+")"
 
 
-class LogisticEnsemble(ModelInterface):
+class LogisticEnsemble(IModel):
     """
     A linear ensemble model which is learned using logistic regression.
     """
@@ -71,12 +72,12 @@ class LogisticEnsemble(ModelInterface):
     _item_features = None
     model = None
 
-    def getScore(self,user,item):
+    def get_score(self, user, item):
         x, y = self._extract_features(user, item)
         return float(self.model.predict(x))
 
-    def getName(self):
-        models = ",".join([m.getName() for m in self._models])
+    def get_name(self):
+        models = ",".join([m.get_name() for m in self._models])
         return "Logistic Ensemble ("+models+")"
 
     def __init__(self, models, item_features_column=[]):
@@ -87,15 +88,13 @@ class LogisticEnsemble(ModelInterface):
         """
         Extracts size of user profile info and item price
         """
-        grouped = df.groupby('user')
+        grouped = df.groupby("user")
         for user, entries in grouped:
             self._user_count[user] = len(entries)
 
         if self.item_features_column:
             self._item_features = {
-                item[0]: item[1:]
-                for item, entries in df.groupby(['item'] +
-                                                self.item_features_column)
+                item[0]: item[1:] for item, entries in df.groupby(["item"] + self.item_features_column)
             }
 
     def _extract_features(self, user, item, relevant=True):
@@ -105,8 +104,7 @@ class LogisticEnsemble(ModelInterface):
         features = [self._user_count.get(user, 0)]
         if self._item_features:
             features += [f for f in self._item_features[item]]
-        features += [m.getScore(user, item) for m in self._models]
-
+        features += [m.get_score(user, item) for m in self._models]
         return features, 1 if relevant else 0
 
     def prepare_data(self, df):
@@ -117,11 +115,11 @@ class LogisticEnsemble(ModelInterface):
         self._prepare_feature_extraction(df)
 
         for _, t in df.iterrows():
-            x, y = self._extract_features(t['user'], t['item'], relevant=True)
+            x, y = self._extract_features(t["user"], t["item"], relevant=True)
             _X.append(x)
             _Y.append(y)
             bad_item = choice(items)
-            x, y = self._extract_features(t['user'], bad_item, relevant=False)
+            x, y = self._extract_features(t["user"], bad_item, relevant=False)
             _X.append(x)
             _Y.append(y)
         return _X, _Y
@@ -130,7 +128,7 @@ class LogisticEnsemble(ModelInterface):
         from sklearn.linear_model import LogisticRegression
 
         _X, _Y = self.prepare_data(df)
-        self.model = LogisticRegression(C=10, penalty='l1', tol=0.1)
+        self.model = LogisticRegression(C=10, penalty="l1", tol=0.1)
         self.model.fit(_X, _Y)
 
 
@@ -152,11 +150,11 @@ class LinearFit(LogisticEnsemble):
         """
 
         features = [1, self._user_count.get(user, 0)] + \
-                   [m.getScore(user, item) for m in self._models]
+                   [m.get_score(user, item) for m in self._models]
 
         return features, 1 if relevant else 0
 
-    def getName(self):
+    def get_name(self):
         models = ",".join([m.getName() for m in self._models])
         return "Linear Ensemble ("+models+")"
 
@@ -176,7 +174,7 @@ class LinearRank(LogisticEnsemble):
         self.model.fit(_X, _Y)
         #print self.model.coef_
 
-    def getName(self):
+    def get_name(self):
         models = ",".join([m.getName() for m in self._models])
         return "LinearRank Ensemble ("+models+")"
 
@@ -188,9 +186,9 @@ class LinearRank(LogisticEnsemble):
         self._prepare_feature_extraction(df)
 
         for _, tuple in df.iterrows():
-            x, y = self._extract_features(tuple['user'], tuple['item'], relevant=True)
+            x, y = self._extract_features(tuple["user"], tuple["item"], relevant=True)
             bad_item = choice(items)
-            x2, y2 = self._extract_features(tuple['user'], bad_item, relevant=False)
+            x2, y2 = self._extract_features(tuple["user"], bad_item, relevant=False)
             _X.append([a-b for a,b in zip(x,x2)])
             _Y.append(1)
             _X.append([b-a for a,b in zip(x,x2)])
@@ -198,6 +196,6 @@ class LinearRank(LogisticEnsemble):
 
         return _X, _Y
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import doctest
     doctest.testmod()

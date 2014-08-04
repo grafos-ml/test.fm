@@ -1,5 +1,7 @@
+[![Build Status](https://travis-ci.org/grafos-ml/test.fm.svg?branch=master)](https://travis-ci.org/grafos-ml/test.fm)
+
 Introduction
-===========
+============
 
 Test.fm is (yet another) testing framework for Collaborative Filtering models.
 It integrates well with pandas as the default data manipulation library and
@@ -13,22 +15,23 @@ Example of using the Test.fm framework
 	import pandas as pd
 	import testfm
 	from testfm.models.baseline_model import Popularity, RandomModel
-	from testfm.models.tensorCoFi import TensorCoFi
+	from testfm.models.tensorcofi import TensorCoFi
 	from testfm.evaluation.evaluator import Evaluator
 	
-	evaluator=Evaluator()
+	evaluator = Evaluator()
 
-	#prepare the data
-	df = pd.read_csv(..., names=['user', 'item', 'rating', 'date', 'title'])
+	# Prepare the data
+	df = pd.read_csv(..., names=["user", "item", "rating", "date", "title"])
 	training, testing = testfm.split.holdoutByRandom(df, 0.9)
 
-	#tell me what models we want to evaluate
-	models = [  RandomModel(),
-				Popularity(),
-				TensorCoFi(),
-			 ]
+	# Tell me what models we want to evaluate
+	models = [
+	    RandomModel(),
+	    Popularity(),
+	    TensorCoFi()
+	    ]
 	
-	#evaluate
+	# Evaluate
 	items = training.item.unique()
 	for m in models:
 		m.fit(training)
@@ -40,8 +43,10 @@ See other examples [here...](https://github.com/grafos-ml/test.fm/tree/master/sr
 
 Installation
 ============
+You can check the official **documentation** [here](http://grafos-ml.github.io/test.fm).
+
 1. download and extract the sources.
-2. check the dependencies in conf/requirements.txt (the pyjnius could fail if you use pip)
+2. check the dependencies in conf/requirements.txt
 3. run #sudo python setup.py install
 4. if you are a developer of test.fm better do python setup.py develop
 5. enjoy and contribute
@@ -51,6 +56,11 @@ Installation
 Nosetests
 =========
 $ nosetests -w src/ -vv --with-cover --cover-tests --cover-erase --cover-html --cover-package=testfm --with-doctest --doctest-tests tests testfm/evaluation testfm/models testfm/fmio testfm/splitter
+
+Build Documentation
+===================
+$ sphinx-build -b html source_folder doc_folder
+
 Similar Projects
 ================
 1. [mrec](https://github.com/Mendeley/mrec/tree/master/mrec) from Mendeley. Good at building models. (python, ?)

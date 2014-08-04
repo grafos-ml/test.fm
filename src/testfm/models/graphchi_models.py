@@ -6,61 +6,56 @@ import subprocess
 import tempfile
 import datetime
 import numpy as np
-from interface import ModelInterface
+from testfm.models.cutil.interface import IModel
 logger = logging.getLogger(__name__)
 from scipy.io.mmio import mminfo, mmread, mmwrite
 
-class SVDpp(ModelInterface):
+
+class SVDpp(IModel):
 
     def __init__(self, tmp_dir="/tmp"):
         self.tmp_dir = tmp_dir
-        params = {k: v[2] for k,v in self.paramDetails().items()}
-        self.setParams(**params)
+        params = {k: v[2] for k,v in self.param_details().items()}
+        self.set_params(**params)
 
-    def getScore(self, user, item):
+    def get_score(self, user, item):
         uid = self.umap[user]
         iid = self.imap[item]
-        u = np.add(self.U[uid, :20], self.U[uid, 20:])
-        pred = self.global_mean + self.U_bias[uid] + self.V_bias[iid] + np.dot(u, self.V[iid])
+        #check, I think graphchi changed the ouput?
+        #u = np.add(self.U[uid, :10], self.U[uid, 10:])
+        pred = self.global_mean + self.U_bias[uid] + self.V_bias[iid] + np.dot(self.U[uid], self.V[iid])
         return float(pred)
 
-
-    def setParams(self, nIter=5, lamb=0.05, gamma=0.01):
+    def set_params(self, n_iterations=5, c_lambda=.05, c_gamma=.01):
         """
         Set the parameters for the TensorCoFi
         """
-        self._nIter = nIter
-        self._lamb = lamb
-        self._gamm = gamma
-
+        self._n_iterations = n_iterations
+        self._c_lambda = c_lambda
+        self._c_gamma = c_gamma
 
     @classmethod
-    def paramDetails(cls):
+    def param_details(cls):
         """
         Return parameter details for parameters
         """
         return {
             #sorry but authors of svdpp do not provide a way to set dimensionality 'dim': (2, 100, 2, 5),
-            'nIter': (1, 20, 2, 5),
-            'lamb': (.1, 1., .1, .05),
-            'gamma': (0.001, 1.0, 0.1, 0.01)
+            'n_iterations': (1, 20, 2, 5),
+            'c_lambda': (.1, 1., .1, .05),
+            'c_gamma': (0.001, 1.0, 0.1, 0.01)
         }
 
     def fit(self, training_data):
-        '''
-        executes something on the lines
-        svdpp --training=smallnetflix_mm
-        '''
-
         training_filename = self.dump_data(training_data)
         logger.debug("Started training model {}".format(__name__))
         cmd = " ".join(["svdpp",
                         "--training={} ".format(training_filename),
-                        "--biassgd_lambda={}".format(self._lamb),
-                        "--biassgd_gamma={}".format(self._gamm),
+                        "--biassgd_lambda={}".format(self._c_lambda),
+                        "--biassgd_gamma={}".format(self._c_gamma),
                         "--minval=1 ",
                         "--maxval=5 ",
-                        "--max_iter={}".format(self._nIter),
+                        "--max_iter={}".format(self._n_iterations),
                         "--quiet=1 "])
         logger.debug(cmd)
         self.execute_command(cmd)
@@ -68,13 +63,14 @@ class SVDpp(ModelInterface):
         self.global_mean = self.read_matrix(training_filename+"_global_mean.mm")
         self.U = self.read_matrix(training_filename+"_U.mm")
         self.V = self.read_matrix(training_filename+"_V.mm")
+        #print training_filename
         self.U_bias = self.read_matrix(training_filename+"_U_bias.mm")
         self.V_bias = self.read_matrix(training_filename+"_V_bias.mm")
 
     def dump_data(self, df):
         #first we need to reindex user and item and store their new ids
-        _,df['u'] = np.unique(df.user, return_inverse=True)
-        _,df['i'] = np.unique(df.item, return_inverse=True)
+        _, df['u'] = np.unique(df.user, return_inverse=True)
+        _, df['i'] = np.unique(df.item, return_inverse=True)
 
         self.umap = {
             key[0]: key[1] for key, _ in df.groupby(['user', 'u'])
@@ -106,7 +102,8 @@ class SVDpp(ModelInterface):
         out, err = sub.communicate()
 
     def read_matrix(self, filename):
-        '''reads grapchi format in the numpy array. The order is wrong in grapchi, therefore, we play tricks.
+        """
+        reads grapchi format in the numpy array. The order is wrong in grapchi, therefore, we play tricks.
 
         About the second (order of rows vs. columns), we have a problem that in distributed graphlab we
         output the matrix by rows, since each node is a row, and nodes are on different machines.
@@ -115,7 +112,7 @@ class SVDpp(ModelInterface):
         I am not sure if it is easy to fix it in python or not. [...]
         You are definitely right the the standard describes column
         order and not row order.
-        '''
+        """
 
         logger.debug("Loading matrix market matrix ")
         f = open(filename, "rb")

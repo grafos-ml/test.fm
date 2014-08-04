@@ -9,10 +9,11 @@ Factor Model
 
 __author__ = 'linas'
 
-from interface import ModelInterface
+from testfm.models.cutil.interface import IModel
 from numpy import vdot
 
-class FactorModel(ModelInterface):
+
+class FactorModel(IModel):
     _users = {}
     _items = {}
 
@@ -20,11 +21,10 @@ class FactorModel(ModelInterface):
         self._users = userf
         self._items = itemf
 
-
     def getName(self):
         return 'FactorModel'
 
-    def getScore(self,user, item):
+    def getScore(self, user, item):
         try:
             return vdot(self._users[user], self._items[item])
         except KeyError:

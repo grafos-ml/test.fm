@@ -15,8 +15,9 @@ __since__ = 20, 1, 2014
 
 import pandas as pd
 import testfm
-from testfm.config import USER, ITEM, DATE
+from testfm.settings import USER, ITEM, DATE
 from pandas.util.testing import assert_frame_equal
+
 
 class TestSplitters(object):
     """
