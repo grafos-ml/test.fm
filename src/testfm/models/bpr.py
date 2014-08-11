@@ -72,7 +72,7 @@ class BPR(IModel):
         m += self._eta*((ploss * u) + self._reg * m)
 
         #update negative item
-        m_neg += self._eta*((ploss * (-u)) + self._reg * m)
+        m_neg += self._eta*((ploss * (-u)) +  self._reg* m_neg)
 
         self.U[row["user"]] = u
         self.M[row["item"]] = m
