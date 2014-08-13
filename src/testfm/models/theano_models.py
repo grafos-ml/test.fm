@@ -33,7 +33,7 @@ class RBM(IModel):
     The implementation is taken from http://www.deeplearning.net/tutorial/rbm.html
 
     """
-    def __init__(self, n_visible, n_hidden=100, input=None, learning_rate=0.1, training_epochs=15,\
+    def __init__(self, n_visible, n_hidden=100, input=None, learning_rate=0.1, training_epochs=5,\
                  W=None, hbias=None, vbias=None, numpy_rng=None, theano_rng=None):
         """
         RBM constructor. Defines the parameters of the model along with
@@ -77,7 +77,6 @@ class RBM(IModel):
             # 4*sqrt(6./(n_hidden+n_visible)) the output of uniform if
             # converted using asarray to dtype theano.config.floatX so
             # that the code is runable on GPU
-            print n_hidden, n_visible
             initial_W = numpy.asarray(numpy_rng.uniform(
                       low=float(-4.0 * math.sqrt(6.0 / float(n_hidden + n_visible))),
                       high=float(4.0 * math.sqrt(6.0 / float(n_hidden + n_visible))),
@@ -346,7 +345,7 @@ class RBM(IModel):
             for i in items:
                 train_set_x[uid_map[user], iid_map[i]] = 1
 
-        return train_set_x, uid_map, iid_map
+        return train_set_x, uid_map, iid_map, users
 
     def fit(self, training_data):
         '''
@@ -354,12 +353,16 @@ class RBM(IModel):
         The representation contains vector of movies for each user.
         '''
 
-        matrix, uid_map, iid_map = self._convert(training_data)
+        matrix, uid_map, iid_map, user_data = self._convert(training_data)
+        self.user_data = user_data
+        self.uid_map = uid_map
+        self.iid_map = iid_map
+
         training_set_x = theano.shared(matrix, name='training_data')
         self.input = training_set_x
         self.train_rbm(training_set_x)
 
-    def train_rbm(self, train_set_x, batch_size=20, n_chains=20, n_samples=10):
+    def train_rbm(self, train_set_x, batch_size=20):
         """
         Trains the RBM, given the training data set.
 
@@ -385,10 +388,10 @@ class RBM(IModel):
         persistent_chain = theano.shared(numpy.zeros((batch_size, self.n_hidden), dtype=theano.config.floatX), borrow=True)
 
         # construct the RBM class
-        rbm = RBM(n_visible=train_set_x.shape[1].eval(), n_hidden=self.n_hidden, input=x, numpy_rng=rng, theano_rng=theano_rng)
+        self.rbm = RBM(n_visible=train_set_x.shape[1].eval(), n_hidden=self.n_hidden, input=x, numpy_rng=rng, theano_rng=theano_rng)
 
         # get the cost and the gradient corresponding to one step of CD-15
-        cost, updates = rbm.get_cost_updates(lr=self.learning_rate, persistent=persistent_chain, k=15)
+        cost, updates = self.rbm.get_cost_updates(lr=self.learning_rate, persistent=persistent_chain, k=self.training_epochs)
 
         #################################
         #     Training the RBM          #
@@ -405,42 +408,44 @@ class RBM(IModel):
             for batch_index in xrange(n_train_batches):
                 mean_cost += [train_rbm(batch_index)]
             print 'Training epoch %d, cost is ' % epoch, numpy.mean(mean_cost)
-            #X=rbm.W.get_value(borrow=True).T,
 
         end_time = time.clock()
         pretraining_time = (end_time - start_time)
         print ('Training took %f minutes' % (pretraining_time / 60.))
 
-    def get_score(self, *args, **kwargs):
-        #################################
-        #     Sampling from the RBM     #
-        #################################
-        # find out the number of test samples
-        number_of_test_samples = test_set_x.get_value(borrow=True).shape[0]
 
-        # pick random test examples, with which to initialize the persistent chain
-        test_idx = rng.randint(number_of_test_samples - n_chains)
-        persistent_vis_chain = theano.shared(numpy.asarray(
-                test_set_x.get_value(borrow=True)[test_idx:test_idx + n_chains],
-                dtype=theano.config.floatX))
+    def get_score(self, user, item):
 
-        plot_every = 1000
+        #lets initialize visible layer to a user
+        iid = self.iid_map[item]
+        user_items = self.user_data[user]
+
+        matrix = numpy.zeros((1, len(self.iid_map))) #just one user for whoem we are making prediction
+        for i in user_items:
+            matrix[0, self.iid_map[i]] = 1
+        test_x = theano.shared(matrix, name='test_user')
+
+        number_of_times_up_down = 100
         # define one step of Gibbs sampling (mf = mean-field) define a
-        # function that does `plot_every` steps before returning the
-        # sample for plotting
-        [presig_hids, hid_mfs, hid_samples, presig_vis,
-         vis_mfs, vis_samples], updates =  \
-                            theano.scan(rbm.gibbs_vhv,
-                                    outputs_info=[None,  None, None, None,
-                                                  None, persistent_vis_chain],
-                                    n_steps=plot_every)
+        presig_hids, hid_mfs, hid_samples, presig_vis, vis_mfs, vis_samples = self.rbm.gibbs_vhv(test_x)
+
+        # [presig_hids, hid_mfs, hid_samples, presig_vis, vis_mfs, vis_samples], updates =  \
+        #                     theano.scan(
+        #                         self.gibbs_vhv,
+        #                         outputs_info=[None, None, None, None, None, test_x],
+        #                         n_steps=number_of_times_up_down)
 
         # add to updates the shared variable that takes care of our persistent
         # chain :.
-        updates.update({persistent_vis_chain: vis_samples[-1]})
+        # get the cost and the gradient corresponding to one step of CD-15
+        # updates.update({test_x: vis_samples[-1]})
         # construct the function that implements our persistent chain.
         # we generate the "mean field" activations for plotting and the actual
         # samples for reinitializing the state of our persistent chain
-        sample_fn = theano.function([], [vis_mfs[-1], vis_samples[-1]],
-                                    updates=updates,
-                                    name='sample_fn')
+        # sample_fn = theano.function([], [vis_mfs[-1], vis_samples[-1]],
+        #                             updates=updates,
+        #                             name='sample_fn')
+
+        #predictions, vis_sample = sample_fn()
+        return vis_mfs[0, iid].eval()
+
