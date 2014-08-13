@@ -7,6 +7,7 @@ from testfm.models.baseline_model import Popularity, RandomModel, Item2Item
 from testfm.models.tensorcofi import PyTensorCoFi, TensorCoFi, CTensorCoFi
 from testfm.models.content_based import TFIDFModel, LSIModel
 from testfm.models.bpr import BPR
+from testfm.models.theano_models import RBM
 from pkg_resources import resource_filename
 import datetime
 
@@ -23,14 +24,16 @@ if __name__ == "__main__":
     #tell me what models we want to evaluate
     models = [
         RandomModel(),
-        BPR(),
-        TFIDFModel("title"),
-        Popularity(),
-        TensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
-        PyTensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
-        CTensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
-        LSIModel("title")
-    ]
+        RBM(10),
+        ]
+    #     BPR(),
+    #     TFIDFModel("title"),
+    #     Popularity(),
+    #     TensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
+    #     PyTensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
+    #     CTensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
+    #     LSIModel("title")
+    # ]
 
     #models += [LinearRank([models[2], models[3]],  item_features_column=["rating"])]
     items = training.item.unique()

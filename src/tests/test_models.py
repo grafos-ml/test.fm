@@ -13,6 +13,7 @@ from testfm.models.baseline_model import IdModel, Item2Item, AverageModel
 from testfm.models.ensemble_models import LogisticEnsemble
 from testfm.models.content_based import TFIDFModel, LSIModel
 from testfm.evaluation.evaluator import Evaluator
+from testfm.models.theano_models import RBM
 
 
 def which(program):
@@ -230,6 +231,21 @@ class TestLSI(unittest.TestCase):
         im = self.lsi._get_item_models(self.df)
         self.assertEqual(im[122], ["boomerang"])
         self.assertEqual(im[329], ["star", "trek", "generations"])
+
+class RBMTest(unittest.TestCase):
+    def setUp(self):
+        self.df = pd.DataFrame([{"user": 10, "item": 100, "desc": "car is very nice"},
+                                {"user": 11, "item": 100, "desc": "car is very nice"},
+                                {"user": 11, "item": 1, "desc": "oh my god"},
+                                {"user": 12, "item": 110, "desc": "the sky sky is blue and nice"}])
+    def test_convert(self):
+        rbm = RBM(100)
+
+        matrix, uid, iid = rbm._convert(self.df)
+        self.assertEqual({10: 0, 11: 1, 12: 2}, uid)
+        self.assertEqual({100: 0, 1: 1, 110: 2}, iid)
+
+        self.assertTrue(np.array_equal(np.array([[1,0,0],[1, 1, 0], [0,0,1]]), matrix))
 
 
 class TFIDTest(unittest.TestCase):

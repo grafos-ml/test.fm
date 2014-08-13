@@ -1,33 +1,40 @@
+from testfm.models.cutil.interface import IModel
+
 __author__ = 'linas'
 
 '''
 Models using Theano. Taken from: http://www.deeplearning.net/
 '''
 
-import cPickle
-import gzip
-import os
-import time
+import math, time
 import numpy
 import theano
 from theano import tensor as T
 from theano.tensor.shared_randomstreams import RandomStreams
+from testfm.models.cutil.interface import IModel
 
 
-class RBM(object):
+class RBM(IModel):
     """
-    Restricted Boltzmann Machine (RBM) were used in the CF as one of the most successful model
+    Restricted Boltzmann Machines (RBM) is used in the CF as one of the most successful model
     for collaborative filtering:
 
     Ruslan Salakhutdinov, Andriy Mnih, Geoffrey E. Hinton:
         Restricted Boltzmann machines for collaborative filtering. ICML 2007: 791-798
 
+    The idea, is that you represent each user by vector of watched/unwatched movies.
+    You train the RBM using such data, i.e., each user is an example for RBM.
+    So RBM has n_visible equal to the #movies. The number of hidden units is a hyper-parameter.
+
+    You make predictions for a user by providing a vector of
+    his movies and doing gibbs sampling via visible-hidden-visible states.
+    The activation levels on visible will be your predictions.
+
     The implementation is taken from http://www.deeplearning.net/tutorial/rbm.html
 
     """
-    def __init__(self, input=None, n_visible=784, n_hidden=500, \
-        W=None, hbias=None, vbias=None, numpy_rng=None,
-        theano_rng=None):
+    def __init__(self, n_visible, n_hidden=100, input=None, learning_rate=0.1, training_epochs=15,\
+                 W=None, hbias=None, vbias=None, numpy_rng=None, theano_rng=None):
         """
         RBM constructor. Defines the parameters of the model along with
         basic operations for inferring hidden from visible (and vice-versa),
@@ -54,6 +61,8 @@ class RBM(object):
 
         self.n_visible = n_visible
         self.n_hidden = n_hidden
+        self.learning_rate = learning_rate
+        self.training_epochs = training_epochs
 
         if numpy_rng is None:
             # create a number generator
@@ -68,9 +77,10 @@ class RBM(object):
             # 4*sqrt(6./(n_hidden+n_visible)) the output of uniform if
             # converted using asarray to dtype theano.config.floatX so
             # that the code is runable on GPU
+            print n_hidden, n_visible
             initial_W = numpy.asarray(numpy_rng.uniform(
-                      low=-4 * numpy.sqrt(6. / (n_hidden + n_visible)),
-                      high=4 * numpy.sqrt(6. / (n_hidden + n_visible)),
+                      low=float(-4.0 * math.sqrt(6.0 / float(n_hidden + n_visible))),
+                      high=float(4.0 * math.sqrt(6.0 / float(n_hidden + n_visible))),
                       size=(n_visible, n_hidden)),
                       dtype=theano.config.floatX)
             # theano shared variables for weights and biases
@@ -315,134 +325,122 @@ class RBM(object):
 
         return cross_entropy
 
-def test_rbm(learning_rate=0.1, training_epochs=15,
-             dataset='mnist.pkl.gz', batch_size=20,
-             n_chains=20, n_samples=10, output_folder='rbm_plots',
-             n_hidden=500):
-    """
-    Demonstrate how to train and afterwards sample from it using Theano.
+    @classmethod
+    def param_details(cls):
+        return {
+            "learning_rate": (0.01, 0.05, 0.5, 0.1),
+            "training_epochs": (1, 50, 5, 15),
+            "n_hidden": (10, 1000, 10, 100),
+        }
 
-    This is demonstrated on MNIST.
+    def get_name(self):
+        return "RBM (n_hidden={0})".format(self.n_hidden)
 
-    :param learning_rate: learning rate used for training the RBM
+    def _convert(self, training_data):
+        iid_map = {item: id for id, item in enumerate(training_data.item.unique())}
+        uid_map = {user: id for id, user in enumerate(training_data.user.unique())}
+        users = {user: set(entries) for user, entries in training_data.groupby('user')['item']}
 
-    :param training_epochs: number of epochs used for training
+        train_set_x = numpy.zeros((len(uid_map), len(iid_map)))
+        for user, items in users.items():
+            for i in items:
+                train_set_x[uid_map[user], iid_map[i]] = 1
 
-    :param dataset: path the the pickled dataset
+        return train_set_x, uid_map, iid_map
 
-    :param batch_size: size of a batch used to train the RBM
+    def fit(self, training_data):
+        '''
+        Converts training_data pandas data frame into the RBM representation.
+        The representation contains vector of movies for each user.
+        '''
 
-    :param n_chains: number of parallel Gibbs chains to be used for sampling
+        matrix, uid_map, iid_map = self._convert(training_data)
+        training_set_x = theano.shared(matrix, name='training_data')
+        self.input = training_set_x
+        self.train_rbm(training_set_x)
 
-    :param n_samples: number of samples to plot for each chain
+    def train_rbm(self, train_set_x, batch_size=20, n_chains=20, n_samples=10):
+        """
+        Trains the RBM, given the training data set.
 
-    """
-    datasets = load_data(dataset)
+        :param train_set_x: a matrix of user vectors for trainign RBM
+        :param learning_rate: learning rate used for training the RBM
+        :param training_epochs: number of epochs used for training
+        :param batch_size: size of a batch used to train the RBM
+        :param n_chains: number of parallel Gibbs chains to be used for sampling
+        :param n_samples: number of samples to plot for each chain
 
-    train_set_x, train_set_y = datasets[0]
-    test_set_x, test_set_y = datasets[2]
+        """
+        # compute number of minibatches for training, validation and testing
+        n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
 
-    # compute number of minibatches for training, validation and testing
-    n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
+        # allocate symbolic variables for the data
+        index = T.lscalar()    # index to a [mini]batch
+        x = T.matrix('x')  # the data is presented as user vector per each row
 
-    # allocate symbolic variables for the data
-    index = T.lscalar()    # index to a [mini]batch
-    x = T.matrix('x')  # the data is presented as rasterized images
+        rng = numpy.random.RandomState(123)
+        theano_rng = RandomStreams(rng.randint(2 ** 30))
 
-    rng = numpy.random.RandomState(123)
-    theano_rng = RandomStreams(rng.randint(2 ** 30))
+        # initialize storage for the persistent chain (state = hidden layer of chain)
+        persistent_chain = theano.shared(numpy.zeros((batch_size, self.n_hidden), dtype=theano.config.floatX), borrow=True)
 
-    # initialize storage for the persistent chain (state = hidden
-    # layer of chain)
-    persistent_chain = theano.shared(numpy.zeros((batch_size, n_hidden), dtype=theano.config.floatX), borrow=True)
+        # construct the RBM class
+        rbm = RBM(n_visible=train_set_x.shape[1].eval(), n_hidden=self.n_hidden, input=x, numpy_rng=rng, theano_rng=theano_rng)
 
-    # construct the RBM class
-    rbm = RBM(input=x, n_visible=28 * 28,
-              n_hidden=n_hidden, numpy_rng=rng, theano_rng=theano_rng)
+        # get the cost and the gradient corresponding to one step of CD-15
+        cost, updates = rbm.get_cost_updates(lr=self.learning_rate, persistent=persistent_chain, k=15)
 
-    # get the cost and the gradient corresponding to one step of CD-15
-    cost, updates = rbm.get_cost_updates(lr=learning_rate,
-                                         persistent=persistent_chain, k=15)
+        #################################
+        #     Training the RBM          #
+        #################################
+        # it is ok for a theano function to have no output
+        # the purpose of train_rbm is solely to update the RBM parameters
+        train_rbm = theano.function([index], cost, updates=updates, givens={x: train_set_x[index * batch_size: (index + 1) * batch_size]}, name='train_rbm')
 
-    #################################
-    #     Training the RBM          #
-    #################################
-    if not os.path.isdir(output_folder):
-        os.makedirs(output_folder)
-    os.chdir(output_folder)
+        start_time = time.clock()
+        # go through training epochs
+        for epoch in xrange(self.training_epochs):
+            # go through the training set
+            mean_cost = []
+            for batch_index in xrange(n_train_batches):
+                mean_cost += [train_rbm(batch_index)]
+            print 'Training epoch %d, cost is ' % epoch, numpy.mean(mean_cost)
+            #X=rbm.W.get_value(borrow=True).T,
 
-    # it is ok for a theano function to have no output
-    # the purpose of train_rbm is solely to update the RBM parameters
-    train_rbm = theano.function([index], cost,
-           updates=updates,
-           givens={x: train_set_x[index * batch_size:
-                                  (index + 1) * batch_size]},
-           name='train_rbm')
+        end_time = time.clock()
+        pretraining_time = (end_time - start_time)
+        print ('Training took %f minutes' % (pretraining_time / 60.))
 
-    plotting_time = 0.
-    start_time = time.clock()
+    def get_score(self, *args, **kwargs):
+        #################################
+        #     Sampling from the RBM     #
+        #################################
+        # find out the number of test samples
+        number_of_test_samples = test_set_x.get_value(borrow=True).shape[0]
 
-    # go through training epochs
-    for epoch in xrange(training_epochs):
+        # pick random test examples, with which to initialize the persistent chain
+        test_idx = rng.randint(number_of_test_samples - n_chains)
+        persistent_vis_chain = theano.shared(numpy.asarray(
+                test_set_x.get_value(borrow=True)[test_idx:test_idx + n_chains],
+                dtype=theano.config.floatX))
 
-        # go through the training set
-        mean_cost = []
-        for batch_index in xrange(n_train_batches):
-            mean_cost += [train_rbm(batch_index)]
+        plot_every = 1000
+        # define one step of Gibbs sampling (mf = mean-field) define a
+        # function that does `plot_every` steps before returning the
+        # sample for plotting
+        [presig_hids, hid_mfs, hid_samples, presig_vis,
+         vis_mfs, vis_samples], updates =  \
+                            theano.scan(rbm.gibbs_vhv,
+                                    outputs_info=[None,  None, None, None,
+                                                  None, persistent_vis_chain],
+                                    n_steps=plot_every)
 
-        print 'Training epoch %d, cost is ' % epoch, numpy.mean(mean_cost)
-        #
-        # # Plot filters after each training epoch
-        # plotting_start = time.clock()
-        # # Construct image from the weight matrix
-        # image = PIL.Image.fromarray(tile_raster_images(
-        #          X=rbm.W.get_value(borrow=True).T,
-        #          img_shape=(28, 28), tile_shape=(10, 10),
-        #          tile_spacing=(1, 1)))
-        # image.save('filters_at_epoch_%i.png' % epoch)
-        # plotting_stop = time.clock()
-        # plotting_time += (plotting_stop - plotting_start)
-
-    end_time = time.clock()
-
-    pretraining_time = (end_time - start_time) - plotting_time
-
-    print ('Training took %f minutes' % (pretraining_time / 60.))
-
-    #################################
-    #     Sampling from the RBM     #
-    #################################
-    # find out the number of test samples
-    number_of_test_samples = test_set_x.get_value(borrow=True).shape[0]
-
-    # pick random test examples, with which to initialize the persistent chain
-    test_idx = rng.randint(number_of_test_samples - n_chains)
-    persistent_vis_chain = theano.shared(numpy.asarray(
-            test_set_x.get_value(borrow=True)[test_idx:test_idx + n_chains],
-            dtype=theano.config.floatX))
-
-    plot_every = 1000
-    # define one step of Gibbs sampling (mf = mean-field) define a
-    # function that does `plot_every` steps before returning the
-    # sample for plotting
-    [presig_hids, hid_mfs, hid_samples, presig_vis,
-     vis_mfs, vis_samples], updates =  \
-                        theano.scan(rbm.gibbs_vhv,
-                                outputs_info=[None,  None, None, None,
-                                              None, persistent_vis_chain],
-                                n_steps=plot_every)
-
-    # add to updates the shared variable that takes care of our persistent
-    # chain :.
-    updates.update({persistent_vis_chain: vis_samples[-1]})
-    # construct the function that implements our persistent chain.
-    # we generate the "mean field" activations for plotting and the actual
-    # samples for reinitializing the state of our persistent chain
-    sample_fn = theano.function([], [vis_mfs[-1], vis_samples[-1]],
-                                updates=updates,
-                                name='sample_fn')
-
-
-
-if __name__ == '__main__':
-    test_rbm()
+        # add to updates the shared variable that takes care of our persistent
+        # chain :.
+        updates.update({persistent_vis_chain: vis_samples[-1]})
+        # construct the function that implements our persistent chain.
+        # we generate the "mean field" activations for plotting and the actual
+        # samples for reinitializing the state of our persistent chain
+        sample_fn = theano.function([], [vis_mfs[-1], vis_samples[-1]],
+                                    updates=updates,
+                                    name='sample_fn')
