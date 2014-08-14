@@ -11,4 +11,7 @@ scikit-learn
 sphinx
 coverage
 tabulate
+
+#for the theano models
 Theano
+backports.functools_lru_cache

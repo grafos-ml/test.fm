@@ -14,6 +14,11 @@ from theano.tensor.shared_randomstreams import RandomStreams
 from testfm.models.cutil.interface import IModel
 
 
+try:
+    from functools import lru_cache
+except ImportError:
+    from backports.functools_lru_cache import lru_cache
+
 class RBM(IModel):
     """
     Restricted Boltzmann Machines (RBM) is used in the CF as one of the most successful model
@@ -413,19 +418,24 @@ class RBM(IModel):
         pretraining_time = (end_time - start_time)
         print ('Training took %f minutes' % (pretraining_time / 60.))
 
+    @lru_cache(maxsize=1000)
+    def _get_user_predictions(self, user):
+        '''
+        Compute the prediction for the user. It is cashed as we need to do it many times for evaluation.
+        '''
 
-    def get_score(self, user, item):
+        print "computing prediction vector for user ",user
 
-        #lets initialize visible layer to a user
-        iid = self.iid_map[item]
         user_items = self.user_data[user]
 
         matrix = numpy.zeros((1, len(self.iid_map))) #just one user for whoem we are making prediction
+
+        #initialize the vector with items that user has experienced
         for i in user_items:
             matrix[0, self.iid_map[i]] = 1
         test_x = theano.shared(matrix, name='test_user')
 
-        number_of_times_up_down = 100
+        #number_of_times_up_down = 100
         # define one step of Gibbs sampling (mf = mean-field) define a
         presig_hids, hid_mfs, hid_samples, presig_vis, vis_mfs, vis_samples = self.rbm.gibbs_vhv(test_x)
 
@@ -447,5 +457,13 @@ class RBM(IModel):
         #                             name='sample_fn')
 
         #predictions, vis_sample = sample_fn()
-        return vis_mfs[0, iid].eval()
+        return vis_mfs
+
+    def get_score(self, user, item):
+
+        #lets initialize visible layer to a user
+        iid = self.iid_map[item]
+
+        user_pred = self._get_user_predictions(user)
+        return user_pred[0, iid].eval()
 
