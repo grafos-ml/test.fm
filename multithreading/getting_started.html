@@ -1,0 +1,366 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Multi-Threading Support &mdash; Test.fm 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="Test.fm 1.0 documentation" href="../index.html" />
+    <link rel="next" title="API Documentation" href="../code.html" />
+    <link rel="prev" title="Installing Test.fm" href="../get_testfm.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../code.html" title="API Documentation"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="../get_testfm.html" title="Installing Test.fm"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">Test.fm 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="multi-threading-support">
+<h1>Multi-Threading Support<a class="headerlink" href="#multi-threading-support" title="Permalink to this headline">¶</a></h1>
+<p>If you are reading this and you didn&#8217;t come to this page by chance you are using (or at least trying) the test.fm framework.
+So this framework is developed on top of <a class="reference external" href="https://www.python.org">Python</a> technology. The beauty
+and grace of the Python language is imprinted in the paradigm of the framework making it easy to use and understand.
+However, a big limitation in this technology is the <strong>Global Interpreter Lock</strong> or <strong>GIL</strong>. As many should know, the GIL
+keeps the Python VM to execute more than one thread at once but makes it hard to take advantage of the multi-core
+architecture.</p>
+<p>A pure Python solution for multiprocessing problem is through c-fork. This is a simple solution and has a thread-like
+interface that ships with the modern versions of Python. The problem, in our case, is that a process based multiprocessing
+library replicate the processing data when a change is made. This can n-plicate the input data making it infeasible
+for bigger data sets.</p>
+<p>Our solution for this problem uses a C-Threads and openMP. We rewrite some of the computation intensive parts
+of the evaluation framework in <a class="reference external" href="http://cython.org">Cython</a>. Cython is a compiler that works with Python and add some extra features to use data structures
+independent from the architecture.</p>
+<div class="section" id="how-it-works">
+<h2>How It Works?<a class="headerlink" href="#how-it-works" title="Permalink to this headline">¶</a></h2>
+<p>To be able to execute the in multi-threading the <strong>GIL</strong> must be unlock by the thread. Cython allow this feature but in
+order to accomplish it no Python data structure must be touched. So all the <strong>NOGIL</strong> execution code is made with
+C-data. To accomplish the multi-threading and still be able to use pure Python structures and code a set of <em>&#8220;built-in&#8221;</em>
+interfaces were made. With this interfaces the <a class="reference internal" href="../testfm/evaluation/Evaluator.html#testfm-evaluation-evaluator"><em>Evaluator</em></a> is able to decide if it can be
+executed multi-threading or it has to be single threaded.</p>
+<p>The interfaces used by the evaluator are the <em class="xref std std-ref">imodel-nogil</em> and the <em class="xref std std-ref">imeasure-nogil</em>. These two <em>&#8220;interfaces&#8221;</em> have
+a nogil method that needs implementation and compilation with Cython tools. For convenience, I also developed
+the <em class="xref std std-ref">model-factor</em> - an base class implementation for most of factor models that use dot product
+as the prediction function. This one already have the <em>nogil_get_score</em> implemented and
+just need Python side implementation.</p>
+</div>
+<div class="section" id="getting-started">
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
+<p>The first step is <a class="reference internal" href="../get_testfm.html#get-testfm"><em>installing the Test.fm framework</em></a>. After that just run:</p>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23</pre></div></td><td class="code"><div class="highlight"><pre> <span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+ <span class="kn">import</span> <span class="nn">testfm</span>
+ <span class="kn">from</span> <span class="nn">pkg_resources</span> <span class="kn">import</span> <span class="n">resource_filename</span>
+ <span class="kn">from</span> <span class="nn">testfm.evaluation.evaluator</span> <span class="kn">import</span> <span class="n">Evaluator</span>
+ <span class="kn">from</span> <span class="nn">testfm.models.tensorcofi</span> <span class="kn">import</span> <span class="n">TensorCoFi</span>
+
+ <span class="c"># Load data from the testfm example data</span>
+ <span class="n">file_path</span> <span class="o">=</span> <span class="n">resource_filename</span><span class="p">(</span><span class="n">testfm</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span> <span class="s">&quot;data/movielenshead.dat&quot;</span><span class="p">)</span>
+ <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s">&quot;::&quot;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;user&quot;</span><span class="p">,</span> <span class="s">&quot;item&quot;</span><span class="p">,</span> <span class="s">&quot;rating&quot;</span><span class="p">,</span> <span class="s">&quot;date&quot;</span><span class="p">,</span> <span class="s">&quot;title&quot;</span><span class="p">])</span>
+
+ <span class="c"># Divide the data into training and testing</span>
+ <span class="n">training</span><span class="p">,</span> <span class="n">testing</span> <span class="o">=</span> <span class="n">testfm</span><span class="o">.</span><span class="n">split</span><span class="o">.</span><span class="n">holdoutByRandom</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+ <span class="n">items</span> <span class="o">=</span> <span class="n">training</span><span class="o">.</span><span class="n">item</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+
+ <span class="c"># Create a NOGILModel model and fit it</span>
+ <span class="n">model</span> <span class="o">=</span> <span class="n">TensorCoFi</span><span class="p">(</span><span class="n">n_factors</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">n_iterations</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">c_lambda</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">c_alpha</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span>
+ <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">training</span><span class="p">)</span>
+
+ <span class="n">evaluator</span> <span class="o">=</span> <span class="n">Evaluator</span><span class="p">()</span>
+
+ <span class="c"># Print the model name and the result from the Evaluation</span>
+ <span class="k">print</span> <span class="n">model</span><span class="o">.</span><span class="n">get_name</span><span class="p">()</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">50</span><span class="p">),</span>
+ <span class="k">print</span> <span class="n">evaluator</span><span class="o">.</span><span class="n">evaluate_model</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">testing</span><span class="p">,</span> <span class="n">all_items</span><span class="o">=</span><span class="n">items</span><span class="p">,)</span>  <span class="c"># &lt;&lt;&lt; Multi-Threading Evaluation</span>
+</pre></div>
+</td></tr></table></div>
+<p>In this example, the <em class="xref std std-ref">model-tensorcofi</em> inherit the NOGIL model, therefore, the computation can be divided among multiple threads.
+Actually, TensorCoFi model inherit a more sophisticated <em>&#8220;abstract class&#8221;</em> called <em class="xref std std-ref">imodel-factor</em>. This class
+connects a set of C float arrays to the model after the fit method execute. It has a nogil_get_score already implemented
+that calculate the score using low level implementation. So the IFactorModel can be implemented by any new model using <strong>pure</strong> Python and
+it still will have nogil functionality.</p>
+<p>However there are a certain protocol to follow when implementing the train method.</p>
+<ol class="arabic simple">
+<li>The model attribute for the factors <strong>must be</strong> a list of <a class="reference external" href="http://docs.scipy.org/doc/numpy/reference/generated/numpy.array.html">numpy.array</a>.</li>
+<li>The data type must be <strong>numpy.float32</strong>.</li>
+<li>The rows should be the &#8220;objects&#8221; and the columns must be the factors, objects = users, items, contexts, etc...</li>
+</ol>
+<div class="section" id="nogil-model-from-scratch">
+<h3>NOGIL Model from Scratch<a class="headerlink" href="#nogil-model-from-scratch" title="Permalink to this headline">¶</a></h3>
+<p>To make a new <strong>nogil</strong> model from scratch two things are needed. The Cython with the low level routine and the setup.py
+to compile the Cython part. In this example we will make a third structure, a Python wrapper. The reason for this is so
+we can have only the low level part in the binary and the rest of the features in the python side. This way it only
+compile when a change in the nogil part is made and no more than that.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Keep in mind that compiling the Python code using Cython increases the performance of the execution even if you don&#8217;t
+use any other optimization. However, you lose the simplicity of pure python.</p>
+</div>
+<p>We will build a random model with the nogil interface. First create a file named crandom.pyx. This file will have the low
+level code for our plugin. Make the necessary imports. For this we need some Python libraries and some C libraries.
+Notice that the python libraries are called the same way but the C libraries are called by using the keyword cimport.</p>
+<div class="highlight-cython"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11</pre></div></td><td class="code"><div class="highlight"><pre><span class="c"># crandom.pyx</span>
+
+<span class="k">cimport</span> <span class="nn">cython</span>
+<span class="k">from</span> <span class="nn">libc.stdlib</span> <span class="k">cimport</span> <span class="n">rand</span><span class="p">,</span> <span class="n">RAND_MAX</span>
+<span class="k">from</span> <span class="nn">testfm.models.cutil.interface</span> <span class="k">cimport</span> <span class="n">NOGILModel</span>
+
+<span class="k">cdef</span> <span class="k">class</span> <span class="nf">NOGILRandomModel</span><span class="p">(</span><span class="n">NOGILModel</span><span class="p">):</span>
+
+    <span class="nd">@cython</span><span class="o">.</span><span class="n">cdivision</span><span class="p">(</span><span class="bp">False</span><span class="p">)</span>
+    <span class="k">cdef</span> <span class="kt">float</span> <span class="nf">nogil_get_score</span><span class="p">(</span><span class="n">NOGILRandomModel</span> <span class="bp">self</span><span class="p">,</span> <span class="nb">int</span> <span class="n">user</span><span class="p">,</span> <span class="nb">int</span> <span class="n">item</span><span class="p">,</span> <span class="nb">int</span> <span class="n">extra_context</span><span class="p">,</span> <span class="nb">int</span> <span class="o">*</span><span class="n">context</span><span class="p">)</span> <span class="k">nogil</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">rand</span><span class="p">()</span> <span class="o">/</span> <span class="p">&lt;</span><span class="kt">float</span><span class="p">&gt;</span><span class="n">RAND_MAX</span>
+</pre></div>
+</td></tr></table></div>
+<p>NOGILModel is imported by the c library in testfm.models.cutil.interface. We also import rand and RAND_MAX to generate the
+low-level pseudo-random numbers. Notice how the class is defined as cdef. This make it hybrid between C and Python and able
+to run pure C methods. Other difference from pure python is that the method and each parameter has as a defined type.
+Last but not least, the decorator on the method is a special Cython
+functionality. This one disables the Python security division checks. This can boost the division operation up to
+36 %, according to Cython documentation.</p>
+<p>Now for the wrapper.</p>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20</pre></div></td><td class="code"><div class="highlight"><pre><span class="c"># random_model.py</span>
+
+<span class="kn">from</span> <span class="nn">crandom</span> <span class="kn">import</span> <span class="n">NOGILRandomModel</span>
+
+<span class="k">class</span> <span class="nc">RandomModel</span><span class="p">(</span><span class="n">NOGILRandomModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Random model</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_scores</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">get_score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="o">**</span><span class="n">context</span><span class="p">):</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">user</span><span class="p">,</span> <span class="n">item</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scores</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_scores</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="p">()</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scores</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">get_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;Random&quot;</span>
+</pre></div>
+</td></tr></table></div>
+<p>This class implements get_score and also inherits the <strong>nogil_get_score</strong> form the parent.
+These both functions does the same thing but nogil_get_score is faster and allows multi-threading.
+The evaluator class will use nogil_get_score by default and fall back to get_score if no threading support
+can be provided.</p>
+<p>Just need the setup.py now.</p>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12</pre></div></td><td class="code"><div class="highlight"><pre><span class="c"># setup.py</span>
+<span class="kn">from</span> <span class="nn">distutils.core</span> <span class="kn">import</span> <span class="n">setup</span>
+<span class="kn">from</span> <span class="nn">distutils.extension</span> <span class="kn">import</span> <span class="n">Extension</span>
+<span class="kn">from</span> <span class="nn">Cython.Distutils</span> <span class="kn">import</span> <span class="n">build_ext</span>
+
+<span class="n">setup</span><span class="p">(</span>
+  <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;random&quot;</span><span class="p">,</span>
+  <span class="n">cmdclass</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;build_ext&quot;</span><span class="p">:</span> <span class="n">build_ext</span><span class="p">},</span>
+  <span class="n">ext_modules</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Extension</span><span class="p">(</span><span class="s">&quot;crandom&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s">&quot;crandom.pyx&quot;</span><span class="p">])</span>
+  <span class="p">],</span>
+<span class="p">)</span>
+</pre></div>
+</td></tr></table></div>
+<p>Now just run python <strong>setup build_ext &#8211;inplace</strong> and voilá, you have your first multi-threading model ready to use.</p>
+</div>
+<div class="section" id="tensorcofi-implementation">
+<h3>TensorCoFi Implementation<a class="headerlink" href="#tensorcofi-implementation" title="Permalink to this headline">¶</a></h3>
+<p>First stage for the TensorCoFi Implementation is declaration of the class inheriting the IFactorModel.</p>
+<p>After that we implemented the <strong>train</strong> method. In some point of that it will receive the factors matrices. This
+implementation uses the Java TensorCoFi and connect to it by a set of files. This files load 2 numpy.arrays, users and
+items.</p>
+<p>This also can be coded as:</p>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9</pre></div></td><td class="code"><div class="highlight"><pre><span class="c"># Get the matrices location</span>
+<span class="n">user_path</span><span class="p">,</span> <span class="n">item_path</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot; &quot;</span><span class="p">)</span>
+
+<span class="c"># Load the both matrices. Notice they are loaded as float32</span>
+<span class="n">user_factor_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">user_path</span><span class="p">,</span> <span class="s">&quot;r&quot;</span><span class="p">),</span> <span class="n">delimiter</span><span class="o">=</span><span class="s">&quot;,&quot;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="n">item_factor_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">item_path</span><span class="p">,</span> <span class="s">&quot;r&quot;</span><span class="p">),</span> <span class="n">delimiter</span><span class="o">=</span><span class="s">&quot;,&quot;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+<span class="c"># They are loaded with factors as rows. So we use the transpose for respect the 3rd clause in the protocol</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">factors</span> <span class="o">=</span> <span class="p">[</span><span class="n">user_factor_matrix</span><span class="o">.</span><span class="n">transpose</span><span class="p">(),</span> <span class="n">item_factor_matrix</span><span class="o">.</span><span class="n">transpose</span><span class="p">()]</span>
+</pre></div>
+</td></tr></table></div>
+<p>Also must note that the arrays are loaded as np.float32 arrays. And they get transposed after that to correspond to user
+and item rows and factor columns.</p>
+<p>After the execution of the train, the fit method go on to fill the C-array with the numpy array data. Actually it just
+turn the pointer to the numpy C-data so it don&#8217;t replicate data and when there is a change in the factors it is also
+applied to there.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Multi-Threading Support</a><ul>
+<li><a class="reference internal" href="#how-it-works">How It Works?</a></li>
+<li><a class="reference internal" href="#getting-started">Getting Started</a><ul>
+<li><a class="reference internal" href="#nogil-model-from-scratch">NOGIL Model from Scratch</a></li>
+<li><a class="reference internal" href="#tensorcofi-implementation">TensorCoFi Implementation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="../get_testfm.html"
+                        title="previous chapter">Installing Test.fm</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="../code.html"
+                        title="next chapter">API Documentation</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/multithreading/getting_started.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../code.html" title="API Documentation"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="../get_testfm.html" title="Installing Test.fm"
+             >previous</a> |</li>
+        <li><a href="../index.html">Test.fm 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Linas Baltrunas.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

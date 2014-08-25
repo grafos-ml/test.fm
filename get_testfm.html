@@ -1,0 +1,244 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Installing Test.fm &mdash; Test.fm 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Test.fm 1.0 documentation" href="index.html" />
+    <link rel="next" title="Multi-Threading Support" href="multithreading/getting_started.html" />
+    <link rel="prev" title="Test.FM documentation" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="multithreading/getting_started.html" title="Multi-Threading Support"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Test.FM documentation"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Test.fm 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="installing-test-fm">
+<span id="get-testfm"></span><h1>Installing Test.fm<a class="headerlink" href="#installing-test-fm" title="Permalink to this headline">¶</a></h1>
+<p>Test.fm is an open-source recommender system testing toolkit under <a class="reference external" href="https://github.com/grafos-ml/test.fm/blob/master/LICENSE">Apache2 licence</a>.
+It is currently supported for Python 2.7 or higher but don&#8217;t offer support on Python 3 series. It has dependencies
+on CBLAS, LAPACK libraries, Java RE and some python modules.</p>
+<div class="section" id="how-to-install-test-fm">
+<h2>How to install Test.fm<a class="headerlink" href="#how-to-install-test-fm" title="Permalink to this headline">¶</a></h2>
+<p>Test.fm is currently in heavy development stage. To get it just access to the project page at
+<a class="reference external" href="https://github.com/grafos-ml/test.fm">GitHub</a> and download the zip version. If you want to contribute feel free to
+fork it.</p>
+<div class="section" id="install-on-ubuntu">
+<h3>Install on Ubuntu<a class="headerlink" href="#install-on-ubuntu" title="Permalink to this headline">¶</a></h3>
+<p>It is fairly easy to install test.fm on Ubuntu. First make sure that you install the Python developer tools, ATLAS and LAPACK
+library. If you don&#8217;t have it just run:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ sudo apt-get install gfortran libatlas-base-dev liblapack-dev python-dev build-essential
+</pre></div>
+</div>
+<p>After this you may want to install a Python <a class="reference external" href="http://virtualenv.readthedocs.org/en/latest/">virtual environment</a>. Also,
+you can use the <a class="reference external" href="http://virtualenvwrapper.readthedocs.org/en/latest/">virtualenvwrapper</a>, a pretty neat tool if you
+need to work with a lot of virtual environments.</p>
+<p>There are 2 ways to install test.fm:</p>
+<div class="section" id="install-it-with-pip">
+<h4>1 - Install it with pip<a class="headerlink" href="#install-it-with-pip" title="Permalink to this headline">¶</a></h4>
+<p>This project is not yet in the pip repo. So in order to make it happen just type:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ pip install https://github.com/grafos-ml/test.fm/archive/v1.0.tar.gz
+</pre></div>
+</div>
+<p>This should install all the dependencies and the test.fm itself.</p>
+</div>
+<div class="section" id="install-it-with-setup-py">
+<h4>2 - Install it with setup.py<a class="headerlink" href="#install-it-with-setup-py" title="Permalink to this headline">¶</a></h4>
+<ol class="arabic">
+<li><p class="first">Download the zip file from <a class="reference external" href="https://github.com/grafos-ml/test.fm/archive/v1.0.tar.gz">GitHub</a>.</p>
+</li>
+<li><p class="first">Unzip the file content to some folder.</p>
+</li>
+<li><p class="first">In that folder run:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ python setup.py install
+</pre></div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="section" id="install-on-mac-os">
+<h3>Install on Mac OS<a class="headerlink" href="#install-on-mac-os" title="Permalink to this headline">¶</a></h3>
+<p>To install test.fm  on Mac OS you need to install CBLAS and LAPACK libraries. ATLAS library in Mac
+ships with them both so it is the recommended way of installing. To install ATLAS you will need to have a fortran 77 compiler installed.
+The gcc library is a specific requisite to install Test.fm, so if you use the binary CBLAS you will still need to
+install gcc on mac.</p>
+<p>Please install the dependencies with:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ port install atlas +gcc47+gfortran
+</pre></div>
+</div>
+<p>In case this fails, try first running:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ port clean atlas ; port install atlas +gcc47+gfortran
+</pre></div>
+</div>
+<p>Now install test.fm using:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ pip install https://github.com/grafos-ml/test.fm/archive/v1.0.tar.gz
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">This is the standard way to install test.fm and works pretty well on linux based systems and OS X 10.9.2.
+However this method raised some complications on other versions of Mac OS.
+Is you cannot use this in a different release of the Mac OS please post on the issue page with the exact version of your OS.</p>
+</div>
+<p>If you have some compilation errors, try download the zip unpack it, build the binaries and than install using:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ python package_dir/compile.py build_ext
+$ python package_dir/setup.py install
+$ rm -r package_dir
+</pre></div>
+</div>
+<div class="section" id="known-issues">
+<h4>Known Issues<a class="headerlink" href="#known-issues" title="Permalink to this headline">¶</a></h4>
+<ol class="arabic">
+<li><dl class="first docutils">
+<dt>Mavericks PIP issue:</dt>
+<dd><p class="first last">Some python libraries (pandas) fails to compile and have to be build from the source. The problem is the
+binaries in the repositories are not supported for some specific OS versions.</p>
+</dd>
+</dl>
+</li>
+</ol>
+</div>
+</div>
+<div class="section" id="install-on-windows">
+<h3>Install on Windows<a class="headerlink" href="#install-on-windows" title="Permalink to this headline">¶</a></h3>
+<p>At this moment Test.fm doesn&#8217;t have support for Windows.</p>
+</div>
+<div class="section" id="uninstall-test-fm">
+<h3>Uninstall Test.fm<a class="headerlink" href="#uninstall-test-fm" title="Permalink to this headline">¶</a></h3>
+<p>If you think this package is too awesome for you can just remove it from your python environment. We recommend to use the
+pip:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ pip uninstall testfm
+</pre></div>
+</div>
+<p>Or you can go old school and remove the directory by yourself.</p>
+</div>
+<div class="section" id="developing-test-fm">
+<h3>Developing Test.fm<a class="headerlink" href="#developing-test-fm" title="Permalink to this headline">¶</a></h3>
+<p>In case you are contributing to the test.fm, please fork the code and use:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ python setup.py develop
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Installing Test.fm</a><ul>
+<li><a class="reference internal" href="#how-to-install-test-fm">How to install Test.fm</a><ul>
+<li><a class="reference internal" href="#install-on-ubuntu">Install on Ubuntu</a><ul>
+<li><a class="reference internal" href="#install-it-with-pip">1 - Install it with pip</a></li>
+<li><a class="reference internal" href="#install-it-with-setup-py">2 - Install it with setup.py</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#install-on-mac-os">Install on Mac OS</a><ul>
+<li><a class="reference internal" href="#known-issues">Known Issues</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#install-on-windows">Install on Windows</a></li>
+<li><a class="reference internal" href="#uninstall-test-fm">Uninstall Test.fm</a></li>
+<li><a class="reference internal" href="#developing-test-fm">Developing Test.fm</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Test.FM documentation</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="multithreading/getting_started.html"
+                        title="next chapter">Multi-Threading Support</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/get_testfm.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="multithreading/getting_started.html" title="Multi-Threading Support"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Test.FM documentation"
+             >previous</a> |</li>
+        <li><a href="index.html">Test.fm 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Linas Baltrunas.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>
