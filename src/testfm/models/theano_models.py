@@ -38,7 +38,7 @@ class RBM(IModel):
     The implementation is taken from http://www.deeplearning.net/tutorial/rbm.html
 
     """
-    def __init__(self, n_visible, n_hidden=100, input=None, learning_rate=0.1, training_epochs=5,\
+    def __init__(self, n_visible=None, n_hidden=100, input=None, learning_rate=0.1, training_epochs=5,\
                  W=None, hbias=None, vbias=None, numpy_rng=None, theano_rng=None):
         """
         RBM constructor. Defines the parameters of the model along with
@@ -63,6 +63,10 @@ class RBM(IModel):
         :param vbias: None for standalone RBMs or a symbolic variable
         pointing to a shared visible units bias
         """
+
+        #the problem that we don't need this parameter as it will be set automatically
+        if n_visible is None:
+            n_visible = 0
 
         self.n_visible = n_visible
         self.n_hidden = n_hidden
@@ -424,7 +428,7 @@ class RBM(IModel):
         Compute the prediction for the user. It is cashed as we need to do it many times for evaluation.
         '''
 
-        print "computing prediction vector for user ",user
+        #print "computing prediction vector for user ",user
 
         user_items = self.user_data[user]
 
@@ -457,7 +461,8 @@ class RBM(IModel):
         #                             name='sample_fn')
 
         #predictions, vis_sample = sample_fn()
-        return vis_mfs
+        #we call eval, in order to save ndarray and not the pointer to some theano internal representation
+        return vis_mfs.eval()
 
     def get_score(self, user, item):
 
@@ -465,5 +470,5 @@ class RBM(IModel):
         iid = self.iid_map[item]
 
         user_pred = self._get_user_predictions(user)
-        return user_pred[0, iid].eval()
+        return user_pred[0, iid]
 

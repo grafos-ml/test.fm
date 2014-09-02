@@ -24,16 +24,15 @@ if __name__ == "__main__":
     #tell me what models we want to evaluate
     models = [
         RandomModel(),
-        RBM(10),
-        ]
-    #     BPR(),
-    #     TFIDFModel("title"),
-    #     Popularity(),
-    #     TensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
-    #     PyTensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
-    #     CTensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
-    #     LSIModel("title")
-    # ]
+        RBM(n_hidden=20),
+        BPR(dim=20),
+        TFIDFModel("title"),
+        Popularity(),
+        TensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
+        PyTensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
+        CTensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
+        LSIModel("title")
+    ]
 
     #models += [LinearRank([models[2], models[3]],  item_features_column=["rating"])]
     items = training.item.unique()
