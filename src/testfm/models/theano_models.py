@@ -19,7 +19,7 @@ try:
 except ImportError:
     from backports.functools_lru_cache import lru_cache
 
-class RBM(IModel):
+class RBM_CF(IModel):
     """
     Restricted Boltzmann Machines (RBM) is used in the CF as one of the most successful model
     for collaborative filtering:
@@ -34,11 +34,179 @@ class RBM(IModel):
     You make predictions for a user by providing a vector of
     his movies and doing gibbs sampling via visible-hidden-visible states.
     The activation levels on visible will be your predictions.
+    """
 
+    def __init__(self, n_hidden=400, learning_rate=0.8, training_epochs=7):
+        self.n_hidden = n_hidden
+        self.learning_rate = learning_rate
+        self.training_epochs = training_epochs
+
+    @classmethod
+    def param_details(cls):
+        return {
+            "learning_rate": (0.01, 0.05, 0.5, 0.1),
+            "training_epochs": (1, 50, 5, 15),
+            "n_hidden": (10, 1000, 10, 100),
+        }
+
+    def get_name(self):
+        return "RBM (n_hidden={0}, learning_rate={1}, training_epochs={2})"\
+            .format(self.n_hidden, self.learning_rate, self.training_epochs)
+
+    def _convert(self, training_data):
+        iid_map = {item: id for id, item in enumerate(training_data.item.unique())}
+        uid_map = {user: id for id, user in enumerate(training_data.user.unique())}
+        users = {user: set(entries) for user, entries in training_data.groupby('user')['item']}
+
+        train_set_x = numpy.zeros((len(uid_map), len(iid_map)))
+        for user, items in users.items():
+            for i in items:
+                train_set_x[uid_map[user], iid_map[i]] = 1
+
+        return train_set_x, uid_map, iid_map, users
+
+    def fit(self, training_data):
+        '''
+        Converts training_data pandas data frame into the RBM representation.
+        The representation contains vector of movies for each user.
+        '''
+
+        matrix, uid_map, iid_map, user_data = self._convert(training_data)
+        self.user_data = user_data
+        self.uid_map = uid_map
+        self.iid_map = iid_map
+
+        training_set_x = theano.shared(matrix, name='training_data')
+        self.input = training_set_x
+        self.train_rbm(training_set_x)
+
+    def train_rbm(self, train_set_x, batch_size=20):
+        """
+        Trains the RBM, given the training data set.
+
+        :param train_set_x: a matrix of user vectors for trainign RBM
+        :param learning_rate: learning rate used for training the RBM
+        :param training_epochs: number of epochs used for training
+        :param batch_size: size of a batch used to train the RBM
+        :param n_chains: number of parallel Gibbs chains to be used for sampling
+        :param n_samples: number of samples to plot for each chain
+
+        """
+        # compute number of minibatches for training, validation and testing
+        n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
+
+        # allocate symbolic variables for the data
+        index = T.lscalar()    # index to a [mini]batch
+        x = T.matrix('x')  # the data is presented as user vector per each row
+
+        rng = numpy.random.RandomState(123)
+        theano_rng = RandomStreams(rng.randint(2 ** 30))
+
+        # initialize storage for the persistent chain (state = hidden layer of chain)
+        persistent_chain = theano.shared(numpy.zeros((batch_size, self.n_hidden), dtype=theano.config.floatX), borrow=True)
+
+        # construct the RBM class
+        self.rbm = RBM(n_visible=train_set_x.shape[1].eval(), n_hidden=self.n_hidden, input=x, numpy_rng=rng, theano_rng=theano_rng)
+
+        # get the cost and the gradient corresponding to one step of CD-15
+        cost, updates = self.rbm.get_cost_updates(lr=self.learning_rate, persistent=persistent_chain, k=self.training_epochs)
+
+        #################################
+        #     Training the RBM          #
+        #################################
+        # it is ok for a theano function to have no output
+        # the purpose of train_rbm is solely to update the RBM parameters
+        train_rbm = theano.function([index], cost, updates=updates, givens={x: train_set_x[index * batch_size: (index + 1) * batch_size]}, name='train_rbm')
+
+        start_time = time.clock()
+        # go through training epochs
+        for epoch in xrange(self.training_epochs):
+            # go through the training set
+            mean_cost = []
+            for batch_index in xrange(n_train_batches):
+                mean_cost += [train_rbm(batch_index)]
+            print 'Training epoch %d, cost is ' % epoch, numpy.mean(mean_cost)
+
+        end_time = time.clock()
+        pretraining_time = (end_time - start_time)
+        print ('Training took %f minutes' % (pretraining_time / 60.))
+
+    @lru_cache(maxsize=1000)
+    def _get_user_predictions(self, user):
+        '''
+        Compute the prediction for the user. It is cashed as we need to do it many times for evaluation.
+        '''
+
+        #print "computing prediction vector for user ",user
+
+        user_items = self.user_data[user]
+
+        matrix = numpy.zeros((1, len(self.iid_map))) #just one user for whoem we are making prediction
+
+        #initialize the vector with items that user has experienced
+        for i in user_items:
+            matrix[0, self.iid_map[i]] = 1
+        test_x = theano.shared(matrix, name='test_user')
+
+        #number_of_times_up_down = 100
+        # define one step of Gibbs sampling (mf = mean-field) define a
+        presig_hids, hid_mfs, hid_samples, presig_vis, vis_mfs, vis_samples = self.rbm.gibbs_vhv(test_x)
+
+        # [presig_hids, hid_mfs, hid_samples, presig_vis, vis_mfs, vis_samples], updates =  \
+        #                     theano.scan(
+        #                         self.gibbs_vhv,
+        #                         outputs_info=[None, None, None, None, None, test_x],
+        #                         n_steps=number_of_times_up_down)
+
+        # add to updates the shared variable that takes care of our persistent
+        # chain :.
+        # get the cost and the gradient corresponding to one step of CD-15
+        # updates.update({test_x: vis_samples[-1]})
+        # construct the function that implements our persistent chain.
+        # we generate the "mean field" activations for plotting and the actual
+        # samples for reinitializing the state of our persistent chain
+        # sample_fn = theano.function([], [vis_mfs[-1], vis_samples[-1]],
+        #                             updates=updates,
+        #                             name='sample_fn')
+
+        #predictions, vis_sample = sample_fn()
+        #we call eval, in order to save ndarray and not the pointer to some theano internal representation
+        return vis_mfs.eval()
+
+    def get_score(self, user, item):
+
+        #lets initialize visible layer to a user
+        iid = self.iid_map[item]
+
+        user_pred = self._get_user_predictions(user)
+        return user_pred[0, iid]
+
+
+    def set_params(self, n_hidden=100, learning_rate=0.1, training_epochs=5):
+        """
+        Set the parameters for the TensorCoFi
+        """
+        self.n_hidden = int(n_hidden)
+        self.learning_rate = float(learning_rate)
+        self.training_epochs = int(training_epochs)
+
+    @classmethod
+    def param_details(cls):
+        """
+        Return parameter details for n_factors, n_iterations, c_lambda and c_alpha
+        """
+        return {
+            "n_hidden": (10, 500, 25, 20),
+            "learning_rate": (0.01, 1, 0.1, 0.1),
+            "training_epochs": (1, 20, 2, 5),
+        }
+
+class RBM(object):
+    """
     The implementation is taken from http://www.deeplearning.net/tutorial/rbm.html
 
     """
-    def __init__(self, n_visible=None, n_hidden=100, input=None, learning_rate=0.1, training_epochs=5,\
+    def __init__(self, n_visible, n_hidden=100, input=None, learning_rate=0.1, training_epochs=5,\
                  W=None, hbias=None, vbias=None, numpy_rng=None, theano_rng=None):
         """
         RBM constructor. Defines the parameters of the model along with
@@ -65,9 +233,6 @@ class RBM(IModel):
         """
 
         #the problem that we don't need this parameter as it will be set automatically
-        if n_visible is None:
-            n_visible = 0
-
         self.n_visible = n_visible
         self.n_hidden = n_hidden
         self.learning_rate = learning_rate
@@ -332,162 +497,3 @@ class RBM(IModel):
                       axis=1))
 
         return cross_entropy
-
-    @classmethod
-    def param_details(cls):
-        return {
-            "learning_rate": (0.01, 0.05, 0.5, 0.1),
-            "training_epochs": (1, 50, 5, 15),
-            "n_hidden": (10, 1000, 10, 100),
-        }
-
-    def get_name(self):
-        return "RBM (n_hidden={0})".format(self.n_hidden)
-
-    def _convert(self, training_data):
-        iid_map = {item: id for id, item in enumerate(training_data.item.unique())}
-        uid_map = {user: id for id, user in enumerate(training_data.user.unique())}
-        users = {user: set(entries) for user, entries in training_data.groupby('user')['item']}
-
-        train_set_x = numpy.zeros((len(uid_map), len(iid_map)))
-        for user, items in users.items():
-            for i in items:
-                train_set_x[uid_map[user], iid_map[i]] = 1
-
-        return train_set_x, uid_map, iid_map, users
-
-    def fit(self, training_data):
-        '''
-        Converts training_data pandas data frame into the RBM representation.
-        The representation contains vector of movies for each user.
-        '''
-
-        matrix, uid_map, iid_map, user_data = self._convert(training_data)
-        self.user_data = user_data
-        self.uid_map = uid_map
-        self.iid_map = iid_map
-
-        training_set_x = theano.shared(matrix, name='training_data')
-        self.input = training_set_x
-        self.train_rbm(training_set_x)
-
-    def train_rbm(self, train_set_x, batch_size=20):
-        """
-        Trains the RBM, given the training data set.
-
-        :param train_set_x: a matrix of user vectors for trainign RBM
-        :param learning_rate: learning rate used for training the RBM
-        :param training_epochs: number of epochs used for training
-        :param batch_size: size of a batch used to train the RBM
-        :param n_chains: number of parallel Gibbs chains to be used for sampling
-        :param n_samples: number of samples to plot for each chain
-
-        """
-        # compute number of minibatches for training, validation and testing
-        n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
-
-        # allocate symbolic variables for the data
-        index = T.lscalar()    # index to a [mini]batch
-        x = T.matrix('x')  # the data is presented as user vector per each row
-
-        rng = numpy.random.RandomState(123)
-        theano_rng = RandomStreams(rng.randint(2 ** 30))
-
-        # initialize storage for the persistent chain (state = hidden layer of chain)
-        persistent_chain = theano.shared(numpy.zeros((batch_size, self.n_hidden), dtype=theano.config.floatX), borrow=True)
-
-        # construct the RBM class
-        self.rbm = RBM(n_visible=train_set_x.shape[1].eval(), n_hidden=self.n_hidden, input=x, numpy_rng=rng, theano_rng=theano_rng)
-
-        # get the cost and the gradient corresponding to one step of CD-15
-        cost, updates = self.rbm.get_cost_updates(lr=self.learning_rate, persistent=persistent_chain, k=self.training_epochs)
-
-        #################################
-        #     Training the RBM          #
-        #################################
-        # it is ok for a theano function to have no output
-        # the purpose of train_rbm is solely to update the RBM parameters
-        train_rbm = theano.function([index], cost, updates=updates, givens={x: train_set_x[index * batch_size: (index + 1) * batch_size]}, name='train_rbm')
-
-        start_time = time.clock()
-        # go through training epochs
-        for epoch in xrange(self.training_epochs):
-            # go through the training set
-            mean_cost = []
-            for batch_index in xrange(n_train_batches):
-                mean_cost += [train_rbm(batch_index)]
-            print 'Training epoch %d, cost is ' % epoch, numpy.mean(mean_cost)
-
-        end_time = time.clock()
-        pretraining_time = (end_time - start_time)
-        print ('Training took %f minutes' % (pretraining_time / 60.))
-
-    @lru_cache(maxsize=1000)
-    def _get_user_predictions(self, user):
-        '''
-        Compute the prediction for the user. It is cashed as we need to do it many times for evaluation.
-        '''
-
-        #print "computing prediction vector for user ",user
-
-        user_items = self.user_data[user]
-
-        matrix = numpy.zeros((1, len(self.iid_map))) #just one user for whoem we are making prediction
-
-        #initialize the vector with items that user has experienced
-        for i in user_items:
-            matrix[0, self.iid_map[i]] = 1
-        test_x = theano.shared(matrix, name='test_user')
-
-        #number_of_times_up_down = 100
-        # define one step of Gibbs sampling (mf = mean-field) define a
-        presig_hids, hid_mfs, hid_samples, presig_vis, vis_mfs, vis_samples = self.rbm.gibbs_vhv(test_x)
-
-        # [presig_hids, hid_mfs, hid_samples, presig_vis, vis_mfs, vis_samples], updates =  \
-        #                     theano.scan(
-        #                         self.gibbs_vhv,
-        #                         outputs_info=[None, None, None, None, None, test_x],
-        #                         n_steps=number_of_times_up_down)
-
-        # add to updates the shared variable that takes care of our persistent
-        # chain :.
-        # get the cost and the gradient corresponding to one step of CD-15
-        # updates.update({test_x: vis_samples[-1]})
-        # construct the function that implements our persistent chain.
-        # we generate the "mean field" activations for plotting and the actual
-        # samples for reinitializing the state of our persistent chain
-        # sample_fn = theano.function([], [vis_mfs[-1], vis_samples[-1]],
-        #                             updates=updates,
-        #                             name='sample_fn')
-
-        #predictions, vis_sample = sample_fn()
-        #we call eval, in order to save ndarray and not the pointer to some theano internal representation
-        return vis_mfs.eval()
-
-    def get_score(self, user, item):
-
-        #lets initialize visible layer to a user
-        iid = self.iid_map[item]
-
-        user_pred = self._get_user_predictions(user)
-        return user_pred[0, iid]
-
-
-    def set_params(self, n_hidden=100, learning_rate=0.1, training_epochs=5):
-        """
-        Set the parameters for the TensorCoFi
-        """
-        self.n_hidden = int(n_hidden)
-        self.learning_rate = float(learning_rate)
-        self.training_epochs = int(training_epochs)
-
-    @classmethod
-    def param_details(cls):
-        """
-        Return parameter details for n_factors, n_iterations, c_lambda and c_alpha
-        """
-        return {
-            "n_hidden": (10, 500, 25, 20),
-            "learning_rate": (0.01, 1, 0.1, 0.1),
-            "training_epochs": (1, 20, 2, 5),
-        }
