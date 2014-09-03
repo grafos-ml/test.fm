@@ -2,7 +2,6 @@ __author__ = 'linas'
 
 import pandas as pd
 import testfm
-from testfm.models.tensorcofi import PyTensorCoFi as TensorCoFi
 from testfm.models.bpr import BPR as TensorCoFi
 from testfm.evaluation.evaluator import Evaluator
 from pkg_resources import resource_filename

@@ -472,3 +472,22 @@ class RBM(IModel):
         user_pred = self._get_user_predictions(user)
         return user_pred[0, iid]
 
+
+    def set_params(self, n_hidden=100, learning_rate=0.1, training_epochs=5):
+        """
+        Set the parameters for the TensorCoFi
+        """
+        self.n_hidden = int(n_hidden)
+        self.learning_rate = float(learning_rate)
+        self.training_epochs = int(training_epochs)
+
+    @classmethod
+    def param_details(cls):
+        """
+        Return parameter details for n_factors, n_iterations, c_lambda and c_alpha
+        """
+        return {
+            "n_hidden": (10, 500, 25, 20),
+            "learning_rate": (0.01, 1, 0.1, 0.1),
+            "training_epochs": (1, 20, 2, 5),
+        }
