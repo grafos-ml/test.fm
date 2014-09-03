@@ -54,6 +54,11 @@ class RBM_CF(IModel):
             .format(self.n_hidden, self.learning_rate, self.training_epochs)
 
     def _convert(self, training_data):
+        """
+        Converts training_data pandas data frame into the RBM representation.
+        The representation contains vector of movies for each user.
+        """
+
         iid_map = {item: id for id, item in enumerate(training_data.item.unique())}
         uid_map = {user: id for id, user in enumerate(training_data.user.unique())}
         users = {user: set(entries) for user, entries in training_data.groupby('user')['item']}
@@ -67,8 +72,7 @@ class RBM_CF(IModel):
 
     def fit(self, training_data):
         '''
-        Converts training_data pandas data frame into the RBM representation.
-        The representation contains vector of movies for each user.
+        Fits the RBM using training data.
         '''
 
         matrix, uid_map, iid_map, user_data = self._convert(training_data)
@@ -131,10 +135,11 @@ class RBM_CF(IModel):
         pretraining_time = (end_time - start_time)
         print ('Training took %f minutes' % (pretraining_time / 60.))
 
-    @lru_cache(maxsize=1000)
+    @lru_cache(maxsize=100)
     def _get_user_predictions(self, user):
         '''
-        Compute the prediction for the user. It is cashed as we need to do it many times for evaluation.
+        Compute the prediction for the user (predictions for all the items).
+        It is cashed as we need to do it many times for evaluation.
         '''
 
         #print "computing prediction vector for user ",user
@@ -190,20 +195,9 @@ class RBM_CF(IModel):
         self.learning_rate = float(learning_rate)
         self.training_epochs = int(training_epochs)
 
-    @classmethod
-    def param_details(cls):
-        """
-        Return parameter details for n_factors, n_iterations, c_lambda and c_alpha
-        """
-        return {
-            "n_hidden": (10, 500, 25, 20),
-            "learning_rate": (0.01, 1, 0.1, 0.1),
-            "training_epochs": (1, 20, 2, 5),
-        }
-
 class RBM(object):
     """
-    The implementation is taken from http://www.deeplearning.net/tutorial/rbm.html
+    The implementation of RBM taken from http://www.deeplearning.net/tutorial/rbm.html
 
     """
     def __init__(self, n_visible, n_hidden=100, input=None, learning_rate=0.1, training_epochs=5,\

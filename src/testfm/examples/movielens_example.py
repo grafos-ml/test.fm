@@ -19,21 +19,12 @@ if __name__ == "__main__":
     df = pd.read_csv("/Users/mumas/devel/data-mac/1M_movielens/ratings.dat",
                      sep=" ", header=None, names=["user", "item", "rating", "date"])
     print df.head()
-    training, testing = testfm.split.holdoutByRandom(df, 0.5)
-
-
-    print "Tuning the parameters."
-    tr, validation = testfm.split.holdoutByRandom(training, 0.7)
-    pt = ParameterTuning()
-    pt.set_max_iterations(100)
-    pt.set_z_value(90)
-    params = pt.get_best_params(RBM, tr, validation)
-    print params
+    training, testing = testfm.split.holdoutByRandom(df, 0.8)
 
     #tell me what models we want to evaluate
     models = [
         RandomModel(),
-        RBM(n_hidden=20),
+        RBM(learning_rate=0.81, training_epochs=7, n_hidden=485),
         BPR(dim=20),
         Popularity(),
         TensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
