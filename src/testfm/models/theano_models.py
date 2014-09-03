@@ -49,6 +49,14 @@ class RBM_CF(IModel):
             "n_hidden": (10, 1000, 10, 100),
         }
 
+    def set_params(self, n_hidden=100, learning_rate=0.1, training_epochs=5):
+        """
+        Set the parameters for the TensorCoFi
+        """
+        self.n_hidden = int(n_hidden)
+        self.learning_rate = float(learning_rate)
+        self.training_epochs = int(training_epochs)
+
     def get_name(self):
         return "RBM (n_hidden={0}, learning_rate={1}, training_epochs={2})"\
             .format(self.n_hidden, self.learning_rate, self.training_epochs)
@@ -129,11 +137,11 @@ class RBM_CF(IModel):
             mean_cost = []
             for batch_index in xrange(n_train_batches):
                 mean_cost += [train_rbm(batch_index)]
-            print 'Training epoch %d, cost is ' % epoch, numpy.mean(mean_cost)
+            #print 'Training epoch %d, cost is ' % epoch, numpy.mean(mean_cost)
 
         end_time = time.clock()
         pretraining_time = (end_time - start_time)
-        print ('Training took %f minutes' % (pretraining_time / 60.))
+        #print ('Training took %f minutes' % (pretraining_time / 60.))
 
     @lru_cache(maxsize=100)
     def _get_user_predictions(self, user):
@@ -187,13 +195,7 @@ class RBM_CF(IModel):
         return user_pred[0, iid]
 
 
-    def set_params(self, n_hidden=100, learning_rate=0.1, training_epochs=5):
-        """
-        Set the parameters for the TensorCoFi
-        """
-        self.n_hidden = int(n_hidden)
-        self.learning_rate = float(learning_rate)
-        self.training_epochs = int(training_epochs)
+
 
 class RBM(object):
     """
