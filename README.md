@@ -69,3 +69,19 @@ Similar Projects
 4. [mymedialite](http://www.mymedialite.net/) from Uni Hildesheim. Has ranking implementations. (c#, GPL).
 5. [mahout](https://mahout.apache.org/) of apache. Uses hadoop to build the models. (java, hadoop, apache2)
 6. [lenskit](http://lenskit.grouplens.org/) Grouplens (java, GPL2.1)
+
+
+Results on Netflix while computing MAP
+======================================
+Just to see the performance of the implemented methods, we compute Mean Average Precision on Netflix data set.
+We take 80% of the original data set as training and 20% as testing.
+We show the training time, parameters used and the computed MAP
+
+Time to train  | Model with parameters                                                          | MAP
+---------------|--------------------------------------------------------------------------------|---------------------
+0:19:10.075461 | RBM (n_hidden=485, learning_rate=0.81, training_epochs=7)                      | [0.6355629482363839]
+0:20:01.546773 | BPR (dim=20,iter=15,reg=0.0001,eta=0.001)                                      | [0.24399166832892044]
+0:00:00.023616 | Popularity                                                                     | [0.5601194977074632]
+0:01:30.944997 | TensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40)            | [0.7096535977450071]
+0:02:43.543443 | Python TensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40.0)   | [0.711844488238357]
+0:00:52.935173 | CTensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40)           | [0.6971995298227264]
