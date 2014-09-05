@@ -1,0 +1,9 @@
+build
+dist
+*.pyc
+*.h
+*.c
+*.so
+.idea
+src/testfm.egg-info/
+testfm.egg-info/
