@@ -13,7 +13,7 @@ from testfm.models.baseline_model import IdModel, Item2Item, AverageModel
 from testfm.models.ensemble_models import LogisticEnsemble
 from testfm.models.content_based import TFIDFModel, LSIModel
 from testfm.evaluation.evaluator import Evaluator
-from testfm.models.theano_models import RBM
+from testfm.models.theano_models import RBM_CF
 
 
 def which(program):
@@ -239,9 +239,9 @@ class RBMTest(unittest.TestCase):
                                 {"user": 11, "item": 1, "desc": "oh my god"},
                                 {"user": 12, "item": 110, "desc": "the sky sky is blue and nice"}])
     def test_convert(self):
-        rbm = RBM(100)
+        rbm = RBM_CF(100)
 
-        matrix, uid, iid = rbm._convert(self.df)
+        matrix, uid, iid, users = rbm._convert(self.df)
         self.assertEqual({10: 0, 11: 1, 12: 2}, uid)
         self.assertEqual({100: 0, 1: 1, 110: 2}, iid)
 
