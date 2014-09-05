@@ -5,5 +5,7 @@ dist
 *.c
 *.so
 .idea
+.coverage
+src/cover
 src/testfm.egg-info/
 testfm.egg-info/
