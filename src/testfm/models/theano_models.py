@@ -22,7 +22,102 @@ try:
 except ImportError:
     from backports.functools_lru_cache import lru_cache
 
-class RBM_CF(IModel):
+
+class TheanoModel(IModel):
+
+    def _convert(self, training_data):
+        """
+        Converts training_data pandas data frame into the RBM representation.
+        The representation contains vector of movies for each user.
+        """
+
+        iid_map = {item: id for id, item in enumerate(training_data.item.unique())}
+        uid_map = {user: id for id, user in enumerate(training_data.user.unique())}
+        users = {user: set(entries) for user, entries in training_data.groupby('user')['item']}
+
+        train_set_x = numpy.zeros((len(uid_map), len(iid_map)))
+        for user, items in users.items():
+            for i in items:
+                train_set_x[uid_map[user], iid_map[i]] = 1
+
+        return train_set_x, uid_map, iid_map, users
+
+class DBN_RBM_CF(TheanoModel):
+
+    def __init__(self, hidden_layers_sizes=[500, 500], learning_rate=0.8, training_epochs=7):
+        self.hidden_layers_sizes = hidden_layers_sizes
+        self.learning_rate = learning_rate
+        self.training_epochs = training_epochs
+
+    def get_name(self):
+        return "DBN:RBM (n_hidden={0}, learning_rate={1}, training_epochs={2})"\
+            .format(self.hidden_layers_sizes, self.learning_rate, self.training_epochs)
+
+
+    def fit(self, training_data, batch_size=20, k=1, pretraining_epochs=5):
+
+        matrix, uid_map, iid_map, user_data = self._convert(training_data)
+
+        self.user_data = user_data
+        self.uid_map = uid_map
+        self.iid_map = iid_map
+
+        training_set_x = theano.shared(matrix, name='training_data')
+        self.input = training_set_x
+        n_train_batches = training_set_x.get_value(borrow=True).shape[0] / batch_size
+
+        print '... getting the pretraining functions'
+        rng = numpy.random.RandomState(123)
+        theano_rng = RandomStreams(rng.randint(2 ** 30))
+        self.dbn = DBN(n_ins=training_set_x.get_value(borrow=True).shape[1], numpy_rng=rng, theano_rng=theano_rng, hidden_layers_sizes=self.hidden_layers_sizes)
+        pretraining_fns = self.dbn.pretraining_functions(train_set_x=training_set_x, batch_size=batch_size, k=k)
+
+        print '... pre-training the model'
+        ## Pre-train layer-wise
+        for i in xrange(self.dbn.n_layers):
+            # go through pretraining epochs
+            for epoch in xrange(pretraining_epochs):
+                # go through the training set
+                c = []
+                for batch_index in xrange(n_train_batches):
+                    c.append(pretraining_fns[i](index=batch_index, lr=self.learning_rate))
+                print 'Pre-training layer %i, epoch %d, cost ' % (i, epoch),
+                print numpy.mean(c)
+
+    @lru_cache(maxsize=100)
+    def _get_user_predictions(self, user):
+        '''
+        Compute the prediction for the user (predictions for all the items).
+        It is cashed as we need to do it many times for evaluation.
+
+        We go from input units till the top of the DBN and back.
+        '''
+
+        user_items = self.user_data[user]
+
+        matrix = numpy.zeros((1, len(self.iid_map))) #just one user for whoem we are making prediction
+
+        #initialize the vector with items that user has experienced
+        for i in user_items:
+            matrix[0, self.iid_map[i]] = 1
+        test_x = theano.shared(matrix, name='user-model')
+
+        for rbm in self.dbn.rbm_layers:
+            _, test_x = rbm.propup(test_x)
+        for rbm in reversed(self.dbn.rbm_layers):
+            _, test_x = rbm.propdown(test_x)
+        return test_x.eval()
+
+    def get_score(self, user, item):
+
+        #lets initialize visible layer to a user
+        iid = self.iid_map[item]
+
+        user_pred = self._get_user_predictions(user)
+        return user_pred[0, iid]
+
+
+class RBM_CF(TheanoModel):
     """
     Restricted Boltzmann Machines (RBM) is used in the CF as one of the most successful model
     for collaborative filtering:
@@ -64,22 +159,6 @@ class RBM_CF(IModel):
         return "RBM (n_hidden={0}, learning_rate={1}, training_epochs={2})"\
             .format(self.n_hidden, self.learning_rate, self.training_epochs)
 
-    def _convert(self, training_data):
-        """
-        Converts training_data pandas data frame into the RBM representation.
-        The representation contains vector of movies for each user.
-        """
-
-        iid_map = {item: id for id, item in enumerate(training_data.item.unique())}
-        uid_map = {user: id for id, user in enumerate(training_data.user.unique())}
-        users = {user: set(entries) for user, entries in training_data.groupby('user')['item']}
-
-        train_set_x = numpy.zeros((len(uid_map), len(iid_map)))
-        for user, items in users.items():
-            for i in items:
-                train_set_x[uid_map[user], iid_map[i]] = 1
-
-        return train_set_x, uid_map, iid_map, users
 
     def fit(self, training_data):
         '''
@@ -197,9 +276,6 @@ class RBM_CF(IModel):
         user_pred = self._get_user_predictions(user)
         return user_pred[0, iid]
 
-
-
-
 class RBM(object):
     """
     The implementation of RBM taken from http://www.deeplearning.net/tutorial/rbm.html
@@ -237,6 +313,8 @@ class RBM(object):
         self.learning_rate = learning_rate
         self.training_epochs = training_epochs
 
+
+
         if numpy_rng is None:
             # create a number generator
             numpy_rng = numpy.random.RandomState(1234)
@@ -269,7 +347,6 @@ class RBM(object):
             vbias = theano.shared(value=numpy.zeros(n_visible,
                                                     dtype=theano.config.floatX),
                                   name='vbias', borrow=True)
-
         # initialize input layer for standalone RBM or layer0 of DBN
         self.input = input
         if not input:
@@ -282,6 +359,9 @@ class RBM(object):
         # **** WARNING: It is not a good idea to put things in this list
         # other than shared variables created in this function.
         self.params = [self.W, self.hbias, self.vbias]
+
+        #output is computed on the fly, without storing it as real hidden units
+        self.output = self.propup(input)[1]
 
     def free_energy(self, v_sample):
         ''' Function to compute the free energy '''
@@ -573,7 +653,7 @@ class DBN(object):
             if i == 0:
                 layer_input = self.x
             else:
-                layer_input = self.sigmoid_layers[-1].output
+                layer_input = self.rbm_layers[i - 1].output
 
             # Construct an RBM that shared weights with this layer
             rbm_layer = RBM(numpy_rng=numpy_rng,
@@ -630,72 +710,3 @@ class DBN(object):
             pretrain_fns.append(fn)
 
         return pretrain_fns
-
-    def build_finetune_functions(self, datasets, batch_size, learning_rate):
-        '''Generates a function `train` that implements one step of
-        finetuning, a function `validate` that computes the error on a
-        batch from the validation set, and a function `test` that
-        computes the error on a batch from the testing set
-
-        :type datasets: list of pairs of theano.tensor.TensorType
-        :param datasets: It is a list that contain all the datasets;
-                        the has to contain three pairs, `train`,
-                        `valid`, `test` in this order, where each pair
-                        is formed of two Theano variables, one for the
-                        datapoints, the other for the labels
-        :type batch_size: int
-        :param batch_size: size of a minibatch
-        :type learning_rate: float
-        :param learning_rate: learning rate used during finetune stage
-
-        '''
-
-        (train_set_x, train_set_y) = datasets[0]
-        (valid_set_x, valid_set_y) = datasets[1]
-        (test_set_x, test_set_y) = datasets[2]
-
-        # compute number of minibatches for training, validation and testing
-        n_valid_batches = valid_set_x.get_value(borrow=True).shape[0]
-        n_valid_batches /= batch_size
-        n_test_batches = test_set_x.get_value(borrow=True).shape[0]
-        n_test_batches /= batch_size
-
-        index = T.lscalar('index')  # index to a [mini]batch
-
-        # compute the gradients with respect to the model parameters
-        gparams = T.grad(self.finetune_cost, self.params)
-
-        # compute list of fine-tuning updates
-        updates = []
-        for param, gparam in zip(self.params, gparams):
-            updates.append((param, param - gparam * learning_rate))
-
-        train_fn = theano.function(inputs=[index],
-              outputs=self.finetune_cost,
-              updates=updates,
-              givens={self.x: train_set_x[index * batch_size:
-                                          (index + 1) * batch_size],
-                      self.y: train_set_y[index * batch_size:
-                                          (index + 1) * batch_size]})
-
-        test_score_i = theano.function([index], self.errors,
-                 givens={self.x: test_set_x[index * batch_size:
-                                            (index + 1) * batch_size],
-                         self.y: test_set_y[index * batch_size:
-                                            (index + 1) * batch_size]})
-
-        valid_score_i = theano.function([index], self.errors,
-              givens={self.x: valid_set_x[index * batch_size:
-                                          (index + 1) * batch_size],
-                      self.y: valid_set_y[index * batch_size:
-                                          (index + 1) * batch_size]})
-
-        # Create a function that scans the entire validation set
-        def valid_score():
-            return [valid_score_i(i) for i in xrange(n_valid_batches)]
-
-        # Create a function that scans the entire test set
-        def test_score():
-            return [test_score_i(i) for i in xrange(n_test_batches)]
-
-        return train_fn, valid_score, test_score

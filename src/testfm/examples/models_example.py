@@ -7,7 +7,7 @@ from testfm.models.baseline_model import Popularity, RandomModel, Item2Item
 from testfm.models.tensorcofi import PyTensorCoFi, TensorCoFi, CTensorCoFi
 from testfm.models.content_based import TFIDFModel, LSIModel
 from testfm.models.bpr import BPR
-from testfm.models.theano_models import RBM_CF
+from testfm.models.theano_models import RBM_CF, DBN_RBM_CF
 from pkg_resources import resource_filename
 import datetime
 
@@ -21,8 +21,8 @@ if __name__ == "__main__":
     print df.head()
     training, testing = testfm.split.holdoutByRandom(df, 0.5)
 
-    #tell me what models we want to evaluate
     models = [
+        DBN_RBM_CF(hidden_layers_sizes=[50, 10]),
         RandomModel(),
         RBM_CF(n_hidden=20),
         BPR(dim=20),
@@ -33,6 +33,7 @@ if __name__ == "__main__":
         CTensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
         LSIModel("title")
     ]
+    #tell me what models we want to evaluate
 
     #models += [LinearRank([models[2], models[3]],  item_features_column=["rating"])]
     items = training.item.unique()
