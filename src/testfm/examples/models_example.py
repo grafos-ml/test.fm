@@ -7,7 +7,7 @@ from testfm.models.baseline_model import Popularity, RandomModel, Item2Item
 from testfm.models.tensorcofi import PyTensorCoFi, TensorCoFi, CTensorCoFi
 from testfm.models.content_based import TFIDFModel, LSIModel
 from testfm.models.bpr import BPR
-from testfm.models.theano_models import RBM_CF, DBN_RBM_CF
+from testfm.models.theano_models import RBM_CF, DBN_RBM_CF, dA_CF
 from pkg_resources import resource_filename
 import datetime
 
@@ -24,6 +24,7 @@ if __name__ == "__main__":
     #tell me what models we want to evaluate
     models = [
         RandomModel(),
+        dA_CF(n_hidden=20, corruption_level=0.1),
         RBM_CF(n_hidden=20),
         DBN_RBM_CF(hidden_layers_sizes=[20, 15, 12, 10, 8]),
         BPR(dim=20),
