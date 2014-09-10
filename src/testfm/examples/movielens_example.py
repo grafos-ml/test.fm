@@ -6,15 +6,15 @@ from testfm.evaluation.evaluator import Evaluator
 from testfm.models.baseline_model import Popularity, RandomModel, Item2Item
 from testfm.models.tensorcofi import PyTensorCoFi, TensorCoFi, CTensorCoFi
 from testfm.models.bpr import BPR
-from testfm.models.theano_models import RBM_CF
+from testfm.models.theano_models import RBM_CF, DBN_RBM_CF
 import datetime
 
 if __name__ == "__main__":
     evaluator = Evaluator()
 
     #prepare the data
-    df = pd.read_csv("netflix.csv",
-                     sep=",", header=None, names=["user", "item", "rating"])
+    df = pd.read_csv("/Users/mumas/devel/data-mac/1M_movielens/ratings.dat",
+                     sep=" ", header=None, names=["user", "item", "rating", "date"])
     print df.head()
     training, testing = testfm.split.holdoutByRandom(df, 0.8)
 
@@ -24,6 +24,7 @@ if __name__ == "__main__":
         Popularity(),
         CTensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
         RBM_CF(learning_rate=0.81, training_epochs=7, n_hidden=485),
+        DBN_RBM_CF(hidden_layers_sizes=[485, 100]),
         #BPR(dim=20),
         #TensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
         #PyTensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),

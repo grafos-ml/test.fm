@@ -63,16 +63,14 @@ class DBN_RBM_CF(TheanoModel):
         self.iid_map = iid_map
 
         training_set_x = theano.shared(matrix, name='training_data')
-        self.input = training_set_x
         n_train_batches = training_set_x.get_value(borrow=True).shape[0] / batch_size
 
-        print '... getting the pretraining functions'
+        #print '... getting the pretraining functions'
         rng = numpy.random.RandomState(123)
         theano_rng = RandomStreams(rng.randint(2 ** 30))
         self.dbn = DBN(n_ins=training_set_x.get_value(borrow=True).shape[1], numpy_rng=rng, theano_rng=theano_rng, hidden_layers_sizes=self.hidden_layers_sizes)
         pretraining_fns = self.dbn.pretraining_functions(train_set_x=training_set_x, batch_size=batch_size, k=k)
 
-        print '... pre-training the model'
         ## Pre-train layer-wise
         for i in xrange(self.dbn.n_layers):
             # go through pretraining epochs
@@ -81,8 +79,8 @@ class DBN_RBM_CF(TheanoModel):
                 c = []
                 for batch_index in xrange(n_train_batches):
                     c.append(pretraining_fns[i](index=batch_index, lr=self.learning_rate))
-                print 'Pre-training layer %i, epoch %d, cost ' % (i, epoch),
-                print numpy.mean(c)
+                #print 'Pre-training layer %i, epoch %d, cost ' % (i, epoch),
+                #print numpy.mean(c)
 
     @lru_cache(maxsize=100)
     def _get_user_predictions(self, user):
@@ -171,7 +169,6 @@ class RBM_CF(TheanoModel):
         self.iid_map = iid_map
 
         training_set_x = theano.shared(matrix, name='training_data')
-        self.input = training_set_x
         self.train_rbm(training_set_x)
 
     def train_rbm(self, train_set_x, batch_size=20):
@@ -212,7 +209,6 @@ class RBM_CF(TheanoModel):
         # the purpose of train_rbm is solely to update the RBM parameters
         train_rbm = theano.function([index], cost, updates=updates, givens={x: train_set_x[index * batch_size: (index + 1) * batch_size]}, name='train_rbm')
 
-        start_time = time.clock()
         # go through training epochs
         for epoch in xrange(self.training_epochs):
             # go through the training set
@@ -220,10 +216,6 @@ class RBM_CF(TheanoModel):
             for batch_index in xrange(n_train_batches):
                 mean_cost += [train_rbm(batch_index)]
             #print 'Training epoch %d, cost is ' % epoch, numpy.mean(mean_cost)
-
-        end_time = time.clock()
-        pretraining_time = (end_time - start_time)
-        #print ('Training took %f minutes' % (pretraining_time / 60.))
 
     @lru_cache(maxsize=100)
     def _get_user_predictions(self, user):
@@ -623,8 +615,6 @@ class DBN(object):
 
         # allocate symbolic variables for the data
         self.x = T.matrix('x')  # the data is presented as rasterized images
-        self.y = T.ivector('y')  # the labels are presented as 1D vector
-                                 # of [int] labels
 
         # The DBN is an MLP, for which all weights of intermediate
         # layers are shared with a different RBM.  We will first
@@ -696,16 +686,14 @@ class DBN(object):
             # get the cost and the updates list
             # using CD-k here (persisent=None) for training each RBM.
             # TODO: change cost function to reconstruction error
-            cost, updates = rbm.get_cost_updates(learning_rate,
-                                                 persistent=None, k=k)
+            cost, updates = rbm.get_cost_updates(learning_rate, persistent=None, k=k)
 
             # compile the theano function
             fn = theano.function(inputs=[index,
                             theano.Param(learning_rate, default=0.1)],
                                  outputs=cost,
                                  updates=updates,
-                                 givens={self.x:
-                                    train_set_x[batch_begin:batch_end]})
+                                 givens={self.x: train_set_x[batch_begin:batch_end]})
             # append `fn` to the list of functions
             pretrain_fns.append(fn)
 
