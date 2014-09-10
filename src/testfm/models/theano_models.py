@@ -24,6 +24,7 @@ except ImportError:
 
 
 class TheanoModel(IModel):
+    ''' The main class for all of the theano based models that use some kind of neural network. '''
 
     def _convert(self, training_data):
         """
@@ -52,6 +53,11 @@ class TheanoModel(IModel):
 
 class dA_CF(TheanoModel):
 
+    '''
+    We try to use autoencoders for CF. The idea that instead of making one kind of dimensionality
+    reduction, we can do it with autoencoders.
+    '''
+
     def __init__(self, n_hidden=400, learning_rate=0.8, training_epochs=15, corruption_level=0.1):
         self.n_hidden = n_hidden
         self.learning_rate = learning_rate
@@ -66,6 +72,15 @@ class dA_CF(TheanoModel):
             "n_hidden": (10, 1000, 10, 100),
             "corruption_level" :(0.0, 1.0, 0.1, 0.1),
         }
+
+    def set_params(self, n_hidden=100, learning_rate=0.1, training_epochs=5, corruption_level=0.1):
+        """
+        Set the parameters for the TensorCoFi
+        """
+        self.n_hidden = int(n_hidden)
+        self.learning_rate = float(learning_rate)
+        self.training_epochs = int(training_epochs)
+        self.corruption_level = float(corruption_level)
 
     def fit(self,  training_data, batch_size=20, k=1, pretraining_epochs=5):
 
