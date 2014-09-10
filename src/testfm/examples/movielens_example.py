@@ -22,13 +22,13 @@ if __name__ == "__main__":
     models = [
         RandomModel(),
         Popularity(),
-        dA_CF(n_hidden=20, corruption_level=0.0),
+        dA_CF(n_hidden=400, corruption_level=0.1),
         CTensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
         RBM_CF(learning_rate=0.81, training_epochs=7, n_hidden=485),
         DBN_RBM_CF(hidden_layers_sizes=[485, 100]),
         #BPR(dim=20),
         #TensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
-        #PyTensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
+        PyTensorCoFi(n_factors=20, n_iterations=5, c_lambda=0.05, c_alpha=40),
     ]
 
     #models += [LinearRank([models[2], models[3]],  item_features_column=["rating"])]

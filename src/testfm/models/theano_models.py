@@ -95,8 +95,15 @@ class dA_CF(TheanoModel):
         rng = numpy.random.RandomState(123)
         theano_rng = RandomStreams(rng.randint(2 ** 30))
 
-        self.da = dA(numpy_rng=rng, theano_rng=theano_rng, input=x, n_visible=training_set_x.get_value(borrow=True).shape[1], n_hidden=self.n_hidden)
-        cost, updates = self.da.get_cost_updates(corruption_level=self.corruption_level, learning_rate=self.learning_rate)
+        self.da = dA(numpy_rng=rng,
+                     theano_rng=theano_rng,
+                     input=x,
+                     n_visible=training_set_x.get_value(borrow=True).shape[1],
+                     n_hidden=self.n_hidden)
+
+        cost, updates = self.da.get_cost_updates(
+                    corruption_level=self.corruption_level,
+                    learning_rate=self.learning_rate)
 
         train_da = theano.function([index], cost,
                                    updates=updates,
