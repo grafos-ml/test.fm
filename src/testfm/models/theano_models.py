@@ -14,6 +14,8 @@ import numpy
 import theano
 from theano import tensor as T
 from theano.tensor.shared_randomstreams import RandomStreams
+from theano import sparse
+from scipy.sparse import dok_matrix
 from testfm.models.cutil.interface import IModel
 
 
@@ -31,17 +33,18 @@ class TheanoModel(IModel):
         Converts training_data pandas data frame into the RBM representation.
         The representation contains vector of movies for each user.
         """
-
         iid_map = {item: id for id, item in enumerate(training_data.item.unique())}
         uid_map = {user: id for id, user in enumerate(training_data.user.unique())}
         users = {user: set(entries) for user, entries in training_data.groupby('user')['item']}
 
-        train_set_x = numpy.zeros((len(uid_map), len(iid_map)))
+        S = dok_matrix((len(uid_map), len(iid_map)), dtype=float)
+
+        #train_set_x = numpy.zeros((len(uid_map), len(iid_map)))
         for user, items in users.items():
             for i in items:
-                train_set_x[uid_map[user], iid_map[i]] = 1
+                S[uid_map[user], iid_map[i]] = 1
 
-        return train_set_x, uid_map, iid_map, users
+        return S.tocsr(), uid_map, iid_map, users
 
     def get_score(self, user, item):
 
@@ -96,18 +99,18 @@ class dA_CF(TheanoModel):
         theano_rng = RandomStreams(rng.randint(2 ** 30))
 
         self.da = dA(numpy_rng=rng,
-                     theano_rng=theano_rng,
-                     input=x,
-                     n_visible=training_set_x.get_value(borrow=True).shape[1],
-                     n_hidden=self.n_hidden)
+                    theano_rng=theano_rng,
+                    input=x,
+                    n_visible=training_set_x.get_value(borrow=True).shape[1],
+                    n_hidden=self.n_hidden)
 
         cost, updates = self.da.get_cost_updates(
                     corruption_level=self.corruption_level,
                     learning_rate=self.learning_rate)
 
         train_da = theano.function([index], cost,
-                                   updates=updates,
-                                   givens={x: training_set_x[index * batch_size:(index + 1) * batch_size]})
+                    updates=updates,
+                    givens={x: sparse.dense_from_sparse(training_set_x[index * batch_size: (index + 1) * batch_size])})
 
         for epoch in xrange(self.training_epochs):
             # go through trainng set
@@ -166,7 +169,10 @@ class DBN_RBM_CF(TheanoModel):
         #print '... getting the pretraining functions'
         rng = numpy.random.RandomState(123)
         theano_rng = RandomStreams(rng.randint(2 ** 30))
-        self.dbn = DBN(n_ins=training_set_x.get_value(borrow=True).shape[1], numpy_rng=rng, theano_rng=theano_rng, hidden_layers_sizes=self.hidden_layers_sizes)
+        self.dbn = DBN(n_ins=training_set_x.get_value(borrow=True).shape[1],
+                       numpy_rng=rng,
+                       theano_rng=theano_rng,
+                       hidden_layers_sizes=self.hidden_layers_sizes)
         pretraining_fns = self.dbn.pretraining_functions(train_set_x=training_set_x, batch_size=batch_size, k=k)
 
         ## Pre-train layer-wise
@@ -255,12 +261,12 @@ class RBM_CF(TheanoModel):
         Fits the RBM using training data.
         '''
 
-        matrix, uid_map, iid_map, user_data = self._convert(training_data)
+        csr_matrix, uid_map, iid_map, user_data = self._convert(training_data)
         self.user_data = user_data
         self.uid_map = uid_map
         self.iid_map = iid_map
 
-        training_set_x = theano.shared(matrix, name='training_data')
+        training_set_x = theano.shared(csr_matrix, name='training_data')
         self.train_rbm(training_set_x)
 
     def train_rbm(self, train_set_x, batch_size=20):
@@ -286,10 +292,16 @@ class RBM_CF(TheanoModel):
         theano_rng = RandomStreams(rng.randint(2 ** 30))
 
         # initialize storage for the persistent chain (state = hidden layer of chain)
-        persistent_chain = theano.shared(numpy.zeros((batch_size, self.n_hidden), dtype=theano.config.floatX), borrow=True)
+        persistent_chain = theano.shared(numpy.zeros((batch_size, self.n_hidden),
+                                                     dtype=theano.config.floatX),
+                                         borrow=True)
 
         # construct the RBM class
-        self.rbm = RBM(n_visible=train_set_x.shape[1].eval(), n_hidden=self.n_hidden, input=x, numpy_rng=rng, theano_rng=theano_rng)
+        self.rbm = RBM(n_visible=train_set_x.shape[1].eval(),
+                       n_hidden=self.n_hidden,
+                       input=x,
+                       numpy_rng=rng,
+                       theano_rng=theano_rng)
 
         # get the cost and the gradient corresponding to one step of CD-15
         cost, updates = self.rbm.get_cost_updates(lr=self.learning_rate, persistent=persistent_chain, k=self.training_epochs)
@@ -299,7 +311,11 @@ class RBM_CF(TheanoModel):
         #################################
         # it is ok for a theano function to have no output
         # the purpose of train_rbm is solely to update the RBM parameters
-        train_rbm = theano.function([index], cost, updates=updates, givens={x: train_set_x[index * batch_size: (index + 1) * batch_size]}, name='train_rbm')
+        train_rbm = theano.function([index],
+                                    cost,
+                                    updates=updates,
+                                    givens={x: sparse.dense_from_sparse(train_set_x[index * batch_size: (index + 1) * batch_size])},
+                                    name='train_rbm')
 
         # go through training epochs
         for epoch in xrange(self.training_epochs):
@@ -758,7 +774,7 @@ class DBN(object):
                             theano.Param(learning_rate, default=0.1)],
                                  outputs=cost,
                                  updates=updates,
-                                 givens={self.x: train_set_x[batch_begin:batch_end]})
+                                 givens={self.x: sparse.dense_from_sparse(train_set_x[batch_begin:batch_end])})
             # append `fn` to the list of functions
             pretrain_fns.append(fn)
 
