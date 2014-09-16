@@ -26,6 +26,7 @@ from testfm.models.cutil.interface import IFactorModel
 from testfm.models.cutil.tensorcofi import CTensorCoFi
 
 
+
 class TensorCoFi(IFactorModel):
 
     number_of_factors = 20

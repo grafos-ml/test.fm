@@ -15,9 +15,14 @@ import theano
 from theano import tensor as T
 from theano.tensor.shared_randomstreams import RandomStreams
 from theano import sparse
+import logging
 from scipy.sparse import dok_matrix
 from testfm.models.cutil.interface import IModel
 
+
+logger = logging.getLogger('testfm.models.theano_models')
+logging.basicConfig()
+logger.setLevel(logging.DEBUG)
 
 try:
     from functools import lru_cache
@@ -281,9 +286,12 @@ class RBM_CF(TheanoModel):
         :param n_samples: number of samples to plot for each chain
 
         """
+
+
         # compute number of minibatches for training, validation and testing
         n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
 
+        logger.debug('traing_rbm: #batches:{}, batch_size:{}'.format(n_train_batches, batch_size))
         # allocate symbolic variables for the data
         index = T.lscalar()    # index to a [mini]batch
         x = T.matrix('x')  # the data is presented as user vector per each row
@@ -297,11 +305,13 @@ class RBM_CF(TheanoModel):
                                          borrow=True)
 
         # construct the RBM class
+        logger.debug('Constructing RBM')
         self.rbm = RBM(n_visible=train_set_x.shape[1].eval(),
                        n_hidden=self.n_hidden,
                        input=x,
                        numpy_rng=rng,
                        theano_rng=theano_rng)
+
 
         # get the cost and the gradient corresponding to one step of CD-15
         cost, updates = self.rbm.get_cost_updates(lr=self.learning_rate, persistent=persistent_chain, k=self.training_epochs)
@@ -311,19 +321,21 @@ class RBM_CF(TheanoModel):
         #################################
         # it is ok for a theano function to have no output
         # the purpose of train_rbm is solely to update the RBM parameters
+        logger.debug('Creating training function for rbm')
         train_rbm = theano.function([index],
                                     cost,
                                     updates=updates,
                                     givens={x: sparse.dense_from_sparse(train_set_x[index * batch_size: (index + 1) * batch_size])},
                                     name='train_rbm')
 
+        logger.debug('start training')
         # go through training epochs
         for epoch in xrange(self.training_epochs):
             # go through the training set
             mean_cost = []
             for batch_index in xrange(n_train_batches):
                 mean_cost += [train_rbm(batch_index)]
-            #print 'Training epoch %d, cost is ' % epoch, numpy.mean(mean_cost)
+            logger.debug('Training epoch {}, cost is {}'.format(epoch, numpy.mean(mean_cost)))
 
     @lru_cache(maxsize=100)
     def _get_user_predictions(self, user):

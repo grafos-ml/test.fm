@@ -42,5 +42,5 @@ if __name__ == "__main__":
         t = datetime.datetime.now()
         m.fit(training)
         print datetime.datetime.now()-t,
-        print m.get_name().ljust(50),
+        print m.get_name().ljust(100),
         print evaluator.evaluate_model(m, testing, all_items=items,)
