@@ -273,10 +273,10 @@ class RBM_CF(TheanoModel):
         self.uid_map = uid_map
         self.iid_map = iid_map
 
-        training_set_x = theano.shared(csr_matrix, name='training_data')
+        training_set_x = theano.shared(csr_matrix, borrow=True, name='training_data')
         self.train_rbm(training_set_x)
 
-    def train_rbm(self, train_set_x, batch_size=20):
+    def train_rbm(self, train_set_x, batch_size=2):
         """
         Trains the RBM, given the training data set.
 
