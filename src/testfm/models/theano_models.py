@@ -38,6 +38,8 @@ class TheanoModel(IModel):
         Converts training_data pandas data frame into the RBM representation.
         The representation contains vector of movies for each user.
         """
+        logger.debug('converting data of lenght {} to a sparse matrix and idexes'.format(len(training_data)))
+
         iid_map = {item: id for id, item in enumerate(training_data.item.unique())}
         uid_map = {user: id for id, user in enumerate(training_data.user.unique())}
         users = {user: set(entries) for user, entries in training_data.groupby('user')['item']}
