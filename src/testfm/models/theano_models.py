@@ -308,7 +308,7 @@ class RBM_CF(TheanoModel):
 
         # construct the RBM class
         logger.debug('Constructing RBM')
-        self.rbm = RBM(n_visible=train_set_x.shape[1].eval(),
+        self.rbm = RBM(n_visible=train_set_x.get_value(borrow=True).shape[1],
                        n_hidden=self.n_hidden,
                        input=x,
                        numpy_rng=rng,
