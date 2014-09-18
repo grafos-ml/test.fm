@@ -1,4 +1,3 @@
-from memory_profiler import profile
 from testfm.models.cutil.interface import IModel
 
 __author__ = 'linas'
@@ -34,7 +33,6 @@ except ImportError:
 
 class TheanoTest(IModel):
 
-    @profile
     def fit(self, training_data):
         x = T.matrix('x')       # the data is one row per user
         z = x.shape[0]
