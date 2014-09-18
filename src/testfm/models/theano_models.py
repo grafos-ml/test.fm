@@ -1,3 +1,4 @@
+from memory_profiler import profile
 from testfm.models.cutil.interface import IModel
 
 __author__ = 'linas'
@@ -28,6 +29,18 @@ try:
     from functools import lru_cache
 except ImportError:
     from backports.functools_lru_cache import lru_cache
+
+
+
+class TheanoTest(IModel):
+
+    @profile
+    def fit(self, training_data):
+        x = T.matrix('x')       # the data is one row per user
+        z = x.shape[0]
+        f = theano.function([x], z)
+        out = f(training_data)
+        return out
 
 
 class TheanoModel(IModel):
@@ -262,36 +275,14 @@ class RBM_CF(TheanoModel):
         return "RBM (n_hidden={0}, learning_rate={1}, training_epochs={2})"\
             .format(self.n_hidden, self.learning_rate, self.training_epochs)
 
-
-    def fit(self, training_data):
+    def fit(self, training_data, batch_size=10):
         '''
         Fits the RBM using training data.
         '''
 
-        csr_matrix, uid_map, iid_map, user_data = self._convert(training_data)
-        self.user_data = user_data
-        self.uid_map = uid_map
-        self.iid_map = iid_map
-
-        training_set_x = theano.shared(csr_matrix, borrow=True, name='training_data')
-        self.train_rbm(training_set_x)
-
-    def train_rbm(self, train_set_x, batch_size=2):
-        """
-        Trains the RBM, given the training data set.
-
-        :param train_set_x: a matrix of user vectors for trainign RBM
-        :param learning_rate: learning rate used for training the RBM
-        :param training_epochs: number of epochs used for training
-        :param batch_size: size of a batch used to train the RBM
-        :param n_chains: number of parallel Gibbs chains to be used for sampling
-        :param n_samples: number of samples to plot for each chain
-
-        """
-
-
+        n_items = len(training_data.item.unique())
         # compute number of minibatches for training, validation and testing
-        n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
+        n_train_batches = len(training_data.user.unique()) / batch_size
 
         logger.debug('traing_rbm: #batches:{}, batch_size:{}'.format(n_train_batches, batch_size))
         # allocate symbolic variables for the data
@@ -301,42 +292,34 @@ class RBM_CF(TheanoModel):
         rng = numpy.random.RandomState(123)
         theano_rng = RandomStreams(rng.randint(2 ** 30))
 
-        # initialize storage for the persistent chain (state = hidden layer of chain)
-        persistent_chain = theano.shared(numpy.zeros((batch_size, self.n_hidden),
-                                                     dtype=theano.config.floatX),
-                                         borrow=True)
-
         # construct the RBM class
         logger.debug('Constructing RBM')
-        self.rbm = RBM(n_visible=train_set_x.get_value(borrow=True).shape[1],
+        self.rbm = RBM(n_visible=n_items,
                        n_hidden=self.n_hidden,
                        input=x,
                        numpy_rng=rng,
                        theano_rng=theano_rng)
 
-
-        # get the cost and the gradient corresponding to one step of CD-15
-        cost, updates = self.rbm.get_cost_updates(lr=self.learning_rate, persistent=persistent_chain, k=self.training_epochs)
-
-        #################################
-        #     Training the RBM          #
-        #################################
-        # it is ok for a theano function to have no output
-        # the purpose of train_rbm is solely to update the RBM parameters
-        logger.debug('Creating training function for rbm')
-        train_rbm = theano.function([index],
-                                    cost,
-                                    updates=updates,
-                                    givens={x: sparse.dense_from_sparse(train_set_x[index * batch_size: (index + 1) * batch_size])},
-                                    name='train_rbm')
+        #gives a theano function to train the RBM
+        train_rbm = self.rbm.train_function(batch_size)
 
         logger.debug('start training')
+
+        csr_matrix, uid_map, iid_map, user_data = self._convert(training_data)
+        self.user_data = user_data
+        self.uid_map = uid_map
+        self.iid_map = iid_map
+
+        training_set_x = theano.shared(csr_matrix, borrow=True, name='training_data')
+
+        print training_set_x.shape.eval(), len(training_data.user.unique()), len(training_data.item.unique())
+
         # go through training epochs
         for epoch in xrange(self.training_epochs):
             # go through the training set
             mean_cost = []
-            for batch_index in xrange(n_train_batches):
-                mean_cost += [train_rbm(batch_index)]
+            for index in xrange(n_train_batches):
+                mean_cost += [train_rbm(sparse.dense_from_sparse(training_set_x[index * batch_size: (index + 1) * batch_size]).eval())]
             logger.debug('Training epoch {}, cost is {}'.format(epoch, numpy.mean(mean_cost)))
 
     @lru_cache(maxsize=100)
@@ -528,6 +511,23 @@ class RBM(object):
         return [pre_sigmoid_h1, h1_mean, h1_sample,
                 pre_sigmoid_v1, v1_mean, v1_sample]
 
+    def train_function(self, batch_size):
+        # initialize storage for the persistent chain (state = hidden layer of chain)
+        persistent_chain = theano.shared(numpy.zeros((batch_size, self.n_hidden), dtype=theano.config.floatX), borrow=True)
+        # get the cost and the gradient corresponding to one step of CD-15
+        cost, updates = self.get_cost_updates(lr=self.learning_rate, persistent=persistent_chain, k=self.training_epochs)
+        #################################
+        #     Training the RBM          #
+        #################################
+        # it is ok for a theano function to have no output
+        # the purpose of train_rbm is solely to update the RBM parameters
+        logger.debug('Creating training function for rbm')
+        train_rbm = theano.function([self.input],
+                                    cost,
+                                    updates=updates,
+                                    name='train_rbm')
+        return train_rbm
+
     def get_cost_updates(self, lr=0.1, persistent=None, k=1):
         """This functions implements one step of CD-k or PCD-k
 
@@ -576,8 +576,7 @@ class RBM(object):
         # not that we only need the sample at the end of the chain
         chain_end = nv_samples[-1]
 
-        cost = T.mean(self.free_energy(self.input)) - T.mean(
-            self.free_energy(chain_end))
+        cost = T.mean(self.free_energy(self.input)) - T.mean(self.free_energy(chain_end))
         # We must not compute the gradient through the gibbs sampling
         gparams = T.grad(cost, self.params, consider_constant=[chain_end])
 
