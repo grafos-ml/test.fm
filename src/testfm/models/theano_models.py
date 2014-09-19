@@ -311,7 +311,8 @@ class RBM_CF(TheanoModel):
             # go through the training set
             mean_cost = []
             for index in xrange(n_train_batches):
-                cost = train_rbm(training_set_x[index * batch_size: (index + 1) * batch_size].todense())
+                batch = training_set_x[index * batch_size: (index + 1) * batch_size].todense()
+                cost = train_rbm(batch)
                 mean_cost += [cost]
             logger.debug('Training epoch {}, cost is {}'.format(epoch, numpy.mean(mean_cost)))
 
