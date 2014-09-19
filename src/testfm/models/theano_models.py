@@ -277,7 +277,6 @@ class RBM_CF(TheanoModel):
         '''
         Fits the RBM using training data.
         '''
-
         n_items = len(training_data.item.unique())
         # compute number of minibatches for training, validation and testing
         n_train_batches = len(training_data.user.unique()) / batch_size
@@ -301,23 +300,19 @@ class RBM_CF(TheanoModel):
         #gives a theano function to train the RBM
         train_rbm = self.rbm.train_function(batch_size)
 
-        logger.debug('start training')
-
-        csr_matrix, uid_map, iid_map, user_data = self._convert(training_data)
+        training_set_x, uid_map, iid_map, user_data = self._convert(training_data)
         self.user_data = user_data
         self.uid_map = uid_map
         self.iid_map = iid_map
 
-        training_set_x = theano.shared(csr_matrix, borrow=True, name='training_data')
-
-        print training_set_x.shape.eval(), len(training_data.user.unique()), len(training_data.item.unique())
-
+        logger.debug('start training')
         # go through training epochs
         for epoch in xrange(self.training_epochs):
             # go through the training set
             mean_cost = []
             for index in xrange(n_train_batches):
-                mean_cost += [train_rbm(sparse.dense_from_sparse(training_set_x[index * batch_size: (index + 1) * batch_size]).eval())]
+                cost = train_rbm(training_set_x[index * batch_size: (index + 1) * batch_size].todense())
+                mean_cost += [cost]
             logger.debug('Training epoch {}, cost is {}'.format(epoch, numpy.mean(mean_cost)))
 
     @lru_cache(maxsize=100)
