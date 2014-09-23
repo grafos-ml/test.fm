@@ -15,6 +15,7 @@ import theano
 from theano import tensor as T
 from theano.tensor.shared_randomstreams import RandomStreams
 from theano import sparse
+from theano.sparse.type import SparseType
 import logging
 from scipy.sparse import dok_matrix
 from testfm.models.cutil.interface import IModel
@@ -57,7 +58,7 @@ class TheanoModel(IModel):
         uid_map = {user: id for id, user in enumerate(training_data.user.unique())}
         users = {user: set(entries) for user, entries in training_data.groupby('user')['item']}
 
-        S = dok_matrix((len(uid_map), len(iid_map)), dtype=float)
+        S = dok_matrix((len(uid_map), len(iid_map)), dtype=numpy.float32)
 
         #train_set_x = numpy.zeros((len(uid_map), len(iid_map)))
         for user, items in users.items():
@@ -231,8 +232,6 @@ class DBN_RBM_CF(TheanoModel):
         return test_x.eval()
 
 
-
-
 class RBM_CF(TheanoModel):
     """
     Restricted Boltzmann Machines (RBM) is used in the CF as one of the most successful model
@@ -308,7 +307,7 @@ class RBM_CF(TheanoModel):
         self.iid_map = iid_map
 
         #lets allocate memory, so we don't need to allocate all the time
-        memory_array = numpy.zeros((batch_size, n_items))
+        memory_array = numpy.zeros((batch_size, n_items), dtype=numpy.float32)
 
         logger.debug('start training')
         # go through training epochs
@@ -347,6 +346,61 @@ class RBM_CF(TheanoModel):
         presig_hids, hid_mfs, hid_samples, presig_vis, vis_mfs, vis_samples = self.rbm.gibbs_vhv(test_x)
 
         return vis_mfs.eval()
+
+
+class RBM_Sparse_CF(RBM_CF):
+
+    def get_name(self):
+        return "RBM_sparse (n_hidden={0}, learning_rate={1}, training_epochs={2})"\
+            .format(self.n_hidden, self.learning_rate, self.training_epochs)
+
+    def fit(self, training_data, batch_size=10):
+        '''
+        RBM for CF using sparse implementation.
+        '''
+
+        n_items = len(training_data.item.unique())
+        # compute number of minibatches for training, validation and testing
+        n_train_batches = len(training_data.user.unique()) / batch_size
+
+        logger.debug('traing_rbm: #batches:{}, batch_size:{}'.format(n_train_batches, batch_size))
+        # allocate symbolic variables for the data
+        index = T.lscalar()    # index to a [mini]batch
+        #x = T.matrix('x')  # the data is presented as user vector per each row
+        x = sparse.csc_matrix(name='x', dtype='float32')
+
+        rng = numpy.random.RandomState(123)
+        theano_rng = RandomStreams(rng.randint(2 ** 30))
+
+        # construct the RBM class
+        logger.debug('Constructing RBM')
+        self.rbm = RBM_sparse(n_visible=n_items,
+                       n_hidden=self.n_hidden,
+                       input=x,
+                       numpy_rng=rng,
+                       theano_rng=theano_rng)
+
+        #gives a theano function to train the RBM
+        train_rbm = self.rbm.train_function(batch_size)
+
+        training_set_x, uid_map, iid_map, user_data = self._convert(training_data)
+        self.user_data = user_data
+        self.uid_map = uid_map
+        self.iid_map = iid_map
+
+        #lets allocate memory, so we don't need to allocate all the time
+        memory_array = numpy.zeros((batch_size, n_items))
+
+        logger.debug('start training')
+        # go through training epochs
+        for epoch in xrange(self.training_epochs):
+            # go through the training set
+            mean_cost = []
+            for index in xrange(n_train_batches):
+                batch = training_set_x[index * batch_size: (index + 1) * batch_size]
+                cost = train_rbm(batch)
+                mean_cost += [cost]
+            logger.debug('Training epoch {}, cost is {}'.format(epoch, numpy.mean(mean_cost)))
 
 class RBM(object):
     """
@@ -594,8 +648,7 @@ class RBM(object):
             monitoring_cost = self.get_pseudo_likelihood_cost(updates)
         else:
             # reconstruction cross-entropy is a better proxy for CD
-            monitoring_cost = self.get_reconstruction_cost(updates,
-                                                           pre_sigmoid_nvs[-1])
+            monitoring_cost = self.get_reconstruction_cost(updates, pre_sigmoid_nvs[-1])
 
         return monitoring_cost, updates
 
@@ -665,6 +718,58 @@ class RBM(object):
 
         return cross_entropy
 
+class RBM_sparse(RBM):
+
+    def propup(self, vis):
+        '''This function propagates the visible units activation upwards to
+        the hidden units
+
+        Note that we return also the pre-sigmoid activation of the
+        layer. As it will turn out later, due to how Theano deals with
+        optimizations, this symbolic variable will be needed to write
+        down a more stable computational graph (see details in the
+        reconstruction cost function)
+
+        '''
+
+        if isinstance(vis.type, SparseType):
+            pre_sigmoid_activation = sparse.dot(vis, self.W) + self.hbias
+        else:
+            pre_sigmoid_activation = T.dot(vis, self.W) + self.hbias
+        return [pre_sigmoid_activation, T.nnet.sigmoid(pre_sigmoid_activation)]
+
+
+    def free_energy(self, v_sample):
+        ''' Function to compute the free energy '''
+        if isinstance(v_sample.type, SparseType):
+            wx_b = sparse.dot(v_sample, self.W) + self.hbias
+            vbias_term = sparse.dot(v_sample, self.vbias)
+            hidden_term = T.sum(T.log(1 + T.exp(wx_b)), axis=1)
+        else:
+            wx_b = T.dot(v_sample, self.W) + self.hbias
+            vbias_term = T.dot(v_sample, self.vbias)
+            hidden_term = T.sum(T.log(1 + T.exp(wx_b)), axis=1)
+        return -hidden_term - vbias_term
+
+    def get_reconstruction_cost(self, updates, pre_sigmoid_nv):
+        #I was lazy to implement the sparse version, so just return a constant
+        z = T.constant(1.5)
+        return z
+
+    def train_function(self, batch_size):
+        # get the cost and the gradient corresponding to one step of CD-15
+        cost, updates = self.get_cost_updates(lr=self.learning_rate, k=self.training_epochs)
+        #################################
+        #     Training the RBM          #
+        #################################
+        # it is ok for a theano function to have no output
+        # the purpose of train_rbm is solely to update the RBM parameters
+        logger.debug('Creating training function for rbm')
+        train_rbm = theano.function([self.input],
+                                    cost,
+                                    updates=updates,
+                                    name='train_rbm')
+        return train_rbm
 
 class DBN(object):
     """Deep Belief Network
