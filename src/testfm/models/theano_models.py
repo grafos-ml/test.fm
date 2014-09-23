@@ -21,7 +21,9 @@ from testfm.models.cutil.interface import IModel
 
 
 logger = logging.getLogger('testfm.models.theano_models')
-logging.basicConfig()
+logging.basicConfig(
+    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
+)
 logger.setLevel(logging.DEBUG)
 
 try:
@@ -305,13 +307,19 @@ class RBM_CF(TheanoModel):
         self.uid_map = uid_map
         self.iid_map = iid_map
 
+        #lets allocate memory, so we don't need to allocate all the time
+        memory_array = numpy.zeros((batch_size, n_items))
+
         logger.debug('start training')
         # go through training epochs
         for epoch in xrange(self.training_epochs):
             # go through the training set
             mean_cost = []
             for index in xrange(n_train_batches):
-                batch = training_set_x[index * batch_size: (index + 1) * batch_size].todense()
+                if index != n_train_batches - 1: #when we have full batch, we can reuse the memory allocated before
+                    batch = training_set_x[index * batch_size: (index + 1) * batch_size].todense(out=memory_array)
+                else:
+                    batch = training_set_x[index * batch_size: (index + 1) * batch_size].todense()
                 cost = train_rbm(batch)
                 mean_cost += [cost]
             logger.debug('Training epoch {}, cost is {}'.format(epoch, numpy.mean(mean_cost)))

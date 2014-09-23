@@ -23,9 +23,9 @@ if __name__ == "__main__":
 
     #tell me what models we want to evaluate
     models = [
+        RBM_CF(n_hidden=20),
         RandomModel(),
         dA_CF(n_hidden=20, corruption_level=0.0),
-        RBM_CF(n_hidden=20),
         DBN_RBM_CF(hidden_layers_sizes=[20, 15, 12, 10, 8]),
         BPR(dim=20),
         TFIDFModel("title"),
