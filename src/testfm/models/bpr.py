@@ -3,10 +3,12 @@ Created on 12 February 2014
 
 
 
-.. moduleauthor:: Alexandros
+.. moduleauthor:: Alexandros Karatzoglou
 """
 
 __author__ = "alexis"
+
+
 
 import numpy as np
 import random
@@ -15,12 +17,12 @@ from testfm.models.cutil.interface import IModel
 
 class BPR(IModel):
 
-    def __init__(self, eta=0.001, reg=0.0001, dim=10, n_iter=15):
+    def __init__(self, eta=0.03, reg=0.0001, dim=20, n_iter=30):
         self.set_params(eta, reg, dim, n_iter)
         self.U = {}
         self.M = {}
 
-    def set_params(self, eta=0.01, reg=0.0001, dim=10, n_iter=15):
+    def set_params(self, eta=0.03, reg=0.0001, dim=20, n_iter=25):
         """
         Set the parameters for the BPR model
         """
@@ -37,8 +39,8 @@ class BPR(IModel):
         Return parameter details for dim, nIter, reg, eta
         """
         return {
-                "dim": (10, 20, 4, 20),
-                "n_iter": (10, 15, 3, 15),
+                "dim": (10, 40, 4, 20),
+                "n_iter": (10, 35, 3, 15),
                 "reg": (0.0001, 0.01, .001, .0001),
                 "eta": (0.01, 0.08, 0.005, 0.03)
         }
@@ -66,13 +68,13 @@ class BPR(IModel):
         hscore = np.dot(u, m) - np.dot(u, m_neg)
         ploss = self.compute_partial_loss(0, hscore)
         # update user
-        u += self._eta * ((ploss * (m - m_neg)) + self._reg * u)
+        u -= self._eta * ((ploss * (m - m_neg)) - self._reg * u)
 
         #update positive item
-        m += self._eta*((ploss * u) + self._reg * m)
+        m -= self._eta*((ploss * u) - self._reg * m)
 
         #update negative item
-        m_neg += self._eta*((ploss * (-u)) +  self._reg* m_neg)
+        m_neg -= self._eta*((ploss * (-u)) -  self._reg* m_neg)
 
         self.U[row["user"]] = u
         self.M[row["item"]] = m
@@ -99,8 +101,8 @@ class BPR(IModel):
         :param score:
         :return:
         """
-        exponential = np.exp(- score)
-        return exponential/(1.0 + exponential)
+        exponential =  np.exp(-score)
+        return - exponential/(1.0 + exponential)
 
     def _init_vector(self):
         return np.random.normal(0, 2.5/self._dim, size=self._dim)
